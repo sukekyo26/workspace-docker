@@ -9,7 +9,16 @@ services:
         - GID={{GID}}
     user: "{{UID}}:{{GID}}"
     volumes:
+      # ワークスペース
       - .:/home/{{USERNAME}}/workspace
+
+      # 開発ツール（永続化）
+      - pyenv-versions:/home/{{USERNAME}}/.pyenv/versions
+      - pip-cache:/home/{{USERNAME}}/.cache/pip
     ports:
       - "3000:3000"
     tty: true
+
+volumes:
+  pyenv-versions:
+  pip-cache:
