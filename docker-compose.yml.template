@@ -1,0 +1,15 @@
+services:
+  {{CONTAINER_SERVICE_NAME}}:
+    container_name: {{CONTAINER_SERVICE_NAME}}
+    build:
+      context: .
+      args:
+        - USERNAME={{USERNAME}}
+        - UID={{UID}}
+        - GID={{GID}}
+    user: "{{UID}}:{{GID}}"
+    volumes:
+      - .:/home/{{USERNAME}}/workspace
+    ports:
+      - "3000:3000"
+    tty: true
