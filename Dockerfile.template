@@ -26,6 +26,7 @@ RUN apt update -y && \
         libxmlsec1-dev \
         libffi-dev \
         liblzma-dev \
+        bash-completion \
     && rm -rf /var/lib/apt/lists/*
 
 # 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
@@ -39,6 +40,17 @@ RUN userdel -r ubuntu 2>/dev/null || true && \
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
+
+# Enable bash completion
+RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bashrc && \
+    echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \
+    echo 'fi' >> ~/.bashrc
+
+# Custom PS1 with git status, exit code, and virtualenv
+RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
+    echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \
+    echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
+    echo 'PS1='"'"'$(ret=$?; if [ $ret -eq 0 ]; then echo "\\[\\033[01;32m\\]✓"; else echo "\\[\\033[01;31m\\]✗($ret)"; fi)\\[\\033[00m\\] \\[\\033[01;35m\\][🐳 Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
 
 # Install AWS CLI v2
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \

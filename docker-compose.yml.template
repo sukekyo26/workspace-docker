@@ -8,6 +8,8 @@ services:
         - UID={{UID}}
         - GID={{GID}}
     user: "{{UID}}:{{GID}}"
+    environment:
+      - CONTAINER_SERVICE_NAME={{CONTAINER_SERVICE_NAME}}
     volumes:
       # ワークスペース
       - .:/home/{{USERNAME}}/workspace
