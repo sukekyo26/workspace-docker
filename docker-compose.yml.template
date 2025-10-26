@@ -15,15 +15,12 @@ services:
       # 開発ツール（永続化）
       - pyenv-versions:/home/{{USERNAME}}/.pyenv/versions
       - pip-cache:/home/{{USERNAME}}/.cache/pip
-      - volta:/home/{{USERNAME}}/.volta
+      - volta-tools:/home/{{USERNAME}}/.volta/tools
       - npm-cache:/home/{{USERNAME}}/.npm
 
       # 個人設定（読み取り専用）
       - ~/.aws:/home/{{USERNAME}}/.aws:ro
       - ~/.gitconfig:/home/{{USERNAME}}/.gitconfig:ro
-
-      # コマンド履歴
-      - bash-history:/home/{{USERNAME}}/.bash_history
     ports:
       - "3000:3000"
     tty: true
@@ -31,6 +28,5 @@ services:
 volumes:
   pyenv-versions:
   pip-cache:
-  volta:
+  volta-tools:
   npm-cache:
-  bash-history:
