@@ -11,8 +11,13 @@ RUN apt update -y && \
         make \
         sudo \
         vim \
+        nano \
         zip \
         unzip \
+        tree \
+        jq \
+        less \
+        wget \
         build-essential \
         libssl-dev \
         zlib1g-dev \
