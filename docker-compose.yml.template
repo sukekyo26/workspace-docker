@@ -8,8 +8,27 @@ services:
         - UID={{UID}}
         - GID={{GID}}
     user: "{{UID}}:{{GID}}"
+    environment:
+      - CONTAINER_SERVICE_NAME={{CONTAINER_SERVICE_NAME}}
     volumes:
+      # ワークスペース
       - .:/home/{{USERNAME}}/workspace
+
+      # 開発ツール（永続化）
+      - pyenv-versions:/home/{{USERNAME}}/.pyenv/versions
+      - pip-cache:/home/{{USERNAME}}/.cache/pip
+      - volta-tools:/home/{{USERNAME}}/.volta/tools
+      - npm-cache:/home/{{USERNAME}}/.npm
+
+      # 個人設定（読み取り専用）
+      - ~/.aws:/home/{{USERNAME}}/.aws:ro
+      - ~/.gitconfig:/home/{{USERNAME}}/.gitconfig:ro
     ports:
       - "3000:3000"
     tty: true
+
+volumes:
+  pyenv-versions:
+  pip-cache:
+  volta-tools:
+  npm-cache:
