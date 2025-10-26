@@ -17,6 +17,13 @@ services:
       - pip-cache:/home/{{USERNAME}}/.cache/pip
       - volta:/home/{{USERNAME}}/.volta
       - npm-cache:/home/{{USERNAME}}/.npm
+
+      # 個人設定（読み取り専用）
+      - ~/.aws:/home/{{USERNAME}}/.aws:ro
+      - ~/.gitconfig:/home/{{USERNAME}}/.gitconfig:ro
+
+      # コマンド履歴
+      - bash-history:/home/{{USERNAME}}/.bash_history
     ports:
       - "3000:3000"
     tty: true
@@ -26,3 +33,4 @@ volumes:
   pip-cache:
   volta:
   npm-cache:
+  bash-history:
