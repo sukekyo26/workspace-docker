@@ -50,4 +50,9 @@ ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 RUN mkdir -p ${PYENV_ROOT}/versions && \
     chown -R ${UID}:${GID} ${PYENV_ROOT}/versions
 
+# Volta
+RUN curl https://get.volta.sh | bash
+ENV VOLTA_HOME="/home/${USERNAME}/.volta"
+ENV PATH="$VOLTA_HOME/bin:$PATH"
+
 WORKDIR /home/${USERNAME}/workspace

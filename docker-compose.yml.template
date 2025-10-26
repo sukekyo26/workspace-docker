@@ -15,6 +15,8 @@ services:
       # 開発ツール（永続化）
       - pyenv-versions:/home/{{USERNAME}}/.pyenv/versions
       - pip-cache:/home/{{USERNAME}}/.cache/pip
+      - volta:/home/{{USERNAME}}/.volta
+      - npm-cache:/home/{{USERNAME}}/.npm
     ports:
       - "3000:3000"
     tty: true
@@ -22,3 +24,5 @@ services:
 volumes:
   pyenv-versions:
   pip-cache:
+  volta:
+  npm-cache:
