@@ -1,10 +1,34 @@
 # workspace-docker
 
-Dockerを使用した開発環境のワークスペースです。
+Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。
 
 ## 概要
 
-このプロジェクトは、Dockerコンテナ上でUbuntu環境を構築するためのセットアップスクリプトを提供します。
+このプロジェクトは、Dockerコンテナ上でUbuntu開発環境を構築します。pyenv、Volta、AWS CLIなどの開発ツールがプリインストールされ、個人設定やインストール済みのバージョンは永続化されます。
+
+## 前提条件
+
+### Dockerのインストール
+
+このプロジェクトを使用するには、Docker Engineがインストールされている必要があります。
+
+Ubuntuの場合、以下のコマンドで簡単にインストールできます:
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+```
+
+詳細は公式ドキュメントを参照してください:
+https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script
+
+インストール後、現在のユーザーをdockerグループに追加することを推奨します:
+
+```bash
+sudo usermod -aG docker $USER
+```
+
+※ グループ変更を反映するには、再ログインが必要です。
 
 ## 必要なファイル
 
