@@ -12,7 +12,7 @@ services:
       - CONTAINER_SERVICE_NAME={{CONTAINER_SERVICE_NAME}}
     volumes:
       # ワークスペース
-      - .:/home/{{USERNAME}}/workspace
+      - ..:/home/{{USERNAME}}/workspace
 
       # 開発ツール（永続化）
       - pyenv-versions:/home/{{USERNAME}}/.pyenv/versions
