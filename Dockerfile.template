@@ -61,7 +61,7 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
 
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 USER root
-RUN apt-get update  && \
+RUN apt-get update && \
     apt-get install -y ca-certificates gnupg lsb-release && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
