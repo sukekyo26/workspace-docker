@@ -51,13 +51,11 @@ RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bash
     echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \
     echo 'fi' >> ~/.bashrc
 
-# Custom PS1 with git status, exit code, and virtualenv
+# Custom PS1 with git status
 RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
-    echo '__prompt_command() { local ret=$?; history -a; [[ -z "$LAST_HISTCMD" ]] && LAST_HISTCMD=0; if (( HISTCMD == LAST_HISTCMD )); then LAST_EXIT=0; else LAST_EXIT=$ret; fi; LAST_HISTCMD=$HISTCMD; }' >> ~/.bashrc && \
-    echo 'PROMPT_COMMAND="__prompt_command"' >> ~/.bashrc && \
-    echo 'PS1='"'"'$(if [ $LAST_EXIT -eq 0 ]; then echo "\\[\\033[01;32m\\]✓"; else echo "\\[\\033[01;31m\\]✗($LAST_EXIT)"; fi)\\[\\033[00m\\] \\[\\033[01;35m\\][🐳 Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
+    echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
 
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 USER root
