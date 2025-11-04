@@ -51,7 +51,7 @@ RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bash
     echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \
     echo 'fi' >> ~/.bashrc
 
-# Custom PS1 with git status
+# Custom PS1 with Docker container name, user/host, working directory, and git status
 RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
