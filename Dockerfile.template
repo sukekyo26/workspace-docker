@@ -104,6 +104,13 @@ RUN mkdir -p ${PYENV_ROOT}/versions \
     ~/.cache/pypoetry \
     ~/.config/pypoetry \
     ~/.volta/tools \
-    ~/.npm
+    ~/.npm \
+    ~/.docker_history
+
+# Setup persistent bash history
+RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \
+    echo 'export HISTSIZE=10000' >> ~/.bashrc && \
+    echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \
+    touch ~/.docker_history/.bash_history_docker
 
 WORKDIR /home/${USERNAME}/workspace
