@@ -32,6 +32,7 @@ RUN apt update -y && \
         libffi-dev \
         liblzma-dev \
         bash-completion \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
@@ -87,6 +88,11 @@ RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && \
 ENV PYENV_ROOT=/home/${USERNAME}/.pyenv
 ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 
+# Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+
 # Volta
 RUN curl https://get.volta.sh | bash
 ENV VOLTA_HOME="/home/${USERNAME}/.volta"
@@ -95,6 +101,8 @@ ENV PATH="$VOLTA_HOME/bin:$PATH"
 # create volume mount directories for permission
 RUN mkdir -p ${PYENV_ROOT}/versions \
     ~/.cache/pip \
+    ~/.cache/pypoetry \
+    ~/.config/pypoetry \
     ~/.volta/tools \
     ~/.npm
 
