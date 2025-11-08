@@ -33,6 +33,16 @@ if [ ! -f "Dockerfile.template" ]; then
     exit 1
 fi
 
+if [ ! -f ".devcontainer/devcontainer.json.template" ]; then
+    echo -e "${RED}ERROR:${NC} .devcontainer/devcontainer.json.template not found"
+    exit 1
+fi
+
+if [ ! -f ".devcontainer/docker-compose.yml.template" ]; then
+    echo -e "${RED}ERROR:${NC} .devcontainer/docker-compose.yml.template not found"
+    exit 1
+fi
+
 # Generate docker-compose.yml and Dockerfile
 echo "Generating docker-compose.yml..."
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
@@ -44,11 +54,21 @@ sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
 echo "Generating Dockerfile..."
 cp Dockerfile.template Dockerfile
 
+echo "Generating .devcontainer/devcontainer.json..."
+sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
+    -e "s/{{USERNAME}}/$username/g" \
+    .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
+
+echo "Generating .devcontainer/docker-compose.yml..."
+sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
+    -e "s/{{USERNAME}}/$username/g" \
+    .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
+
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo "Container service name: $container_service_name"
 echo "Username: $username"
 echo "UID/GID: $uid/$gid (automatically detected)"
-echo "Dockerfile and docker-compose.yml have been generated"
+echo "Dockerfile, docker-compose.yml, .devcontainer/devcontainer.json and .devcontainer/docker-compose.yml have been generated"
 echo ""
 echo "You can build the Docker image with the following command:"
 echo -e "  ${YELLOW}docker compose${NC} build"

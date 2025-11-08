@@ -62,6 +62,8 @@ bash setup-docker.sh
 3. **ファイル生成確認**
    - `Dockerfile` - Dockerfileのテンプレートから生成
    - `docker-compose.yml` - docker-compose.ymlのテンプレートから生成
+   - `.devcontainer/devcontainer.json` - VS Code Dev Container設定（テンプレートから生成）
+   - `.devcontainer/docker-compose.yml` - Dev Container用docker-compose設定（テンプレートから生成）
 
 ### 開発環境の起動方法
 
@@ -138,7 +140,7 @@ node app.js
 
 ### 開発ツール
 
-| ツール | 用途 | バージョン管理 |
+| ツール | 用途 | 備考 |
 |--------|------|----------------|
 | **uv** | Python パッケージ・バージョン管理 | Python 3.8+ |
 | **Volta** | Node.js バージョン管理 | Node.js, npm, yarn, pnpm |
@@ -206,7 +208,7 @@ node app.js
 ### ファイル管理
 
 - **テンプレートファイル必須**: `*.template` ファイルが必要です
-- **生成ファイル**: `Dockerfile`、`docker-compose.yml` は Git 管理から除外を推奨
+- **生成ファイル**: `Dockerfile`、`docker-compose.yml`、`.devcontainer/devcontainer.json`、`.devcontainer/docker-compose.yml` は Git 管理から除外を推奨（自動生成されます）
 - **永続化データ**: Docker ボリュームのデータは `docker compose down --volumes` で削除されます
 
 ### 開発環境
@@ -227,4 +229,5 @@ node app.js
 - `setup-docker.sh` - セットアップスクリプト
 - `Dockerfile.template` - Dockerfileのテンプレート
 - `docker-compose.yml.template` - docker-compose.ymlのテンプレート
-- `.devcontainer/` - VS Code Dev Container 設定（オプション）
+- `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート
+- `.devcontainer/docker-compose.yml.template` - Dev Container用docker-compose設定のテンプレート
