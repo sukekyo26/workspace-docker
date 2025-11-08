@@ -57,7 +57,6 @@ bash setup-docker.sh
 2. **必要情報の入力**
    - コンテナ/サービス名
    - ユーザー名
-   - UID/GID（自動取得）
 
 3. **ファイル生成確認**
    - `Dockerfile` - Dockerfileのテンプレートから生成
@@ -221,7 +220,7 @@ node app.js
 ### トラブルシューティング
 
 - **権限エラー**: UID/GID が正しく設定されているか確認
-- **Docker 接続エラー**: `group_add: ["989"]` でホストのDockerグループに参加
+- **Docker 接続エラー**: Docker GIDが自動検出されているか確認。`getent group docker | cut -d: -f3`コマンドでホストのDocker GIDを確認できます
 - **ボリューム問題**: `docker volume ls` でボリューム状態を確認
 
 ## 必要なファイル

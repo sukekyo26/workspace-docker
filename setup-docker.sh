@@ -22,6 +22,20 @@ read -p "Enter Ubuntu on Docker username: " username
 uid=$(id -u)
 gid=$(id -g)
 
+# Automatically get Docker socket GID (host's Docker group GID)
+if [ -S /var/run/docker.sock ]; then
+    # Docker socket exists, get its group ID
+    docker_gid=$(stat -c '%g' /var/run/docker.sock)
+else
+    # Fallback to docker group if socket doesn't exist
+    docker_gid=$(getent group docker | cut -d: -f3)
+    if [ -z "$docker_gid" ]; then
+        echo -e "${RED}ERROR:${NC} Docker socket not found and Docker group not found. Please install Docker first."
+        exit 1
+    fi
+    echo -e "${YELLOW}WARNING:${NC} Docker socket not found. Using docker group GID: $docker_gid"
+fi
+
 # Check if template files exist
 if [ ! -f "docker-compose.yml.template" ]; then
     echo -e "${RED}ERROR:${NC} docker-compose.yml.template not found"
@@ -62,12 +76,14 @@ sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
 echo "Generating .devcontainer/docker-compose.yml..."
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
     -e "s/{{USERNAME}}/$username/g" \
+    -e "s/{{DOCKER_GID}}/$docker_gid/g" \
     .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
 
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo "Container service name: $container_service_name"
 echo "Username: $username"
 echo "UID/GID: $uid/$gid (automatically detected)"
+echo "Docker GID: $docker_gid (automatically detected)"
 echo "Dockerfile, docker-compose.yml, .devcontainer/devcontainer.json and .devcontainer/docker-compose.yml have been generated"
 echo ""
 echo "You can build the Docker image with the following command:"

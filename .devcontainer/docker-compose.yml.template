@@ -18,10 +18,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
     # Add host's docker group GID to allow socket access.
-    # IMPORTANT: Replace "989" below with your host's Docker group GID.
-    # You can find it by running: getent group docker | cut -d: -f3
+    # This is automatically detected and set by setup-docker.sh
     group_add:
-      - "989"
+      - "{{DOCKER_GID}}"
 
     # Uncomment the next four lines if you will use a ptrace-based debugger like C++, Go, and Rust.
     # cap_add:
