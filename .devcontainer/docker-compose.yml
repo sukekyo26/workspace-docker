@@ -17,7 +17,9 @@ services:
       # Mount host Docker socket to use host's Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock
 
-    # Add host's docker group GID to allow socket access
+    # Add host's docker group GID to allow socket access.
+    # IMPORTANT: Replace "989" below with your host's Docker group GID.
+    # You can find it by running: getent group docker | cut -d: -f3
     group_add:
       - "989"
 
