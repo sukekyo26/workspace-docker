@@ -15,10 +15,9 @@ services:
       - ..:/home/{{USERNAME}}/workspace
 
       # 開発ツール（永続化）
-      - pyenv-versions:/home/{{USERNAME}}/.pyenv/versions
       - pip-cache:/home/{{USERNAME}}/.cache/pip
-      - poetry-cache:/home/{{USERNAME}}/.cache/pypoetry
-      - poetry-config:/home/{{USERNAME}}/.config/pypoetry
+      - uv-cache:/home/{{USERNAME}}/.cache/uv
+      - uv-python:/home/{{USERNAME}}/.local/share/uv
       - volta-tools:/home/{{USERNAME}}/.volta/tools
       - npm-cache:/home/{{USERNAME}}/.npm
 
@@ -33,10 +32,9 @@ services:
     tty: true
 
 volumes:
-  pyenv-versions:
   pip-cache:
-  poetry-cache:
-  poetry-config:
+  uv-cache:
+  uv-python:
   volta-tools:
   npm-cache:
   bash-history:
