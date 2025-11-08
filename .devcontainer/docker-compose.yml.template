@@ -13,14 +13,14 @@ services:
 
     volumes:
       # Update this to wherever you want VS Code to mount the folder of your project
-      - ..:/home/{{USERNAME}}/workspace:cached
+      - ..:/home/${USERNAME}/workspace:cached
       # Mount host Docker socket to use host's Docker daemon
       - /var/run/docker.sock:/var/run/docker.sock
 
     # Add host's docker group GID to allow socket access.
     # This is automatically detected and set by setup-docker.sh
     group_add:
-      - "{{DOCKER_GID}}"
+      - "${DOCKER_GID}"
 
     # Uncomment the next four lines if you will use a ptrace-based debugger like C++, Go, and Rust.
     # cap_add:

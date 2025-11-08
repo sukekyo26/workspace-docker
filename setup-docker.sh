@@ -114,10 +114,8 @@ fi
 
 # Generate docker-compose.yml and Dockerfile
 echo "Generating docker-compose.yml..."
+# Service name must be static, but other values can use .env
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    -e "s/{{USERNAME}}/$username/g" \
-    -e "s/{{UID}}/$uid/g" \
-    -e "s/{{GID}}/$gid/g" \
     docker-compose.yml.template > docker-compose.yml
 
 echo "Generating Dockerfile..."
@@ -129,9 +127,8 @@ sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
     .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
 
 echo "Generating .devcontainer/docker-compose.yml..."
+# Service name must be static, but other values can use .env
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    -e "s/{{USERNAME}}/$username/g" \
-    -e "s/{{DOCKER_GID}}/$docker_gid/g" \
     .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
 
 # Create .envs directory if it doesn't exist

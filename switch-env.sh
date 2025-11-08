@@ -61,6 +61,20 @@ fi
 # Switch symlink
 ln -sf .envs/$container_service_name.env .env
 
+# Read environment variables from the new .env file for devcontainer.json
+CONTAINER_SERVICE_NAME=$(grep '^CONTAINER_SERVICE_NAME=' .env | cut -d'=' -f2)
+USERNAME_ENV=$(grep '^USERNAME=' .env | cut -d'=' -f2)
+
+# Regenerate .devcontainer files
+echo "Regenerating .devcontainer/devcontainer.json..."
+sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
+    -e "s/{{USERNAME}}/$USERNAME_ENV/g" \
+    .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
+
+echo "Regenerating .devcontainer/docker-compose.yml..."
+sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
+    .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
+
 echo -e "${GREEN}=== Environment Switched ===${NC}"
 if [ -n "$current_env" ]; then
     echo "From: $current_env"
@@ -69,9 +83,13 @@ echo "To:   $container_service_name"
 echo ""
 echo "Environment variables loaded from: .envs/$container_service_name.env"
 echo ""
+echo "Regenerated files:"
+echo "  - .devcontainer/devcontainer.json"
+echo "  - .devcontainer/docker-compose.yml"
+echo ""
 echo "To apply changes, rebuild and restart the container:"
 echo -e "  ${YELLOW}docker compose down${NC}"
 echo -e "  ${YELLOW}docker compose build --no-cache${NC}"
 echo -e "  ${YELLOW}docker compose up -d${NC}"
 echo ""
-echo -e "${RED}IMPORTANT:${NC} Rebuild is required because USERNAME has changed"
+echo -e "${RED}IMPORTANT:${NC} Rebuild is required because USERNAME may have changed"

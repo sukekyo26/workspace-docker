@@ -95,6 +95,8 @@ bash setup-docker.sh
    - `.envs/<service_name>.env` - 環境変数ファイル（サービス名ごとに管理）
    - `.env` - `.envs/<service_name>.env`へのシンボリックリンク
 
+   > **環境切り替え時**: `switch-env.sh`を使用すると、`.env`のシンボリックリンクとともに`.devcontainer`ファイルも自動的に再生成されます
+
 ### 環境変数ファイル（.env）の管理
 
 セットアップスクリプトは、コンテナサービス名ごとに`.envs/<service_name>.env`ファイルを生成します。
@@ -116,6 +118,8 @@ bash switch-env.sh prod   # prodサービスに切り替え
 
 # または、引数なしで対話的に選択
 bash switch-env.sh
+
+# 注意: スクリプトは自動的に.devcontainerファイルも再生成します
 
 # 使用するサービスを切り替え（方法2: 手動でシンボリックリンクを変更）
 ln -sf .envs/dev.env .env    # devサービスに切り替え
