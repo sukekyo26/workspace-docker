@@ -79,13 +79,10 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     sudo ./aws/install && \
     rm -rf aws awscliv2.zip
 
-# pyenv
-RUN curl https://pyenv.run | bash
-RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && \
-    echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc && \
-    echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
-ENV PYENV_ROOT=/home/${USERNAME}/.pyenv
-ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+# uv (Python package manager and version manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
 # Volta
 RUN curl https://get.volta.sh | bash
@@ -93,9 +90,19 @@ ENV VOLTA_HOME="/home/${USERNAME}/.volta"
 ENV PATH="$VOLTA_HOME/bin:$PATH"
 
 # create volume mount directories for permission
-RUN mkdir -p ${PYENV_ROOT}/versions \
-    ~/.cache/pip \
+RUN mkdir -p ~/.cache/pip \
+    ~/.cache/uv \
+    ~/.local/share/uv \
     ~/.volta/tools \
-    ~/.npm
+    ~/.npm \
+    ~/.cache/pnpm \
+    ~/.local/share/pnpm \
+    ~/.docker_history
+
+# Setup persistent bash history
+RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \
+    echo 'export HISTSIZE=10000' >> ~/.bashrc && \
+    echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \
+    mkdir -p ~/.docker_history && touch ~/.docker_history/.bash_history_docker
 
 WORKDIR /home/${USERNAME}/workspace

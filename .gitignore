@@ -1,3 +1,5 @@
 # Generated files
-Dockerfile
-docker-compose.yml
+/Dockerfile
+/docker-compose.yml
+/.devcontainer/devcontainer.json
+/.devcontainer/docker-compose.yml
