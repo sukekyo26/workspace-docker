@@ -95,6 +95,8 @@ RUN mkdir -p ~/.cache/pip \
     ~/.local/share/uv \
     ~/.volta/tools \
     ~/.npm \
+    ~/.cache/pnpm \
+    ~/.local/share/pnpm \
     ~/.docker_history
 
 # Setup persistent bash history
