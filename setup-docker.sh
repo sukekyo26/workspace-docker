@@ -123,12 +123,37 @@ sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
     -e "s/{{DOCKER_GID}}/$docker_gid/g" \
     .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
 
+# Create .envs directory if it doesn't exist
+mkdir -p .envs
+
+# Generate .env file for this service
+echo "Generating .envs/$container_service_name.env..."
+cat > .envs/$container_service_name.env << EOF
+# Environment variables for $container_service_name
+# Generated on $(date)
+
+CONTAINER_SERVICE_NAME=$container_service_name
+USERNAME=$username
+UID=$uid
+GID=$gid
+DOCKER_GID=$docker_gid
+EOF
+
+# Create symlink to .env for docker compose to use
+ln -sf .envs/$container_service_name.env .env
+
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo "Container service name: $container_service_name"
 echo "Username: $username"
 echo "UID/GID: $uid/$gid (automatically detected)"
 echo "Docker GID: $docker_gid (automatically detected)"
-echo "Dockerfile, docker-compose.yml, .devcontainer/devcontainer.json and .devcontainer/docker-compose.yml have been generated"
+echo ""
+echo "Generated files:"
+echo "  - Dockerfile"
+echo "  - docker-compose.yml"
+echo "  - .devcontainer/devcontainer.json"
+echo "  - .devcontainer/docker-compose.yml"
+echo "  - .envs/$container_service_name.env (linked to .env)"
 echo ""
 echo "You can build the Docker image with the following command:"
 echo -e "  ${YELLOW}docker compose${NC} build"

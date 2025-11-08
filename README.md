@@ -70,6 +70,46 @@ bash setup-docker.sh
    - `docker-compose.yml` - docker-compose.ymlのテンプレートから生成
    - `.devcontainer/devcontainer.json` - VS Code Dev Container設定（テンプレートから生成）
    - `.devcontainer/docker-compose.yml` - Dev Container用docker-compose設定（テンプレートから生成）
+   - `.envs/<service_name>.env` - 環境変数ファイル（サービス名ごとに管理）
+   - `.env` - `.envs/<service_name>.env`へのシンボリックリンク
+
+### 環境変数ファイル（.env）の管理
+
+セットアップスクリプトは、コンテナサービス名ごとに`.envs/<service_name>.env`ファイルを生成します。
+
+#### 複数のコンテナサービスを管理する場合
+
+```bash
+# 1つ目のサービス（例: dev）
+bash setup-docker.sh
+# → .envs/dev.env が生成され、.env → .envs/dev.env のシンボリックリンクが作成される
+
+# 2つ目のサービス（例: prod）
+bash setup-docker.sh
+# → .envs/prod.env が生成され、.env → .envs/prod.env にシンボリックリンクが更新される
+
+# 使用するサービスを切り替え（方法1: スクリプトを使用）
+bash switch-env.sh dev    # devサービスに切り替え
+bash switch-env.sh prod   # prodサービスに切り替え
+
+# または、引数なしで対話的に選択
+bash switch-env.sh
+
+# 使用するサービスを切り替え（方法2: 手動でシンボリックリンクを変更）
+ln -sf .envs/dev.env .env    # devサービスに切り替え
+ln -sf .envs/prod.env .env   # prodサービスに切り替え
+```
+
+#### .envファイルの内容例
+
+```env
+# Environment variables for dev
+CONTAINER_SERVICE_NAME=dev
+USERNAME=devuser
+UID=1000
+GID=1000
+DOCKER_GID=989
+```
 
 ### 開発環境の起動方法
 
@@ -216,8 +256,9 @@ node app.js
 ### ファイル管理
 
 - **テンプレートファイル必須**: `*.template` ファイルが必要です
-- **生成ファイル**: `Dockerfile`、`docker-compose.yml`、`.devcontainer/devcontainer.json`、`.devcontainer/docker-compose.yml` は Git 管理から除外を推奨（自動生成されます）
+- **生成ファイル**: `Dockerfile`、`docker-compose.yml`、`.devcontainer/devcontainer.json`、`.devcontainer/docker-compose.yml`、`.env`、`.envs/` は Git 管理から除外を推奨（自動生成されます）
 - **永続化データ**: Docker ボリュームのデータは `docker compose down --volumes` で削除されます
+- **環境変数**: `.envs/<service_name>.env`でサービスごとに環境変数を管理。`.env`はシンボリックリンクで切り替え可能
 
 ### 開発環境
 
@@ -226,15 +267,45 @@ node app.js
 - **pnpm**: 高速パッケージマネージャ、グローバルストアとキャッシュが永続化
 - **ポート**: デフォルトで 3000 番ポートがフォワードされます
 
+### 環境切り替え時の注意事項
+
+プロジェクトには環境切り替えスクリプト（`switch-env.sh`）がありますが、**ユーザー名（USERNAME）を変更する場合は必ずコンテナの再ビルドが必要**です。
+
+#### 環境切り替え手順
+
+1. **環境を切り替える**
+```bash
+bash switch-env.sh <環境名>
+```
+
+2. **ユーザー名が変更された場合の必須手順**
+```bash
+# コンテナを停止・削除
+docker compose down
+
+# キャッシュなしで再ビルド（重要！）
+docker compose build --no-cache
+
+# 新しい設定で起動
+docker compose up -d
+```
+
+#### 理由
+- Dockerイメージ内でユーザーが作成される際、ビルド時のUSERNAME引数が使用されます
+- 環境変数を変更してもビルドキャッシュが残っている場合、古いユーザー名のままとなります
+- `--no-cache` オプションでキャッシュを無視して完全に再ビルドする必要があります
+
 ### トラブルシューティング
 
 - **権限エラー**: UID/GID が正しく設定されているか確認
 - **Docker 接続エラー**: Docker GIDが自動検出されているか確認。`getent group docker | cut -d: -f3`コマンドでホストのDocker GIDを確認できます
 - **ボリューム問題**: `docker volume ls` でボリューム状態を確認
+- **ユーザー名が古いまま**: 上記の「環境切り替え時の注意事項」を参照してキャッシュなしで再ビルド
 
 ## 必要なファイル
 
 - `setup-docker.sh` - セットアップスクリプト
+- `switch-env.sh` - 環境切り替えスクリプト
 - `Dockerfile.template` - Dockerfileのテンプレート
 - `docker-compose.yml.template` - docker-compose.ymlのテンプレート
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート

@@ -1,35 +1,35 @@
 services:
   {{CONTAINER_SERVICE_NAME}}:
-    container_name: {{CONTAINER_SERVICE_NAME}}
+    container_name: ${CONTAINER_SERVICE_NAME}
     build:
       context: .
       args:
-        - USERNAME={{USERNAME}}
-        - UID={{UID}}
-        - GID={{GID}}
-    user: "{{UID}}:{{GID}}"
+        - USERNAME=${USERNAME}
+        - UID=${UID}
+        - GID=${GID}
+    user: "${UID}:${GID}"
     environment:
-      - CONTAINER_SERVICE_NAME={{CONTAINER_SERVICE_NAME}}
+      - CONTAINER_SERVICE_NAME=${CONTAINER_SERVICE_NAME}
     volumes:
       # ワークスペース
-      - ..:/home/{{USERNAME}}/workspace
+      - ..:/home/${USERNAME}/workspace
 
       # 開発ツール（永続化）
-      - pip-cache:/home/{{USERNAME}}/.cache/pip
-      - uv-cache:/home/{{USERNAME}}/.cache/uv
-      - uv-python:/home/{{USERNAME}}/.local/share/uv
-      - volta-tools:/home/{{USERNAME}}/.volta/tools
-      - npm-cache:/home/{{USERNAME}}/.npm
-      - pnpm-cache:/home/{{USERNAME}}/.cache/pnpm
-      - pnpm-store:/home/{{USERNAME}}/.local/share/pnpm
+      - pip-cache:/home/${USERNAME}/.cache/pip
+      - uv-cache:/home/${USERNAME}/.cache/uv
+      - uv-python:/home/${USERNAME}/.local/share/uv
+      - volta-tools:/home/${USERNAME}/.volta/tools
+      - npm-cache:/home/${USERNAME}/.npm
+      - pnpm-cache:/home/${USERNAME}/.cache/pnpm
+      - pnpm-store:/home/${USERNAME}/.local/share/pnpm
 
       # 個人設定（読み取り専用）
-      - ~/.aws:/home/{{USERNAME}}/.aws:ro
-      - ~/.gitconfig:/home/{{USERNAME}}/.gitconfig:ro
-      - ~/.ssh:/home/{{USERNAME}}/.ssh:ro
+      - ~/.aws:/home/${USERNAME}/.aws:ro
+      - ~/.gitconfig:/home/${USERNAME}/.gitconfig:ro
+      - ~/.ssh:/home/${USERNAME}/.ssh:ro
 
       # bash履歴（永続化）
-      - bash-history:/home/{{USERNAME}}/.docker_history
+      - bash-history:/home/${USERNAME}/.docker_history
     ports:
       - "3000:3000"
     tty: true
