@@ -1,0 +1,7 @@
+# テンプレートファイルを適切な言語に強制指定
+Dockerfile.template linguist-language=Dockerfile
+docker-compose.yml.template linguist-language=YAML
+.devcontainer/docker-compose.yml.template linguist-language=YAML
+.devcontainer/devcontainer.json.template linguist-language=JSON
+
+*.sh linguist-language=Shell
