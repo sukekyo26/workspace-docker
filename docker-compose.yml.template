@@ -26,6 +26,7 @@ services:
       # 個人設定（読み取り専用）
       - ~/.aws:/home/{{USERNAME}}/.aws:ro
       - ~/.gitconfig:/home/{{USERNAME}}/.gitconfig:ro
+      - ~/.ssh:/home/{{USERNAME}}/.ssh:ro
 
       # bash履歴（永続化）
       - bash-history:/home/{{USERNAME}}/.docker_history
