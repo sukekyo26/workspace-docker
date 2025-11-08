@@ -13,10 +13,54 @@ NC='\033[0m'
 echo -e "${GREEN}=== Generate Dockerfile for Ubuntu on Docker ===${NC}"
 
 # Set container service name
-read -p "Enter container service name: " container_service_name
+while true; do
+    read -p "Enter container service name: " container_service_name
+
+    # Check if empty
+    if [ -z "$container_service_name" ]; then
+        echo -e "${RED}ERROR:${NC} Container service name cannot be empty"
+        continue
+    fi
+
+    # Validate container service name (alphanumeric, hyphen, underscore only)
+    if ! [[ "$container_service_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo -e "${RED}ERROR:${NC} Container service name must contain only alphanumeric characters, '-', and '_'"
+        continue
+    fi
+
+    # Check length (max 63 characters for DNS compatibility)
+    if [ ${#container_service_name} -gt 63 ]; then
+        echo -e "${RED}ERROR:${NC} Container service name must be 63 characters or less (current: ${#container_service_name})"
+        continue
+    fi
+
+    break
+done
 
 # Set username
-read -p "Enter Ubuntu on Docker username: " username
+while true; do
+    read -p "Enter Ubuntu on Docker username: " username
+
+    # Check if empty
+    if [ -z "$username" ]; then
+        echo -e "${RED}ERROR:${NC} Username cannot be empty"
+        continue
+    fi
+
+    # Validate username (must start with lowercase letter or underscore)
+    if ! [[ "$username" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
+        echo -e "${RED}ERROR:${NC} Username must start with a lowercase letter or '_', and contain only lowercase letters, numbers, '-', and '_'"
+        continue
+    fi
+
+    # Check length (max 32 characters for Linux compatibility)
+    if [ ${#username} -gt 32 ]; then
+        echo -e "${RED}ERROR:${NC} Username must be 32 characters or less (current: ${#username})"
+        continue
+    fi
+
+    break
+done
 
 # Automatically get UID and GID from current user
 uid=$(id -u)
