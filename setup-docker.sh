@@ -12,6 +12,17 @@ NC='\033[0m'
 
 echo -e "${GREEN}=== Generate Dockerfile for Ubuntu on Docker ===${NC}"
 
+# Check if ~/.gitconfig exists
+if [ ! -f ~/.gitconfig ]; then
+    echo -e "${RED}ERROR:${NC} ~/.gitconfig not found"
+    echo -e "${YELLOW}Please configure Git first:${NC}"
+    echo ""
+    echo "  git config --global user.name \"Your Name\""
+    echo "  git config --global user.email \"your.email@example.com\""
+    echo ""
+    exit 1
+fi
+
 # Set container service name
 while true; do
     read -p "Enter container service name: " container_service_name
