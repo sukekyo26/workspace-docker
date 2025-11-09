@@ -68,8 +68,18 @@ fi
 ln -sf .envs/$container_service_name.env .env
 
 # Read environment variables from the new .env file for devcontainer.json
-CONTAINER_SERVICE_NAME=$(grep '^CONTAINER_SERVICE_NAME=' .env | cut -d'=' -f2)
-USERNAME_ENV=$(grep '^USERNAME=' .env | cut -d'=' -f2)
+CONTAINER_SERVICE_NAME=$(grep '^CONTAINER_SERVICE_NAME=' .env | cut -d'=' -f2-)
+USERNAME_ENV=$(grep '^USERNAME=' .env | cut -d'=' -f2-)
+
+# Validate extracted variables
+if [ -z "$CONTAINER_SERVICE_NAME" ]; then
+    echo -e "${RED}ERROR:${NC} CONTAINER_SERVICE_NAME is missing from .envs/$container_service_name.env"
+    exit 1
+fi
+if [ -z "$USERNAME_ENV" ]; then
+    echo -e "${RED}ERROR:${NC} USERNAME is missing from .envs/$container_service_name.env"
+    exit 1
+fi
 
 # Regenerate .devcontainer files
 echo "Regenerating .devcontainer/devcontainer.json..."
