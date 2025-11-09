@@ -1,61 +1,59 @@
 # workspace-docker
 
-## プロジェクトについて
+A Docker-based Ubuntu development environment template optimized for Python, Node.js, and Docker development with pre-installed modern development tools.
 
-Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。モダンな開発ツールがプリインストールされ、Python・Node.js・Docker開発に最適化された環境を提供します。
+## Features
 
-### 主な特徴
+- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2
+- **Persistent Storage**: Development tool caches and configurations persist across container recreations
+- **Workspace Integration**: Manage multiple projects in a unified development environment
+- **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
+- **Host Docker Access**: Safely utilize host Docker from within the container
+- **Automatic Environment Detection**: Auto-detects UID/GID/Docker GID to avoid permission issues
+- **UTF-8 Locale**: Properly displays multilingual text including Japanese
 
-- **最新の開発ツール**: uv（Python）、Volta（Node.js）、Docker CLI、AWS CLI v2
-- **永続化対応**: 開発ツールのキャッシュや設定が永続化され、コンテナ再作成後も保持
-- **ワークスペース統合**: 複数プロジェクトを一つの開発環境で管理
-- **VS Code Dev Container対応**: `.devcontainer`設定により、VS Codeとシームレスに統合
-- **ホストDocker活用**: コンテナ内からホストのDockerを安全に利用
-- **自動環境検出**: UID/GID/Docker GIDを自動検出し、権限問題を回避
-- **UTF-8ロケール**: 日本語を含む多言語テキストを正しく表示
+## Workspace Structure
 
-### ワークスペース構造
-
-親ディレクトリ全体がコンテナ内の `/home/<username>/workspace` にマウントされ、複数のプロジェクトを統一環境で開発できます。
+The parent directory is mounted to `/home/<username>/workspace` inside the container, allowing unified development across multiple projects:
 
 ```
-親ディレクトリ/ (例: /home/user/work/)
-├── workspace-docker/  ← Docker設定ファイル (このプロジェクト)
-├── python-project/    ← Pythonプロジェクト
-├── nodejs-project/    ← Node.jsプロジェクト
-└── other-projects/    ← その他のプロジェクト
-    ↓ マウント
-コンテナ内: /home/<username>/workspace/
+Parent Directory/ (e.g., /home/user/work/)
+├── workspace-docker/  ← Docker configuration (this project)
+├── python-project/    ← Python project
+├── nodejs-project/    ← Node.js project
+└── other-projects/    ← Other projects
+    ↓ Mounted as
+Container: /home/<username>/workspace/
 ├── workspace-docker/
 ├── python-project/
 ├── nodejs-project/
 └── other-projects/
 ```
 
-## 利用方法
+## Quick Start
 
-### 前提条件
+### Prerequisites
 
-#### 必須要件
+**Required:**
+- Docker Engine installed
+- `~/.gitconfig` file (see below)
 
-- Docker Engine がインストールされていること
-- （オプション）VS Code + Dev Containers 拡張機能
+**Optional:**
+- VS Code + Dev Containers extension
 
-#### 推奨される事前設定
+The following host configuration files are mounted **read-only** inside the container:
 
-以下のホスト設定ファイルが**読み取り専用**でコンテナ内にマウントされます（コンテナ内からは変更できません）：
+- **`~/.gitconfig`** - Git configuration (required)
+- `~/.aws/` - AWS CLI credentials and configuration (optional)
+- `~/.ssh/` - SSH keys (optional)
 
-- **`~/.gitconfig`** - Git設定（必須）
-- `~/.aws/` - AWS CLI認証情報・設定ファイル（オプション）
-- `~/.ssh/` - SSH鍵（オプション）
-
-> **重要**: `~/.gitconfig`が存在しない場合、セットアップスクリプトがエラーになります。最低限、以下のコマンドで基本設定を行ってください：
+> **Important**: If `~/.gitconfig` doesn't exist, the setup script will fail. At minimum, configure Git with:
 > ```bash
 > git config --global user.name "Your Name"
 > git config --global user.email "your.email@example.com"
 > ```
 
-#### Dockerのインストール（Ubuntu）
+#### Installing Docker (Ubuntu)
 
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -63,70 +61,70 @@ sudo sh get-docker.sh
 sudo usermod -aG docker $USER
 ```
 
-※ グループ変更反映のため再ログインが必要です。
+Note: Re-login required for group changes to take effect.
 
-### セットアップ手順
+### Setup
 
-1. **セットアップスクリプトの実行**
+1. **Run the setup script**
+   ```bash
+   bash setup-docker.sh
+   ```
+
+2. **Required Input**
+   - **Container/Service Name**: 
+     - Allowed characters: alphanumeric (`a-z`, `A-Z`, `0-9`), hyphen (`-`), underscore (`_`)
+     - Length: 1-63 characters
+     - Examples: `dev`, `my-container`, `app_server`
+   - **Username**: 
+     - First character: lowercase letter (`a-z`) or underscore (`_`)
+     - Allowed characters: lowercase letters (`a-z`), digits (`0-9`), hyphen (`-`), underscore (`_`)
+     - Length: 1-32 characters
+     - Examples: `user`, `dev_user`, `john-doe`
+
+3. **Auto-detected Information**
+   - **UID/GID**: Automatically detects current user's UID/GID
+   - **Docker GID**: Automatically detects host Docker group GID (from `/var/run/docker.sock`)
+
+4. **Generated Files**
+   - `Dockerfile` - Generated from template
+   - `docker-compose.yml` - Generated from template
+   - `.devcontainer/devcontainer.json` - VS Code Dev Container configuration
+   - `.devcontainer/docker-compose.yml` - Dev Container docker-compose configuration
+   - `.envs/<service_name>.env` - Environment variables (managed per service)
+   - `.env` - Symbolic link to `.envs/<service_name>.env`
+
+   > **When switching environments**: Using `switch-env.sh` automatically regenerates `.devcontainer` files along with the `.env` symbolic link
+
+### Environment File (.env) Management
+
+The setup script generates `.envs/<service_name>.env` files for each container service.
+
+#### Managing Multiple Container Services
+
 ```bash
+# First service (e.g., dev)
 bash setup-docker.sh
-```
+# → Creates .envs/dev.env and .env → .envs/dev.env symlink
 
-2. **入力が必要な情報**
-   - **コンテナ/サービス名**: 
-     - 使用可能文字: 英数字（`a-z`, `A-Z`, `0-9`）、ハイフン（`-`）、アンダースコア（`_`）
-     - 文字数制限: 1～63文字
-     - 例: `dev`, `my-container`, `app_server`
-   - **ユーザー名**: 
-     - 先頭文字: 小文字の英字（`a-z`）またはアンダースコア（`_`）
-     - 使用可能文字: 小文字の英字（`a-z`）、数字（`0-9`）、ハイフン（`-`）、アンダースコア（`_`）
-     - 文字数制限: 1～32文字
-     - 例: `user`, `dev_user`, `john-doe`
-
-3. **自動検出される情報**
-   - **UID/GID**: 現在のユーザーのUID/GIDを自動検出
-   - **Docker GID**: ホストのDocker グループGIDを自動検出（`/var/run/docker.sock`から取得）
-
-4. **生成されるファイル**
-   - `Dockerfile` - Dockerfileのテンプレートから生成
-   - `docker-compose.yml` - docker-compose.ymlのテンプレートから生成
-   - `.devcontainer/devcontainer.json` - VS Code Dev Container設定（テンプレートから生成）
-   - `.devcontainer/docker-compose.yml` - Dev Container用docker-compose設定（テンプレートから生成）
-   - `.envs/<service_name>.env` - 環境変数ファイル（サービス名ごとに管理）
-   - `.env` - `.envs/<service_name>.env`へのシンボリックリンク
-
-   > **環境切り替え時**: `switch-env.sh`を使用すると、`.env`のシンボリックリンクとともに`.devcontainer`ファイルも自動的に再生成されます
-
-### 環境変数ファイル（.env）の管理
-
-セットアップスクリプトは、コンテナサービス名ごとに`.envs/<service_name>.env`ファイルを生成します。
-
-#### 複数のコンテナサービスを管理する場合
-
-```bash
-# 1つ目のサービス（例: dev）
+# Second service (e.g., prod)
 bash setup-docker.sh
-# → .envs/dev.env が生成され、.env → .envs/dev.env のシンボリックリンクが作成される
+# → Creates .envs/prod.env and updates .env → .envs/prod.env symlink
 
-# 2つ目のサービス（例: prod）
-bash setup-docker.sh
-# → .envs/prod.env が生成され、.env → .envs/prod.env にシンボリックリンクが更新される
+# Switch services (Method 1: Use script)
+bash switch-env.sh dev    # Switch to dev service
+bash switch-env.sh prod   # Switch to prod service
 
-# 使用するサービスを切り替え（方法1: スクリプトを使用）
-bash switch-env.sh dev    # devサービスに切り替え
-bash switch-env.sh prod   # prodサービスに切り替え
-
-# または、引数なしで対話的に選択
+# Or run without arguments for interactive selection
 bash switch-env.sh
 
-# 注意: スクリプトは自動的に.devcontainerファイルも再生成します
+# Note: Script automatically regenerates .devcontainer files
 
-# 使用するサービスを切り替え（方法2: 手動でシンボリックリンクを変更）
-ln -sf .envs/dev.env .env    # devサービスに切り替え
-ln -sf .envs/prod.env .env   # prodサービスに切り替え
+# Switch services (Method 2: Manual symlink change)
+ln -sf .envs/dev.env .env    # Switch to dev service
+ln -sf .envs/prod.env .env   # Switch to prod service
 ```
 
-#### .envファイルの内容例
+#### Example .env File Content
 
 ```env
 # Environment variables for dev
@@ -139,213 +137,366 @@ GID=1000
 DOCKER_GID=989
 ```
 
-### 開発環境の起動方法
+### Starting the Development Environment
 
-#### 方法1: VS Code Dev Container（推奨）
+#### Method 1: VS Code Dev Container (Recommended)
 
-1. VS Codeでこのフォルダを開く
-2. コマンドパレット（Ctrl+Shift+P）から「Dev Containers: Open Folder in Container」を実行
-3. 自動でコンテナがビルド・起動され、VS Codeがコンテナに接続
+1. Open this folder in VS Code
+2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
+3. Container automatically builds, starts, and connects
 
-#### 方法2: Docker Compose
+#### Method 2: Docker Compose
 
 ```bash
-# イメージビルド
+# Build image
 docker compose build
 
-# コンテナ起動（デタッチモード）
+# Build without cache (when environment variables change)
+docker compose build --no-cache
+
+# Start container (detached mode)
 docker compose up -d
 
-# コンテナにアクセス
-docker compose exec <サービス名> bash
+# Build and start together
+docker compose up -d --build
 
-# コンテナ停止
+# Access container
+docker compose exec <service-name> bash
+
+# View logs
+docker compose logs
+docker compose logs -f  # Follow mode
+
+# Check container status
+docker compose ps
+
+# Stop container
 docker compose down
+
+# Stop and remove volumes
+docker compose down --volumes
+
+# Complete cleanup (containers, volumes, networks, images)
+docker compose down --volumes --rmi all
 ```
 
-### 開発の流れ
+## Development Workflows
 
-#### Python開発の例
+### Python Development
 
 ```bash
-# Python をインストール
+# Install Python
 uv python install 3.13
 
-# プロジェクト作成
+# Create project
 uv init my-python-project
 cd my-python-project
 
-# Python バージョン指定
+# Pin Python version
 uv python pin 3.13
 
-# 依存関係追加
+# Add dependencies
 uv add requests pandas
 uv add --dev pytest black ruff
 
-# スクリプト実行
+# Run script
 uv run python main.py
 
-# テスト実行
+# Run tests
 uv run pytest
 ```
 
-#### Node.js開発の例
+### Node.js Development
 
 ```bash
-# Node.js と pnpm をインストール
+# Install Node.js and pnpm
 volta install node@24
 volta install pnpm
 
-# プロジェクト作成
+# Create project
 pnpm init
 pnpm add express
 
-# 開発依存関係
+# Add dev dependencies
 pnpm add -D typescript @types/node
 
-# スクリプト実行
+# Run script
 pnpm start
 
-# または直接実行
+# Or run directly
 node app.js
 ```
 
-## プリインストールアプリケーション
+## Pre-installed Applications
 
-### 開発ツール
+### Development Tools
 
-| ツール | 用途 | 備考 |
-|--------|------|----------------|
-| **uv** | Python パッケージ・バージョン管理 | Python 3.8+ |
-| **Volta** | Node.js バージョン管理 | Node.js, npm, yarn, pnpm |
-| **Docker CLI** | コンテナ操作（ホストのDocker使用） | - |
-| **AWS CLI v2** | AWS リソース管理 | - |
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| **uv** | Python package & version management | Python 3.8+ |
+| **Volta** | Node.js version management | Node.js, npm, yarn, pnpm |
+| **Docker CLI** | Container operations (using host Docker) | - |
+| **AWS CLI v2** | AWS resource management | - |
 
-### システムツール
+### System Tools
 
-- **Git** - バージョン管理
-- **curl/wget** - HTTP クライアント
-- **vim/nano** - テキストエディタ
-- **tree** - ディレクトリ構造表示
-- **jq** - JSON プロセッサ
-- **build-essential** - C/C++ コンパイラ
-- **locales** - ロケール設定（UTF-8対応）
-- **各種開発ライブラリ** - SSL, SQLite, XML, etc.
+- **Git** - Version control
+- **curl/wget** - HTTP clients
+- **vim/nano** - Text editors
+- **tree** - Directory structure visualization
+- **jq** - JSON processor
+- **build-essential** - C/C++ compilers
+- **locales** - Locale configuration (UTF-8 support)
+- **Development libraries** - SSL, SQLite, XML, etc.
 
-### ロケール設定
+### Locale Configuration
 
-- **デフォルトロケール**: `en_US.UTF-8`
-- 日本語テキストが正しく表示されるよう自動設定
-- Git操作時の日本語ファイル名や差分も正常に表示
+- **Default Locale**: `en_US.UTF-8`
+- Automatically configured for proper multilingual text display
+- Git operations correctly display Japanese filenames and diffs
 
-### シェル機能
+### Shell Features
 
-- **Bash補完** - コマンドの自動補完
-- **Git統合プロンプト** - ブランチ・状態表示
-- **永続化履歴** - コマンド履歴の永続保存
+- **Bash Completion** - Command auto-completion
+- **Git-integrated Prompt** - Branch and status display
+- **Persistent History** - Command history persists across sessions
 
-## マウントされているフォルダ
+## Mounted Directories
 
-### ワークスペース
+### Workspace
 
-| ホスト | コンテナ内 | 用途 |
-|--------|------------|------|
-| `..` (親ディレクトリ) | `/home/<username>/workspace` | 開発プロジェクト群 |
+| Host | Container | Purpose |
+|------|-----------|---------|
+| `..` (parent directory) | `/home/<username>/workspace` | Development projects |
 
-### 永続化ボリューム
+### Persistent Volumes
 
-| ボリューム名 | マウント先 | 用途 |
-|--------------|------------|------|
-| `pip-cache` | `~/.cache/pip` | pip キャッシュ |
-| `uv-cache` | `~/.cache/uv` | uv キャッシュ |
-| `uv-python` | `~/.local/share/uv` | uv インストール Python |
-| `volta-tools` | `~/.volta/tools` | Volta ツール |
-| `npm-cache` | `~/.npm` | npm キャッシュ |
-| `pnpm-cache` | `~/.cache/pnpm` | pnpm メタデータキャッシュ |
-| `pnpm-store` | `~/.local/share/pnpm` | pnpm グローバルストア |
-| `bash-history` | `~/.docker_history` | bash 履歴 |
+| Volume Name | Mount Path | Purpose |
+|-------------|------------|---------|
+| `pip-cache` | `~/.cache/pip` | pip cache |
+| `uv-cache` | `~/.cache/uv` | uv cache |
+| `uv-python` | `~/.local/share/uv` | uv installed Python |
+| `volta-tools` | `~/.volta/tools` | Volta tools |
+| `npm-cache` | `~/.npm` | npm cache |
+| `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
+| `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
+| `bash-history` | `~/.docker_history` | bash history |
 
-### 読み取り専用マウント
+### Read-only Mounts
 
-| ホスト | コンテナ内 | 用途 |
-|--------|------------|------|
-| `~/.aws` | `~/.aws` | AWS 設定・認証情報 |
-| `~/.gitconfig` | `~/.gitconfig` | Git 設定 |
-| `~/.ssh` | `~/.ssh` | SSH キー（Git認証等に使用） |
+| Host | Container | Purpose |
+|------|-----------|---------|
+| `~/.aws` | `~/.aws` | AWS configuration & credentials |
+| `~/.gitconfig` | `~/.gitconfig` | Git configuration |
+| `~/.ssh` | `~/.ssh` | SSH keys (for Git authentication, etc.) |
 
-> **カスタマイズ**: 特定のSSH鍵のみマウントしたい場合は、`docker-compose.yml`で個別に指定できます（例: `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519:ro`）
+> **Customization**: To mount specific SSH keys only, specify them individually in `docker-compose.yml` (e.g., `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519:ro`)
 
-### Dev Container専用
+### Dev Container Specific
 
-| ホスト | コンテナ内 | 用途 |
-|--------|------------|------|
-| `/var/run/docker.sock` | `/var/run/docker.sock` | ホストDocker接続 |
+| Host | Container | Purpose |
+|------|-----------|---------|
+| `/var/run/docker.sock` | `/var/run/docker.sock` | Host Docker connection |
 
-## 注意事項
+## Important Notes
 
-### セキュリティ
+### Security
 
-- **Docker ソケット**: ホストのDockerソケットをマウントしているため、コンテナからホストのDocker環境を完全制御可能
-- **個人設定**: `~/.aws`、`~/.gitconfig`、`~/.ssh` が読み取り専用でマウントされます
-- **機密情報**: 生成された `.env`、`.envs/*.env` にはユーザー情報（UID/GID/Docker GID）が含まれます
+- **Docker Socket**: The host Docker socket is mounted, allowing full control of the host Docker environment from within the container
+- **Personal Settings**: `~/.aws`, `~/.gitconfig`, `~/.ssh` are mounted read-only
+- **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
 
-> **注意**: `~/.ssh`ディレクトリ全体がコンテナ内からアクセス可能です。読み取り専用のため変更はできませんが、コンテナ内のプロセスから鍵ファイルを読み取ることは可能です。信頼できないコードを実行する場合は注意してください。
+> **Warning**: The entire `~/.ssh` directory is accessible from within the container. While read-only and cannot be modified, container processes can read the key files. Exercise caution when running untrusted code.
 
-### ファイル管理
+### File Management
 
-- **テンプレートファイル必須**: `*.template` ファイルが必要です
-- **生成ファイル**: `Dockerfile`、`docker-compose.yml`、`.devcontainer/devcontainer.json`、`.devcontainer/docker-compose.yml`、`.env`、`.envs/` は Git 管理から除外を推奨（自動生成されます）
-- **永続化データ**: Docker ボリュームのデータは `docker compose down --volumes` で削除されます
-- **環境変数**: `.envs/<service_name>.env`でサービスごとに環境変数を管理。`.env`はシンボリックリンクで切り替え可能
-- **シンボリックリンク**: `.env`は相対パスのシンボリックリンクです。プロジェクトルートから`docker compose`コマンドを実行してください
+- **Template Files Required**: `*.template` files are necessary
+- **Generated Files**: `Dockerfile`, `docker-compose.yml`, `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml`, `.env`, `.envs/` should be excluded from Git (auto-generated)
+- **Persistent Data**: Docker volume data is removed with `docker compose down --volumes`
+- **Environment Variables**: Managed per service in `.envs/<service_name>.env`. `.env` is a switchable symbolic link
+- **Symbolic Link**: `.env` is a relative path symbolic link. Run `docker compose` commands from the project root
 
-### 開発環境
+### Development Environment
 
-- **Python**: システムの python3 パッケージは含まれません（uv で管理）
-- **Node.js**: Volta でバージョン管理されます（npm、pnpm も含む）
-- **pnpm**: 高速パッケージマネージャ、グローバルストアとキャッシュが永続化
-- **ポート**: デフォルトで 3000 番ポートがフォワードされます
+- **Python**: System python3 package not included (managed by uv)
+- **Node.js**: Version managed by Volta (includes npm, pnpm)
+- **pnpm**: Fast package manager with persistent global store and cache
+- **Ports**: Port 3000 is forwarded by default
 
-### 環境切り替え時の注意事項
+### Environment Switching Notes
 
-プロジェクトには環境切り替えスクリプト（`switch-env.sh`）がありますが、**ユーザー名（USERNAME）を変更する場合は必ずコンテナの再ビルドが必要**です。
+The project includes an environment switching script (`switch-env.sh`), but **changing the username (USERNAME) requires rebuilding the container**.
 
-#### 環境切り替え手順
+#### Environment Switching Procedure
 
-1. **環境を切り替える**
+1. **Switch environment**
 ```bash
-bash switch-env.sh <環境名>
+bash switch-env.sh <environment-name>
 ```
 
-2. **ユーザー名が変更された場合の必須手順**
+2. **Required steps when username is changed**
 ```bash
-# コンテナを停止・削除
+# Stop and remove container
 docker compose down
 
-# キャッシュなしで再ビルド（重要！）
+# Rebuild without cache (important!)
 docker compose build --no-cache
 
-# 新しい設定で起動
+# Start with new configuration
 docker compose up -d
 ```
 
-#### 理由
-- Dockerイメージ内でユーザーが作成される際、ビルド時のUSERNAME引数が使用されます
-- 環境変数を変更してもビルドキャッシュが残っている場合、古いユーザー名のままとなります
-- `--no-cache` オプションでキャッシュを無視して完全に再ビルドする必要があります
+#### Reason
+- When creating a user in the Docker image, the USERNAME build argument is used
+- If the build cache remains after changing environment variables, the old username persists
+- Use `--no-cache` option to completely rebuild ignoring the cache
 
-### トラブルシューティング
+### Troubleshooting
 
-- **権限エラー**: UID/GID が正しく設定されているか確認
-- **Docker 接続エラー**: Docker GIDが自動検出されているか確認。`getent group docker | cut -d: -f3`コマンドでホストのDocker GIDを確認できます
-- **ボリューム問題**: `docker volume ls` でボリューム状態を確認
-- **ユーザー名が古いまま**: 上記の「環境切り替え時の注意事項」を参照してキャッシュなしで再ビルド
+- **Permission Errors**: Verify UID/GID are correctly configured
+- **Docker Connection Errors**: Verify Docker GID is auto-detected. Check host Docker GID with `getent group docker | cut -d: -f3`
+- **Volume Issues**: Check volume status with `docker volume ls`
+- **Username Not Updated**: See "Environment Switching Notes" above and rebuild without cache
 
-## 必要なファイル
+## Common Commands
 
-- `setup-docker.sh` - セットアップスクリプト
-- `switch-env.sh` - 環境切り替えスクリプト
-- `Dockerfile.template` - Dockerfileのテンプレート
-- `docker-compose.yml.template` - docker-compose.ymlのテンプレート
-- `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート
-- `.devcontainer/docker-compose.yml.template` - Dev Container用docker-compose設定のテンプレート
+### Setup and Environment Switching
+
+```bash
+# Initial setup
+bash setup-docker.sh
+
+# Switch environment (interactive)
+bash switch-env.sh
+
+# Switch environment (specify argument)
+bash switch-env.sh dev
+bash switch-env.sh prod
+
+# Check available environments
+ls -la .envs/
+```
+
+### Docker Operations
+
+```bash
+# Build image
+docker compose build
+docker compose build --no-cache  # Without cache
+
+# Start container
+docker compose up -d
+docker compose up -d --build     # Build and start together
+
+# Stop and remove container
+docker compose down
+docker compose down --volumes    # Remove volumes too
+
+# Launch shell in container
+docker compose exec <service-name> bash
+
+# View logs
+docker compose logs
+docker compose logs -f           # Real-time display
+
+# Check container status
+docker compose ps
+
+# Check resource usage
+docker compose stats
+```
+
+### Complete Rebuild
+
+```bash
+# Complete rebuild after environment changes
+docker compose down --volumes
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Testing and Validation
+
+```bash
+# Project integrity test
+bash test.sh
+
+# Check generated files
+cat .env
+cat Dockerfile
+cat docker-compose.yml
+cat .devcontainer/devcontainer.json
+cat .devcontainer/docker-compose.yml
+
+# Or check all at once
+ls -la .env Dockerfile docker-compose.yml .devcontainer/
+```
+
+### Cleanup
+
+```bash
+# Delete generated files (manual)
+rm -f Dockerfile docker-compose.yml .env
+rm -rf .devcontainer/devcontainer.json .devcontainer/docker-compose.yml
+
+# Delete volumes
+docker compose down --volumes
+
+# Delete everything (including images)
+docker compose down --volumes --rmi all
+```
+
+## Testing
+
+A test script is included to validate project integrity:
+
+```bash
+# Run tests
+bash test.sh
+```
+
+### Test Script Validation Items
+
+1. **Template File Existence**
+   - `Dockerfile.template`
+   - `docker-compose.yml.template`
+   - `.devcontainer/devcontainer.json.template`
+   - `.devcontainer/docker-compose.yml.template`
+
+2. **Script File Execute Permissions**
+   - `setup-docker.sh` is executable
+   - `switch-env.sh` is executable
+
+3. **`.envs` Directory Check**
+   - `.envs/` directory exists
+
+4. **Generated File Check** (after setup)
+   - `Dockerfile`, `docker-compose.yml`, `.env` exist
+   - `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml` exist
+   - `.env` is a symbolic link pointing to a valid file
+   - Environment variable files (`*.env`) exist in `.envs/`
+
+5. **Docker Environment Prerequisites**
+   - Docker is installed
+   - Docker Compose is available
+
+Tests display results with color output and return exit code 1 if any test fails. If setup has not been run, a warning is displayed but tests do not fail.
+
+## Project Files
+
+- `setup-docker.sh` - Setup script
+- `switch-env.sh` - Environment switching script
+- `test.sh` - Test script
+- `Dockerfile.template` - Dockerfile template
+- `docker-compose.yml.template` - docker-compose.yml template
+- `.devcontainer/devcontainer.json.template` - VS Code Dev Container configuration template
+- `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
+
+## Documentation
+
+- [日本語版 README (Japanese)](docs/README.ja.md)
+- [Changelog](CHANGELOG.md)
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). See the [LICENSE](LICENSE) file for details.
