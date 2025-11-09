@@ -59,6 +59,7 @@ if [ "$current_env" = "$container_service_name" ]; then
 fi
 
 # Switch symlink
+# Using relative path to ensure portability across different environments
 ln -sf .envs/$container_service_name.env .env
 
 # Read environment variables from the new .env file for devcontainer.json

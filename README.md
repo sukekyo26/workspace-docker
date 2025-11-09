@@ -294,6 +294,7 @@ node app.js
 - **生成ファイル**: `Dockerfile`、`docker-compose.yml`、`.devcontainer/devcontainer.json`、`.devcontainer/docker-compose.yml`、`.env`、`.envs/` は Git 管理から除外を推奨（自動生成されます）
 - **永続化データ**: Docker ボリュームのデータは `docker compose down --volumes` で削除されます
 - **環境変数**: `.envs/<service_name>.env`でサービスごとに環境変数を管理。`.env`はシンボリックリンクで切り替え可能
+- **シンボリックリンク**: `.env`は相対パスのシンボリックリンクです。プロジェクトルートから`docker compose`コマンドを実行してください
 
 ### 開発環境
 

@@ -152,6 +152,7 @@ DOCKER_GID=$docker_gid
 EOF
 
 # Create symlink to .env for docker compose to use
+# Using relative path to ensure portability across different environments
 ln -sf .envs/$container_service_name.env .env
 
 echo -e "${GREEN}=== Setup Complete ===${NC}"
