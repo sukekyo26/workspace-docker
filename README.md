@@ -153,14 +153,33 @@ DOCKER_GID=989
 # イメージビルド
 docker compose build
 
+# キャッシュなしでビルド（環境変数変更時など）
+docker compose build --no-cache
+
 # コンテナ起動（デタッチモード）
 docker compose up -d
+
+# ビルドと起動を同時に実行
+docker compose up -d --build
 
 # コンテナにアクセス
 docker compose exec <サービス名> bash
 
+# ログの確認
+docker compose logs
+docker compose logs -f  # リアルタイムで表示
+
+# コンテナの状態確認
+docker compose ps
+
 # コンテナ停止
 docker compose down
+
+# コンテナ停止とボリューム削除
+docker compose down --volumes
+
+# 完全なクリーンアップ（コンテナ、ボリューム、ネットワーク、イメージ）
+docker compose down --volumes --rmi all
 ```
 
 ### 開発の流れ
@@ -341,10 +360,135 @@ docker compose up -d
 - **ボリューム問題**: `docker volume ls` でボリューム状態を確認
 - **ユーザー名が古いまま**: 上記の「環境切り替え時の注意事項」を参照してキャッシュなしで再ビルド
 
+## よく使うコマンド集
+
+### 環境のセットアップと切り替え
+
+```bash
+# 初回セットアップ
+bash setup-docker.sh
+
+# 環境の切り替え（対話式）
+bash switch-env.sh
+
+# 環境の切り替え（引数指定）
+bash switch-env.sh dev
+bash switch-env.sh prod
+
+# 利用可能な環境の確認
+ls -la .envs/
+```
+
+### Docker操作
+
+```bash
+# イメージのビルド
+docker compose build
+docker compose build --no-cache  # キャッシュなし
+
+# コンテナの起動
+docker compose up -d
+docker compose up -d --build     # ビルドと同時に起動
+
+# コンテナの停止・削除
+docker compose down
+docker compose down --volumes    # ボリュームも削除
+
+# コンテナ内でシェルを起動
+docker compose exec <サービス名> bash
+
+# ログの確認
+docker compose logs
+docker compose logs -f           # リアルタイム表示
+
+# コンテナの状態確認
+docker compose ps
+
+# リソースの使用状況確認
+docker compose stats
+```
+
+### 完全な再構築
+
+```bash
+# 環境変更後の完全な再構築
+docker compose down --volumes
+docker compose build --no-cache
+docker compose up -d
+```
+
+### テストと検証
+
+```bash
+# プロジェクトの整合性テスト
+bash test.sh
+
+# 生成ファイルの確認
+cat .env
+cat Dockerfile
+cat docker-compose.yml
+cat .devcontainer/devcontainer.json
+cat .devcontainer/docker-compose.yml
+
+# または一括確認
+ls -la .env Dockerfile docker-compose.yml .devcontainer/
+```
+
+### クリーンアップ
+
+```bash
+# 生成ファイルの削除（手動）
+rm -f Dockerfile docker-compose.yml .env
+rm -rf .devcontainer/devcontainer.json .devcontainer/docker-compose.yml
+
+# ボリュームの削除
+docker compose down --volumes
+
+# すべて削除（イメージも含む）
+docker compose down --volumes --rmi all
+```
+
+## テスト
+
+プロジェクトの整合性を検証するテストスクリプトが含まれています：
+
+```bash
+# テストの実行
+bash test.sh
+```
+
+### テストスクリプトの検証項目
+
+1. **テンプレートファイルの存在確認**
+   - `Dockerfile.template`
+   - `docker-compose.yml.template`
+   - `.devcontainer/devcontainer.json.template`
+   - `.devcontainer/docker-compose.yml.template`
+
+2. **スクリプトファイルの実行権限確認**
+   - `setup-docker.sh` が実行可能か
+   - `switch-env.sh` が実行可能か
+
+3. **`.envs` ディレクトリの確認**
+   - `.envs/` ディレクトリが存在するか
+
+4. **生成ファイルの確認**（セットアップ実行後の場合）
+   - `Dockerfile`, `docker-compose.yml`, `.env` が存在するか
+   - `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml` が存在するか
+   - `.env` がシンボリックリンクであり、有効なファイルを指しているか
+   - `.envs/` 内に環境変数ファイル（`*.env`）が存在するか
+
+5. **Docker環境の前提条件確認**
+   - Docker がインストールされているか
+   - Docker Compose が利用可能か
+
+テストはカラー出力で結果を表示し、失敗したテストがある場合は終了コード 1 を返します。セットアップが未実行の場合は警告を表示しますが、テストは失敗しません。
+
 ## 必要なファイル
 
 - `setup-docker.sh` - セットアップスクリプト
 - `switch-env.sh` - 環境切り替えスクリプト
+- `test.sh` - テストスクリプト
 - `Dockerfile.template` - Dockerfileのテンプレート
 - `docker-compose.yml.template` - docker-compose.ymlのテンプレート
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート
