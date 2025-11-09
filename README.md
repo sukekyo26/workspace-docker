@@ -493,3 +493,7 @@ bash test.sh
 - `docker-compose.yml.template` - docker-compose.ymlのテンプレート
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート
 - `.devcontainer/docker-compose.yml.template` - Dev Container用docker-compose設定のテンプレート
+
+## ライセンス
+
+このプロジェクトは[MIT License](LICENSE)の下でライセンスされています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
