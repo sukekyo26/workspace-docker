@@ -80,7 +80,11 @@ gid=$(id -g)
 # Automatically get Docker socket GID (host's Docker group GID)
 if [ -S /var/run/docker.sock ]; then
     # Docker socket exists, get its group ID
-    docker_gid=$(stat -c '%g' /var/run/docker.sock)
+    docker_gid=$(stat -c '%g' /var/run/docker.sock 2>/dev/null)
+    if [ -z "$docker_gid" ]; then
+        echo -e "${RED}ERROR:${NC} Failed to get Docker socket GID. Permission denied?"
+        exit 1
+    fi
 else
     # Fallback to docker group if socket doesn't exist
     docker_gid=$(getent group docker | cut -d: -f3)
