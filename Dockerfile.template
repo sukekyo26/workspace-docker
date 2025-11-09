@@ -32,7 +32,9 @@ RUN apt update -y && \
         libffi-dev \
         liblzma-dev \
         bash-completion \
-    && rm -rf /var/lib/apt/lists/*
+        locales \
+    && rm -rf /var/lib/apt/lists/* && \
+    locale-gen en_US.UTF-8
 
 # 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
 RUN userdel -r ubuntu 2>/dev/null || true && \
@@ -45,6 +47,11 @@ RUN userdel -r ubuntu 2>/dev/null || true && \
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
+
+# Set locale environment variables
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
 # Enable bash completion
 RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bashrc && \
