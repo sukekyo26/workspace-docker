@@ -31,12 +31,17 @@ if [ ! -f ".envs/$container_service_name.env" ]; then
     echo -e "${RED}ERROR:${NC} .envs/$container_service_name.env not found"
     echo "Available environments:"
     if [ -d ".envs" ]; then
-        for env_file in .envs/*.env; do
-            if [ -f "$env_file" ]; then
+        shopt -s nullglob
+        env_files=(.envs/*.env)
+        if [ ${#env_files[@]} -eq 0 ]; then
+            echo -e "  ${YELLOW}No environments found${NC}"
+        else
+            for env_file in "${env_files[@]}"; do
                 service_name=$(basename "$env_file" .env)
                 echo -e "  ${CYAN}$service_name${NC}"
-            fi
-        done
+            done
+        fi
+        shopt -u nullglob
     else
         echo -e "  ${YELLOW}No environments found${NC}"
     fi
