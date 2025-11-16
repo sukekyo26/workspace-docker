@@ -64,37 +64,13 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
     echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
 
-# Install Docker CLI (client only, to use host Docker daemon via socket mount)
-USER root
-RUN apt-get update && \
-    apt-get install -y ca-certificates gnupg lsb-release && \
-    mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-    > /etc/apt/sources.list.d/docker.list && \
-    apt-get update && \
-    apt-get install -y docker-ce-cli docker-compose-plugin && \
-    rm -rf /var/lib/apt/lists/* && \
-    groupadd -f docker && \
-    usermod -aG docker ${USERNAME}
+{{DOCKER_INSTALL}}
 
-USER ${USERNAME}
+{{AWS_CLI_INSTALL}}
 
-# Install AWS CLI v2
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    sudo ./aws/install && \
-    rm -rf aws awscliv2.zip
+{{UV_INSTALL}}
 
-# uv (Python package manager and version manager)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
-RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-
-# Volta
-RUN curl https://get.volta.sh | bash
-ENV VOLTA_HOME="/home/${USERNAME}/.volta"
-ENV PATH="$VOLTA_HOME/bin:$PATH"
+{{VOLTA_INSTALL}}
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.cache/pip \

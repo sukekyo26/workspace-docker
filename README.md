@@ -4,6 +4,7 @@ A Docker-based Ubuntu development environment template optimized for Python, Nod
 
 ## Features
 
+- **Flexible Setup**: Choose between Normal (Quick start) or Custom (select software)
 - **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2
 - **Persistent Storage**: Development tool caches and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
@@ -70,27 +71,43 @@ Note: Re-login required for group changes to take effect.
    bash setup-docker.sh
    ```
 
-2. **Required Input**
-   - **Container/Service Name**: 
+2. **Setup Mode Selection**
+   - **Normal (1)**: Quick start mode with recommended tools pre-installed
+     - Installs: Docker CLI, AWS CLI v2, uv, Volta
+     - Recommended for Python & Node.js development
+     - Fastest way to get started
+   - **Custom (2)**: Select which software to install
+     - Allows granular control over installed tools
+     - Reduces image size if certain tools aren't needed
+     - Note: Cache directories and volumes are created for all tools regardless of selection
+
+3. **Required Input**
+   - **Container/Service Name**:
      - Allowed characters: alphanumeric (`a-z`, `A-Z`, `0-9`), hyphen (`-`), underscore (`_`)
      - Length: 1-63 characters
      - Examples: `dev`, `my-container`, `app_server`
-   - **Username**: 
+   - **Username**:
      - First character: lowercase letter (`a-z`) or underscore (`_`)
      - Allowed characters: lowercase letters (`a-z`), digits (`0-9`), hyphen (`-`), underscore (`_`)
      - Length: 1-32 characters
      - Examples: `user`, `dev_user`, `john-doe`
 
-3. **Auto-detected Information**
+4. **Software Selection** (Custom mode only)
+   - **Docker CLI**: Container operations (y/n)
+   - **AWS CLI v2**: AWS resource management (y/n)
+   - **uv**: Python package & version management (y/n)
+   - **Volta**: Node.js version management (y/n)
+
+5. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
    - **Docker GID**: Automatically detects host Docker group GID (from `/var/run/docker.sock`)
 
-4. **Generated Files**
-   - `Dockerfile` - Generated from template
-   - `docker-compose.yml` - Generated from template
+6. **Generated Files**
+   - `Dockerfile` - Generated from template (normal or custom)
+   - `docker-compose.yml` - Generated from template (normal or custom)
    - `.devcontainer/devcontainer.json` - VS Code Dev Container configuration
    - `.devcontainer/docker-compose.yml` - Dev Container docker-compose configuration
-   - `.envs/<service_name>.env` - Environment variables (managed per service)
+   - `.envs/<service_name>.env` - Environment variables (managed per service, includes software selection flags)
    - `.env` - Symbolic link to `.envs/<service_name>.env`
 
    > **When switching environments**: Using `switch-env.sh` automatically regenerates `.devcontainer` files along with the `.env` symbolic link
@@ -126,6 +143,7 @@ ln -sf .envs/prod.env .env   # Switch to prod service
 
 #### Example .env File Content
 
+**Normal Mode:**
 ```env
 # Environment variables for dev
 # Generated on Fri Nov  8 12:34:56 UTC 2025
@@ -135,6 +153,28 @@ USERNAME=devuser
 UID=1000
 GID=1000
 DOCKER_GID=989
+SETUP_MODE=1
+INSTALL_DOCKER=true
+INSTALL_AWS_CLI=true
+INSTALL_UV=true
+INSTALL_VOLTA=true
+```
+
+**Custom Mode:**
+```env
+# Environment variables for dev
+# Generated on Fri Nov  8 12:34:56 UTC 2025
+
+CONTAINER_SERVICE_NAME=dev
+USERNAME=devuser
+UID=1000
+GID=1000
+DOCKER_GID=989
+SETUP_MODE=2
+INSTALL_DOCKER=true
+INSTALL_AWS_CLI=false
+INSTALL_UV=true
+INSTALL_VOLTA=false
 ```
 
 ### Starting the Development Environment
@@ -484,11 +524,13 @@ Tests display results with color output and return exit code 1 if any test fails
 
 ## Project Files
 
-- `setup-docker.sh` - Setup script
+- `setup-docker.sh` - Setup script with Normal/Custom mode selection
 - `switch-env.sh` - Environment switching script
 - `test.sh` - Test script
-- `Dockerfile.template` - Dockerfile template
-- `docker-compose.yml.template` - docker-compose.yml template
+- `Dockerfile.template` - Dockerfile template for Normal mode (recommended tools for Python & Node.js)
+- `Dockerfile.custom.template` - Dockerfile template for Custom mode (selective installation)
+- `docker-compose.yml.template` - docker-compose.yml template for Normal mode
+- `docker-compose.custom.template` - docker-compose.yml template for Custom mode
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container configuration template
 - `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
 
