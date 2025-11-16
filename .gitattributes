@@ -5,3 +5,23 @@ docker-compose.yml.template linguist-language=YAML
 .devcontainer/devcontainer.json.template linguist-language=JSON
 
 *.sh linguist-language=Shell
+
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts must use LF
+*.sh text eol=lf
+
+# Template files must use LF
+*.template text eol=lf
+
+# Markdown files
+*.md text
+
+# YAML files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Git config
+.gitignore text
+.gitattributes text
