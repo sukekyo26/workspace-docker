@@ -278,16 +278,60 @@ node app.js
 | **Docker CLI** | Container operations (using host Docker) | - |
 | **AWS CLI v2** | AWS resource management | - |
 
-### System Tools
+### System Packages (Always Installed)
 
-- **Git** - Version control
-- **curl/wget** - HTTP clients
-- **vim/nano** - Text editors
+The following packages are always installed in both Normal and Custom modes to provide a complete development environment.
+
+#### Essential Packages
+- **ca-certificates** - SSL/TLS certificate management for secure HTTPS connections
+- **gnupg** - GNU Privacy Guard for data encryption and signing
+- **openssh-client** - SSH client for secure remote connections
+
+#### Development Tools
+- **git** - Version control system
+- **make** - Build automation tool
+- **build-essential** - C/C++ compilers and build tools (gcc, g++, make, libc-dev)
+
+#### Editors
+- **vim** - Powerful text editor
+- **nano** - Simple, user-friendly text editor
+
+#### Compression & Archive Tools
+- **zip/unzip** - ZIP archive utilities
+- **tar** - Tape archive utility
+- **gzip** - GNU gzip compression
+- **bzip2** - bzip2 compression
+- **xz-utils** - XZ compression format
+
+#### Network & Download Tools
+- **curl** - Command-line HTTP client
+- **wget** - Network downloader
+- **rsync** - Fast file synchronization and transfer
+
+#### System Utilities
+- **sudo** - Execute commands as another user
 - **tree** - Directory structure visualization
 - **jq** - JSON processor
-- **build-essential** - C/C++ compilers
-- **locales** - Locale configuration (UTF-8 support)
-- **Development libraries** - SSL, SQLite, XML, etc.
+- **less** - File pager
+- **bash-completion** - Command auto-completion
+- **procps** - Process monitoring utilities (ps, top, etc.)
+- **iproute2** - Advanced networking utilities (ip command)
+
+#### Development Libraries
+- **libssl-dev** - SSL/TLS development libraries
+- **zlib1g-dev** - Compression library
+- **libbz2-dev** - bzip2 library
+- **libreadline-dev** - Readline library for command-line editing
+- **libsqlite3-dev** - SQLite3 database library
+- **libncursesw5-dev** - Terminal UI library
+- **tk-dev** - Tk GUI toolkit
+- **libxml2-dev** - XML processing library
+- **libxmlsec1-dev** - XML security library
+- **libffi-dev** - Foreign function interface library
+- **liblzma-dev** - XZ compression library
+
+#### Locale Support
+- **locales** - Locale configuration (UTF-8 support for multilingual text)
 
 ### Locale Configuration
 

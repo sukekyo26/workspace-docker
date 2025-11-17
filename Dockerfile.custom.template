@@ -7,6 +7,10 @@ ARG GID
 RUN apt update -y && \
     apt install -y \
         curl \
+        wget \
+        ca-certificates \
+        gnupg \
+        openssh-client \
         git \
         make \
         sudo \
@@ -14,10 +18,16 @@ RUN apt update -y && \
         nano \
         zip \
         unzip \
+        tar \
+        gzip \
+        bzip2 \
+        xz-utils \
         tree \
         jq \
         less \
-        wget \
+        rsync \
+        procps \
+        iproute2 \
         build-essential \
         libssl-dev \
         zlib1g-dev \
@@ -25,7 +35,6 @@ RUN apt update -y && \
         libreadline-dev \
         libsqlite3-dev \
         libncursesw5-dev \
-        xz-utils \
         tk-dev \
         libxml2-dev \
         libxmlsec1-dev \

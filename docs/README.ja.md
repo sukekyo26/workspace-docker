@@ -278,16 +278,60 @@ node app.js
 | **Docker CLI** | コンテナ操作（ホストのDocker使用） | - |
 | **AWS CLI v2** | AWS リソース管理 | - |
 
-### システムツール
+### システムパッケージ（常時インストール）
 
-- **Git** - バージョン管理
-- **curl/wget** - HTTP クライアント
-- **vim/nano** - テキストエディタ
-- **tree** - ディレクトリ構造表示
-- **jq** - JSON プロセッサ
-- **build-essential** - C/C++ コンパイラ
-- **locales** - ロケール設定（UTF-8対応）
-- **各種開発ライブラリ** - SSL, SQLite, XML, etc.
+以下のパッケージはノーマル・カスタム両モードで常にインストールされ、完全な開発環境を提供します。
+
+#### 必須パッケージ
+- **ca-certificates** - SSL/TLS証明書管理、安全なHTTPS接続に必要
+- **gnupg** - データ暗号化・署名のためのGNU Privacy Guard
+- **openssh-client** - セキュアなリモート接続のためのSSHクライアント
+
+#### 開発ツール
+- **git** - バージョン管理システム
+- **make** - ビルド自動化ツール
+- **build-essential** - C/C++コンパイラとビルドツール（gcc, g++, make, libc-dev）
+
+#### エディタ
+- **vim** - 強力なテキストエディタ
+- **nano** - シンプルで使いやすいテキストエディタ
+
+#### 圧縮・アーカイブツール
+- **zip/unzip** - ZIPアーカイブユーティリティ
+- **tar** - テープアーカイブユーティリティ
+- **gzip** - GNU gzip圧縮
+- **bzip2** - bzip2圧縮
+- **xz-utils** - XZ圧縮フォーマット
+
+#### ネットワーク・ダウンロードツール
+- **curl** - コマンドラインHTTPクライアント
+- **wget** - ネットワークダウンローダー
+- **rsync** - 高速ファイル同期・転送
+
+#### システムユーティリティ
+- **sudo** - 別ユーザーとしてコマンド実行
+- **tree** - ディレクトリ構造可視化
+- **jq** - JSONプロセッサ
+- **less** - ファイルページャ
+- **bash-completion** - コマンド自動補完
+- **procps** - プロセス監視ユーティリティ（ps, topなど）
+- **iproute2** - 高度なネットワークユーティリティ（ipコマンド）
+
+#### 開発ライブラリ
+- **libssl-dev** - SSL/TLS開発ライブラリ
+- **zlib1g-dev** - 圧縮ライブラリ
+- **libbz2-dev** - bzip2ライブラリ
+- **libreadline-dev** - コマンドライン編集用Readlineライブラリ
+- **libsqlite3-dev** - SQLite3データベースライブラリ
+- **libncursesw5-dev** - ターミナルUIライブラリ
+- **tk-dev** - Tk GUIツールキット
+- **libxml2-dev** - XML処理ライブラリ
+- **libxmlsec1-dev** - XMLセキュリティライブラリ
+- **libffi-dev** - 外部関数インターフェースライブラリ
+- **liblzma-dev** - XZ圧縮ライブラリ
+
+#### ロケールサポート
+- **locales** - ロケール設定（多言語テキストのUTF-8サポート）
 
 ### ロケール設定
 
