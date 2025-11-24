@@ -95,8 +95,18 @@ bash setup-docker.sh
 4. **ソフトウェアの選択**（カスタムモードのみ）
    - **Docker CLI**: コンテナ操作 (y/n)
    - **AWS CLI v2**: AWSリソース管理 (y/n)
-   - **uv**: Pythonパッケージ・バージョン管理 (y/n)
-   - **Volta**: Node.jsバージョン管理 (y/n)
+   - **Pythonパッケージ管理ツール**: 以下から選択:
+     1. **uv**（推奨）: 高速、オールインワンのPythonパッケージ・バージョン管理
+     2. **poetry**: プロジェクト中心の依存関係管理
+     3. **pyenv + poetry**: バージョン管理（pyenv）+ 依存関係管理（poetry）
+     4. **mise**: 多言語対応バージョン管理ツール（Python、Node.js等）
+     5. **none**: Pythonツールをスキップ
+   - **Node.jsバージョン管理ツール**: 以下から選択:
+     1. **Volta**（推奨）: プロジェクトベースの自動バージョン切り替え
+     2. **nvm**: 伝統的で広く使われているNode.jsバージョン管理ツール
+     3. **fnm**: Fast Node Manager（Rust製、nvmの高速代替）
+     4. **mise**: 多言語対応バージョン管理ツール（Python、Node.js等）
+     5. **none**: Node.jsツールをスキップ
 
 5. **自動検出される情報**
    - **UID/GID**: 現在のユーザーのUID/GIDを自動検出
@@ -156,8 +166,8 @@ DOCKER_GID=989
 SETUP_MODE=1
 INSTALL_DOCKER=true
 INSTALL_AWS_CLI=true
-INSTALL_UV=true
-INSTALL_VOLTA=true
+PYTHON_MANAGER=uv
+NODEJS_MANAGER=volta
 ```
 
 **カスタムモード:**
@@ -173,8 +183,8 @@ DOCKER_GID=989
 SETUP_MODE=2
 INSTALL_DOCKER=true
 INSTALL_AWS_CLI=false
-INSTALL_UV=true
-INSTALL_VOLTA=false
+PYTHON_MANAGER=poetry
+NODEJS_MANAGER=nvm
 ```
 
 ### 開発環境の起動方法
@@ -271,12 +281,21 @@ node app.js
 
 ### 開発ツール
 
-| ツール | 用途 | 備考 |
-|--------|------|----------------|
-| **uv** | Python パッケージ・バージョン管理 | Python 3.8+ |
-| **Volta** | Node.js バージョン管理 | Node.js, npm, yarn, pnpm |
-| **Docker CLI** | コンテナ操作（ホストのDocker使用） | - |
-| **AWS CLI v2** | AWS リソース管理 | - |
+**Pythonパッケージ管理ツール** (カスタムモードで選択、デフォルト: ノーマルモードではuv):
+- **uv**: 高速でオールインワンのPythonパッケージ・バージョン管理（Rust製、pip互換）
+- **poetry**: モダンなPython依存関係管理・パッケージング
+- **pyenv + poetry**: Pythonバージョン管理（pyenv）+ 依存関係管理（poetry）
+- **mise**: 多言語対応バージョン管理ツール（Python、Node.js、Ruby等）
+
+**Node.jsバージョン管理ツール** (カスタムモードで選択、デフォルト: ノーマルモードではVolta):
+- **Volta**: プロジェクトベースで自動切り替えするNode.jsバージョン管理
+- **nvm**: 伝統的で最も広く使われているNode.jsバージョン管理ツール
+- **fnm**: Fast Node Manager（Rust製、nvmの高速代替）
+- **mise**: 多言語対応バージョン管理ツール（Python、Node.js、Ruby等）
+
+**その他のツール**:
+- **Docker CLI**: コンテナ操作（ホストのDockerデーモンをソケット経由で利用）
+- **AWS CLI v2**: AWSリソース管理
 
 ### システムパッケージ（常時インストール）
 
@@ -359,12 +378,21 @@ node app.js
 |--------------|------------|------|
 | `pip-cache` | `~/.cache/pip` | pip キャッシュ |
 | `uv-cache` | `~/.cache/uv` | uv キャッシュ |
-| `uv-python` | `~/.local/share/uv` | uv インストール Python |
+| `uv-python` | `~/.local/share/uv` | uv インストールPythonバージョン |
+| `poetry-cache` | `~/.cache/pypoetry` | Poetry キャッシュ |
+| `poetry-data` | `~/.local/share/pypoetry` | Poetry データ |
+| `pyenv` | `~/.pyenv` | pyenv Pythonバージョン |
 | `volta-tools` | `~/.volta/tools` | Volta ツール |
+| `nvm` | `~/.nvm` | nvm Node.jsバージョン |
+| `fnm` | `~/.local/share/fnm` | fnm Node.jsバージョン |
+| `mise-data` | `~/.local/share/mise` | mise インストールツール |
+| `mise-cache` | `~/.cache/mise` | mise キャッシュ |
 | `npm-cache` | `~/.npm` | npm キャッシュ |
 | `pnpm-cache` | `~/.cache/pnpm` | pnpm メタデータキャッシュ |
 | `pnpm-store` | `~/.local/share/pnpm` | pnpm グローバルストア |
 | `bash-history` | `~/.docker_history` | bash 履歴 |
+
+> **注意**: 選択したパッケージ管理ツールに関わらず、すべてのボリュームが作成されます。未使用のボリュームは空のままで、著しい容量を消費しません。
 
 ### 読み取り専用マウント
 
@@ -402,10 +430,11 @@ node app.js
 
 ### 開発環境
 
-- **Python**: システムの python3 パッケージは含まれません（uv で管理）
-- **Node.js**: Volta でバージョン管理されます（npm、pnpm も含む）
+- **Python**: 選択したパッケージ管理ツール（uv/poetry/pyenv/mise）で管理。poetry互換性のためシステムのpython3がインストールされます
+- **Node.js**: 選択したバージョン管理ツール（Volta/nvm/fnm/mise）で管理
 - **pnpm**: 高速パッケージマネージャ、グローバルストアとキャッシュが永続化
 - **ポート**: デフォルトで 3000 番ポートがフォワードされます
+- **パッケージ管理ツール**: 選択したツールのみインストールされます。すべてのボリュームマウントポイントは将来の使用のために作成されます
 
 ### 環境切り替え時の注意事項
 

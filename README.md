@@ -95,8 +95,18 @@ Note: Re-login required for group changes to take effect.
 4. **Software Selection** (Custom mode only)
    - **Docker CLI**: Container operations (y/n)
    - **AWS CLI v2**: AWS resource management (y/n)
-   - **uv**: Python package & version management (y/n)
-   - **Volta**: Node.js version management (y/n)
+   - **Python Package Manager**: Choose from:
+     1. **uv** (recommended): Fast, all-in-one Python package & version manager
+     2. **poetry**: Project-focused dependency management
+     3. **pyenv + poetry**: Version management + dependency management
+     4. **mise**: Multi-language version manager (supports Python, Node.js, etc.)
+     5. **none**: Skip Python tools
+   - **Node.js Version Manager**: Choose from:
+     1. **Volta** (recommended): Automatic version switching per project
+     2. **nvm**: Traditional, widely-used Node.js version manager
+     3. **fnm**: Fast Node Manager (Rust-based, fast alternative to nvm)
+     4. **mise**: Multi-language version manager (supports Python, Node.js, etc.)
+     5. **none**: Skip Node.js tools
 
 5. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
@@ -156,8 +166,8 @@ DOCKER_GID=989
 SETUP_MODE=1
 INSTALL_DOCKER=true
 INSTALL_AWS_CLI=true
-INSTALL_UV=true
-INSTALL_VOLTA=true
+PYTHON_MANAGER=uv
+NODEJS_MANAGER=volta
 ```
 
 **Custom Mode:**
@@ -173,8 +183,8 @@ DOCKER_GID=989
 SETUP_MODE=2
 INSTALL_DOCKER=true
 INSTALL_AWS_CLI=false
-INSTALL_UV=true
-INSTALL_VOLTA=false
+PYTHON_MANAGER=poetry
+NODEJS_MANAGER=nvm
 ```
 
 ### Starting the Development Environment
@@ -271,12 +281,21 @@ node app.js
 
 ### Development Tools
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| **uv** | Python package & version management | Python 3.8+ |
-| **Volta** | Node.js version management | Node.js, npm, yarn, pnpm |
-| **Docker CLI** | Container operations (using host Docker) | - |
-| **AWS CLI v2** | AWS resource management | - |
+**Python Package Managers** (select one in Custom mode, default: uv in Normal mode):
+- **uv**: Fast, all-in-one Python package & version manager (Rust-based, pip-compatible)
+- **poetry**: Modern Python dependency management and packaging
+- **pyenv + poetry**: Python version management (pyenv) + dependency management (poetry)
+- **mise**: Multi-language version manager (Python, Node.js, Ruby, etc.)
+
+**Node.js Version Managers** (select one in Custom mode, default: Volta in Normal mode):
+- **Volta**: Seamless Node.js version management with automatic project-based switching
+- **nvm**: Traditional Node.js version manager (most widely used)
+- **fnm**: Fast Node Manager (Rust-based, faster alternative to nvm)
+- **mise**: Multi-language version manager (Python, Node.js, Ruby, etc.)
+
+**Other Tools**:
+- **Docker CLI**: Container operations (using host Docker daemon via socket mount)
+- **AWS CLI v2**: AWS resource management
 
 ### System Packages (Always Installed)
 
@@ -359,12 +378,21 @@ The following packages are always installed in both Normal and Custom modes to p
 |-------------|------------|---------|
 | `pip-cache` | `~/.cache/pip` | pip cache |
 | `uv-cache` | `~/.cache/uv` | uv cache |
-| `uv-python` | `~/.local/share/uv` | uv installed Python |
+| `uv-python` | `~/.local/share/uv` | uv installed Python versions |
+| `poetry-cache` | `~/.cache/pypoetry` | Poetry cache |
+| `poetry-data` | `~/.local/share/pypoetry` | Poetry data |
+| `pyenv` | `~/.pyenv` | pyenv Python versions |
 | `volta-tools` | `~/.volta/tools` | Volta tools |
+| `nvm` | `~/.nvm` | nvm Node.js versions |
+| `fnm` | `~/.local/share/fnm` | fnm Node.js versions |
+| `mise-data` | `~/.local/share/mise` | mise installed tools |
+| `mise-cache` | `~/.cache/mise` | mise cache |
 | `npm-cache` | `~/.npm` | npm cache |
 | `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
 | `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
 | `bash-history` | `~/.docker_history` | bash history |
+
+> **Note**: All volumes are created regardless of selected package managers for simplicity. Unused volumes remain empty and don't consume significant space.
 
 ### Read-only Mounts
 
@@ -402,10 +430,11 @@ The following packages are always installed in both Normal and Custom modes to p
 
 ### Development Environment
 
-- **Python**: System python3 package not included (managed by uv)
-- **Node.js**: Version managed by Volta (includes npm, pnpm)
+- **Python**: Managed by selected package manager (uv/poetry/pyenv/mise). System python3 is installed for poetry compatibility
+- **Node.js**: Managed by selected version manager (Volta/nvm/fnm/mise)
 - **pnpm**: Fast package manager with persistent global store and cache
 - **Ports**: Port 3000 is forwarded by default
+- **Package Managers**: Only selected tools are installed. All volume mount points are created for future use
 
 ### Environment Switching Notes
 

@@ -96,8 +96,8 @@ done
 # Initialize software installation flags
 install_docker=true
 install_aws_cli=true
-install_uv=true
-install_volta=true
+python_manager="uv"    # Default: uv
+nodejs_manager="volta" # Default: volta
 
 # Custom mode: ask for each software
 if [ "$setup_mode" = "2" ]; then
@@ -126,25 +126,45 @@ if [ "$setup_mode" = "2" ]; then
         esac
     done
 
-    # uv
+    # Python package manager selection
+    echo ""
+    echo "Select Python package manager:"
+    echo "  1) uv (recommended: fast, all-in-one)"
+    echo "  2) poetry (project management focused)"
+    echo "  3) pyenv + poetry (version + project management)"
+    echo "  4) mise (multi-language version manager)"
+    echo "  5) none (skip Python tools)"
     while true; do
-        read -p "Install uv (Python package manager)? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
+        read -p "Enter choice [1-5] (default: 1): " choice
+        choice=${choice:-1}
         case $choice in
-            y|Y) install_uv=true; break ;;
-            n|N) install_uv=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
+            1) python_manager="uv"; break ;;
+            2) python_manager="poetry"; break ;;
+            3) python_manager="pyenv-poetry"; break ;;
+            4) python_manager="mise"; break ;;
+            5) python_manager="none"; break ;;
+            *) echo -e "${RED}ERROR:${NC} Please enter 1-5" ;;
         esac
     done
 
-    # Volta
+    # Node.js package manager selection
+    echo ""
+    echo "Select Node.js version manager:"
+    echo "  1) Volta (recommended: auto-switching)"
+    echo "  2) nvm (traditional, widely used)"
+    echo "  3) fnm (fast, Rust-based)"
+    echo "  4) mise (multi-language version manager)"
+    echo "  5) none (skip Node.js tools)"
     while true; do
-        read -p "Install Volta (Node.js version manager)? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
+        read -p "Enter choice [1-5] (default: 1): " choice
+        choice=${choice:-1}
         case $choice in
-            y|Y) install_volta=true; break ;;
-            n|N) install_volta=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
+            1) nodejs_manager="volta"; break ;;
+            2) nodejs_manager="nvm"; break ;;
+            3) nodejs_manager="fnm"; break ;;
+            4) nodejs_manager="mise"; break ;;
+            5) nodejs_manager="none"; break ;;
+            *) echo -e "${RED}ERROR:${NC} Please enter 1-5" ;;
         esac
     done
 fi
@@ -222,6 +242,21 @@ EOF
     fi
 }
 
+# Function to generate python3 system package installation (for poetry)
+generate_python3_install() {
+    if [ "$1" = "poetry" ] || [ "$1" = "pyenv-poetry" ]; then
+        cat << 'EOF'
+
+# Install python3 for poetry
+RUN apt update -y && \
+    apt install -y python3 python3-pip python3-venv && \
+    rm -rf /var/lib/apt/lists/*
+EOF
+    else
+        echo ""
+    fi
+}
+
 # Function to generate AWS CLI installation section
 generate_aws_cli_install() {
     if [ "$1" = true ]; then
@@ -239,7 +274,7 @@ EOF
 
 # Function to generate uv installation section
 generate_uv_install() {
-    if [ "$1" = true ]; then
+    if [ "$1" = "uv" ]; then
         cat << 'EOF'
 # uv (Python package manager and version manager)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -251,14 +286,105 @@ EOF
     fi
 }
 
+# Function to generate poetry installation section
+generate_poetry_install() {
+    if [ "$1" = "poetry" ] || [ "$1" = "pyenv-poetry" ]; then
+        cat << 'EOF'
+# Poetry (Python dependency management)
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+EOF
+    else
+        echo ""
+    fi
+}
+
+# Function to generate pyenv installation section
+generate_pyenv_install() {
+    if [ "$1" = "pyenv-poetry" ]; then
+        cat << 'EOF'
+# pyenv (Python version management)
+RUN git clone https://github.com/pyenv/pyenv.git ~/.pyenv && \
+    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc && \
+    echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc && \
+    echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+ENV PYENV_ROOT="/home/${USERNAME}/.pyenv"
+ENV PATH="$PYENV_ROOT/bin:$PATH"
+EOF
+    else
+        echo ""
+    fi
+}
+
+# Function to generate mise installation section for Python
+generate_mise_python_install() {
+    if [ "$1" = "mise" ]; then
+        cat << 'EOF'
+# mise (multi-language version manager) for Python
+RUN curl https://mise.run | sh && \
+    echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+EOF
+    else
+        echo ""
+    fi
+}
+
 # Function to generate Volta installation section
 generate_volta_install() {
-    if [ "$1" = true ]; then
+    if [ "$1" = "volta" ]; then
         cat << 'EOF'
-# Volta
+# Volta (Node.js version manager)
 RUN curl https://get.volta.sh | bash
 ENV VOLTA_HOME="/home/${USERNAME}/.volta"
 ENV PATH="$VOLTA_HOME/bin:$PATH"
+EOF
+    else
+        echo ""
+    fi
+}
+
+# Function to generate nvm installation section
+generate_nvm_install() {
+    if [ "$1" = "nvm" ]; then
+        cat << 'EOF'
+# nvm (Node.js version manager)
+# Note: nvm install script automatically adds configuration to ~/.bashrc
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+ENV NVM_DIR="/home/${USERNAME}/.nvm"
+EOF
+    else
+        echo ""
+    fi
+}
+
+# Function to generate fnm installation section
+generate_fnm_install() {
+    if [ "$1" = "fnm" ]; then
+        cat << 'EOF'
+# fnm (Fast Node Manager)
+# Note: fnm install script automatically adds configuration to ~/.bashrc
+RUN curl -fsSL https://fnm.vercel.app/install | bash
+ENV PATH="/home/${USERNAME}/.local/share/fnm:$PATH"
+EOF
+    else
+        echo ""
+    fi
+}
+
+# Function to generate mise installation section for Node.js
+generate_mise_nodejs_install() {
+    if [ "$1" = "mise" ]; then
+        # Only install mise if not already installed by Python manager
+        cat << 'EOF'
+# mise (multi-language version manager) for Node.js
+# Note: If already installed for Python, this will be skipped
+RUN if [ ! -f ~/.local/bin/mise ]; then \
+        curl https://mise.run | sh && \
+        echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc; \
+    fi
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
 EOF
     else
         echo ""
@@ -285,15 +411,65 @@ else
     # Custom mode: generate from custom template
     docker_install=$(generate_docker_install "$install_docker")
     aws_cli_install=$(generate_aws_cli_install "$install_aws_cli")
-    uv_install=$(generate_uv_install "$install_uv")
-    volta_install=$(generate_volta_install "$install_volta")
+
+    # Generate python3 system package install (only for poetry)
+    python3_install=$(generate_python3_install "$python_manager")
+
+    # Generate Python manager installation
+    python_install=""
+    case "$python_manager" in
+        "uv")
+            python_install=$(generate_uv_install "uv")
+            ;;
+        "poetry")
+            python_install=$(generate_poetry_install "poetry")
+            ;;
+        "pyenv-poetry")
+            pyenv_inst=$(generate_pyenv_install "pyenv-poetry")
+            poetry_inst=$(generate_poetry_install "pyenv-poetry")
+            python_install="${pyenv_inst}
+
+${poetry_inst}"
+            ;;
+        "mise")
+            python_install=$(generate_mise_python_install "mise")
+            ;;
+        "none")
+            python_install=""
+            ;;
+    esac
+
+    # Generate Node.js manager installation
+    nodejs_install=""
+    case "$nodejs_manager" in
+        "volta")
+            nodejs_install=$(generate_volta_install "volta")
+            ;;
+        "nvm")
+            nodejs_install=$(generate_nvm_install "nvm")
+            ;;
+        "fnm")
+            nodejs_install=$(generate_fnm_install "fnm")
+            ;;
+        "mise")
+            nodejs_install=$(generate_mise_nodejs_install "mise")
+            ;;
+        "none")
+            nodejs_install=""
+            ;;
+    esac
 
     # Use awk for better multiline handling
-    awk -v docker_inst="$docker_install" -v aws_inst="$aws_cli_install" -v uv_inst="$uv_install" -v volta_inst="$volta_install" '
+    awk -v docker_inst="$docker_install" \
+        -v aws_inst="$aws_cli_install" \
+        -v python3_inst="$python3_install" \
+        -v python_inst="$python_install" \
+        -v nodejs_inst="$nodejs_install" '
         /{{DOCKER_INSTALL}}/ { print docker_inst; next }
         /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
-        /{{UV_INSTALL}}/ { print uv_inst; next }
-        /{{VOLTA_INSTALL}}/ { print volta_inst; next }
+        /{{PYTHON3_INSTALL}}/ { print python3_inst; next }
+        /{{PYTHON_MANAGER_INSTALL}}/ { print python_inst; next }
+        /{{NODEJS_MANAGER_INSTALL}}/ { print nodejs_inst; next }
         { print }
     ' Dockerfile.custom.template > Dockerfile
 fi
@@ -325,8 +501,8 @@ DOCKER_GID=$docker_gid
 SETUP_MODE=$setup_mode
 INSTALL_DOCKER=$install_docker
 INSTALL_AWS_CLI=$install_aws_cli
-INSTALL_UV=$install_uv
-INSTALL_VOLTA=$install_volta
+PYTHON_MANAGER=$python_manager
+NODEJS_MANAGER=$nodejs_manager
 EOF
 
 # Create symlink to .env for docker compose to use
