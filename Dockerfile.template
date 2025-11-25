@@ -109,7 +109,14 @@ ENV PATH="$VOLTA_HOME/bin:$PATH"
 RUN mkdir -p ~/.cache/pip \
     ~/.cache/uv \
     ~/.local/share/uv \
+    ~/.cache/pypoetry \
+    ~/.local/share/pypoetry \
+    ~/.pyenv \
     ~/.volta/tools \
+    ~/.nvm \
+    ~/.local/share/fnm \
+    ~/.local/share/mise \
+    ~/.cache/mise \
     ~/.npm \
     ~/.cache/pnpm \
     ~/.local/share/pnpm \

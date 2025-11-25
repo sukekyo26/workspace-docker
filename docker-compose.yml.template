@@ -18,7 +18,14 @@ services:
       - pip-cache:/home/${USERNAME}/.cache/pip
       - uv-cache:/home/${USERNAME}/.cache/uv
       - uv-python:/home/${USERNAME}/.local/share/uv
+      - poetry-cache:/home/${USERNAME}/.cache/pypoetry
+      - poetry-data:/home/${USERNAME}/.local/share/pypoetry
+      - pyenv:/home/${USERNAME}/.pyenv
       - volta-tools:/home/${USERNAME}/.volta/tools
+      - nvm:/home/${USERNAME}/.nvm
+      - fnm:/home/${USERNAME}/.local/share/fnm
+      - mise-data:/home/${USERNAME}/.local/share/mise
+      - mise-cache:/home/${USERNAME}/.cache/mise
       - npm-cache:/home/${USERNAME}/.npm
       - pnpm-cache:/home/${USERNAME}/.cache/pnpm
       - pnpm-store:/home/${USERNAME}/.local/share/pnpm
@@ -38,7 +45,14 @@ volumes:
   pip-cache:
   uv-cache:
   uv-python:
+  poetry-cache:
+  poetry-data:
+  pyenv:
   volta-tools:
+  nvm:
+  fnm:
+  mise-data:
+  mise-cache:
   npm-cache:
   pnpm-cache:
   pnpm-store:

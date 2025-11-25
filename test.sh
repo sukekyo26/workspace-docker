@@ -452,31 +452,25 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
     # Check SETUP_MODE to determine which volumes to check
     SETUP_MODE=$(grep '^SETUP_MODE=' .env | cut -d'=' -f2-)
 
+    # All volumes are checked regardless of mode (volumes are created for all package managers)
+    expected_volumes=(
+        "~/.cache/pip"
+        "~/.cache/uv"
+        "~/.local/share/uv"
+        "~/.cache/pypoetry"
+        "~/.local/share/pypoetry"
+        "~/.pyenv"
+        "~/.volta/tools"
+        "~/.nvm"
+        "~/.local/share/fnm"
+        "~/.local/share/mise"
+        "~/.cache/mise"
+    )
+
     if [ "$SETUP_MODE" = "1" ]; then
-        # Normal mode: only check uv and Volta volumes
-        expected_volumes=(
-            "~/.cache/pip"
-            "~/.cache/uv"
-            "~/.local/share/uv"
-            "~/.volta/tools"
-        )
-        echo "  (Normal mode: checking uv and Volta volumes only)"
+        echo "  (Normal mode: all volume mount points are created for future use)"
     else
-        # Custom mode: check all package manager volumes
-        expected_volumes=(
-            "~/.cache/pip"
-            "~/.cache/uv"
-            "~/.local/share/uv"
-            "~/.cache/pypoetry"
-            "~/.local/share/pypoetry"
-            "~/.pyenv"
-            "~/.volta/tools"
-            "~/.nvm"
-            "~/.local/share/fnm"
-            "~/.local/share/mise"
-            "~/.cache/mise"
-        )
-        echo "  (Custom mode: checking all package manager volumes)"
+        echo "  (Custom mode: all volume mount points are created)"
     fi
 
     volumes_ok=true
