@@ -518,8 +518,8 @@ else
     echo "Software selected:"
     [ "$install_docker" = true ] && echo "  - Docker CLI: Yes" || echo "  - Docker CLI: No"
     [ "$install_aws_cli" = true ] && echo "  - AWS CLI v2: Yes" || echo "  - AWS CLI v2: No"
-    [ "$install_uv" = true ] && echo "  - uv: Yes" || echo "  - uv: No"
-    [ "$install_volta" = true ] && echo "  - Volta: Yes" || echo "  - Volta: No"
+    echo "  - Python Manager: $python_manager"
+    echo "  - Node.js Manager: $nodejs_manager"
 fi
 echo ""
 echo "Generated files:"
