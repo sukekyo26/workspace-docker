@@ -4,6 +4,7 @@ A Docker-based Ubuntu development environment template optimized for Python, Nod
 
 ## Features
 
+- **Flexible Setup**: Choose between Normal (Quick start) or Custom (select software)
 - **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2
 - **Persistent Storage**: Development tool caches and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
@@ -70,27 +71,53 @@ Note: Re-login required for group changes to take effect.
    bash setup-docker.sh
    ```
 
-2. **Required Input**
-   - **Container/Service Name**: 
+2. **Setup Mode Selection**
+   - **Normal (1)**: Quick start mode with recommended tools pre-installed
+     - Installs: Docker CLI, AWS CLI v2, uv, Volta
+     - Recommended for Python & Node.js development
+     - Fastest way to get started
+   - **Custom (2)**: Select which software to install
+     - Allows granular control over installed tools
+     - Reduces image size if certain tools aren't needed
+     - Note: Cache directories and volumes are created for all tools regardless of selection
+
+3. **Required Input**
+   - **Container/Service Name**:
      - Allowed characters: alphanumeric (`a-z`, `A-Z`, `0-9`), hyphen (`-`), underscore (`_`)
      - Length: 1-63 characters
      - Examples: `dev`, `my-container`, `app_server`
-   - **Username**: 
+   - **Username**:
      - First character: lowercase letter (`a-z`) or underscore (`_`)
      - Allowed characters: lowercase letters (`a-z`), digits (`0-9`), hyphen (`-`), underscore (`_`)
      - Length: 1-32 characters
      - Examples: `user`, `dev_user`, `john-doe`
 
-3. **Auto-detected Information**
+4. **Software Selection** (Custom mode only)
+   - **Docker CLI**: Container operations (y/n)
+   - **AWS CLI v2**: AWS resource management (y/n)
+   - **Python Package Manager**: Choose from:
+     1. **uv** (recommended): Fast, all-in-one Python package & version manager
+     2. **poetry**: Project-focused dependency management
+     3. **pyenv + poetry**: Version management + dependency management
+     4. **mise**: Multi-language version manager (supports Python, Node.js, etc.)
+     5. **none**: Skip Python tools
+   - **Node.js Version Manager**: Choose from:
+     1. **Volta** (recommended): Automatic version switching per project
+     2. **nvm**: Traditional, widely-used Node.js version manager
+     3. **fnm**: Fast Node Manager (Rust-based, fast alternative to nvm)
+     4. **mise**: Multi-language version manager (supports Python, Node.js, etc.)
+     5. **none**: Skip Node.js tools
+
+5. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
    - **Docker GID**: Automatically detects host Docker group GID (from `/var/run/docker.sock`)
 
-4. **Generated Files**
-   - `Dockerfile` - Generated from template
-   - `docker-compose.yml` - Generated from template
+6. **Generated Files**
+   - `Dockerfile` - Generated from template (normal or custom)
+   - `docker-compose.yml` - Generated from template (normal or custom)
    - `.devcontainer/devcontainer.json` - VS Code Dev Container configuration
    - `.devcontainer/docker-compose.yml` - Dev Container docker-compose configuration
-   - `.envs/<service_name>.env` - Environment variables (managed per service)
+   - `.envs/<service_name>.env` - Environment variables (managed per service, includes software selection flags)
    - `.env` - Symbolic link to `.envs/<service_name>.env`
 
    > **When switching environments**: Using `switch-env.sh` automatically regenerates `.devcontainer` files along with the `.env` symbolic link
@@ -126,6 +153,7 @@ ln -sf .envs/prod.env .env   # Switch to prod service
 
 #### Example .env File Content
 
+**Normal Mode:**
 ```env
 # Environment variables for dev
 # Generated on Fri Nov  8 12:34:56 UTC 2025
@@ -135,6 +163,28 @@ USERNAME=devuser
 UID=1000
 GID=1000
 DOCKER_GID=989
+SETUP_MODE=1
+INSTALL_DOCKER=true
+INSTALL_AWS_CLI=true
+PYTHON_MANAGER=uv
+NODEJS_MANAGER=volta
+```
+
+**Custom Mode:**
+```env
+# Environment variables for dev
+# Generated on Fri Nov  8 12:34:56 UTC 2025
+
+CONTAINER_SERVICE_NAME=dev
+USERNAME=devuser
+UID=1000
+GID=1000
+DOCKER_GID=989
+SETUP_MODE=2
+INSTALL_DOCKER=true
+INSTALL_AWS_CLI=false
+PYTHON_MANAGER=poetry
+NODEJS_MANAGER=nvm
 ```
 
 ### Starting the Development Environment
@@ -231,23 +281,76 @@ node app.js
 
 ### Development Tools
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| **uv** | Python package & version management | Python 3.8+ |
-| **Volta** | Node.js version management | Node.js, npm, yarn, pnpm |
-| **Docker CLI** | Container operations (using host Docker) | - |
-| **AWS CLI v2** | AWS resource management | - |
+**Python Package Managers** (select one in Custom mode, default: uv in Normal mode):
+- **uv**: Fast, all-in-one Python package & version manager (Rust-based, pip-compatible)
+- **poetry**: Modern Python dependency management and packaging
+- **pyenv + poetry**: Python version management (pyenv) + dependency management (poetry)
+- **mise**: Multi-language version manager (Python, Node.js, Ruby, etc.)
 
-### System Tools
+**Node.js Version Managers** (select one in Custom mode, default: Volta in Normal mode):
+- **Volta**: Seamless Node.js version management with automatic project-based switching
+- **nvm**: Traditional Node.js version manager (most widely used)
+- **fnm**: Fast Node Manager (Rust-based, faster alternative to nvm)
+- **mise**: Multi-language version manager (Python, Node.js, Ruby, etc.)
 
-- **Git** - Version control
-- **curl/wget** - HTTP clients
-- **vim/nano** - Text editors
+**Other Tools**:
+- **Docker CLI**: Container operations (using host Docker daemon via socket mount)
+- **AWS CLI v2**: AWS resource management
+
+### System Packages (Always Installed)
+
+The following packages are always installed in both Normal and Custom modes to provide a complete development environment.
+
+#### Essential Packages
+- **ca-certificates** - SSL/TLS certificate management for secure HTTPS connections
+- **gnupg** - GNU Privacy Guard for data encryption and signing
+- **openssh-client** - SSH client for secure remote connections
+
+#### Development Tools
+- **git** - Version control system
+- **make** - Build automation tool
+- **build-essential** - C/C++ compilers and build tools (gcc, g++, make, libc-dev)
+
+#### Editors
+- **vim** - Powerful text editor
+- **nano** - Simple, user-friendly text editor
+
+#### Compression & Archive Tools
+- **zip/unzip** - ZIP archive utilities
+- **tar** - Tape archive utility
+- **gzip** - GNU gzip compression
+- **bzip2** - bzip2 compression
+- **xz-utils** - XZ compression format
+
+#### Network & Download Tools
+- **curl** - Command-line HTTP client
+- **wget** - Network downloader
+- **rsync** - Fast file synchronization and transfer
+
+#### System Utilities
+- **sudo** - Execute commands as another user
 - **tree** - Directory structure visualization
 - **jq** - JSON processor
-- **build-essential** - C/C++ compilers
-- **locales** - Locale configuration (UTF-8 support)
-- **Development libraries** - SSL, SQLite, XML, etc.
+- **less** - File pager
+- **bash-completion** - Command auto-completion
+- **procps** - Process monitoring utilities (ps, top, etc.)
+- **iproute2** - Advanced networking utilities (ip command)
+
+#### Development Libraries
+- **libssl-dev** - SSL/TLS development libraries
+- **zlib1g-dev** - Compression library
+- **libbz2-dev** - bzip2 library
+- **libreadline-dev** - Readline library for command-line editing
+- **libsqlite3-dev** - SQLite3 database library
+- **libncursesw5-dev** - Terminal UI library
+- **tk-dev** - Tk GUI toolkit
+- **libxml2-dev** - XML processing library
+- **libxmlsec1-dev** - XML security library
+- **libffi-dev** - Foreign function interface library
+- **liblzma-dev** - XZ compression library
+
+#### Locale Support
+- **locales** - Locale configuration (UTF-8 support for multilingual text)
 
 ### Locale Configuration
 
@@ -275,12 +378,21 @@ node app.js
 |-------------|------------|---------|
 | `pip-cache` | `~/.cache/pip` | pip cache |
 | `uv-cache` | `~/.cache/uv` | uv cache |
-| `uv-python` | `~/.local/share/uv` | uv installed Python |
+| `uv-python` | `~/.local/share/uv` | uv installed Python versions |
+| `poetry-cache` | `~/.cache/pypoetry` | Poetry cache |
+| `poetry-data` | `~/.local/share/pypoetry` | Poetry data |
+| `pyenv` | `~/.pyenv` | pyenv Python versions |
 | `volta-tools` | `~/.volta/tools` | Volta tools |
+| `nvm` | `~/.nvm` | nvm Node.js versions |
+| `fnm` | `~/.local/share/fnm` | fnm Node.js versions |
+| `mise-data` | `~/.local/share/mise` | mise installed tools |
+| `mise-cache` | `~/.cache/mise` | mise cache |
 | `npm-cache` | `~/.npm` | npm cache |
 | `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
 | `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
 | `bash-history` | `~/.docker_history` | bash history |
+
+> **Note**: All volumes are created regardless of selected package managers for simplicity. Unused volumes remain empty and don't consume significant space.
 
 ### Read-only Mounts
 
@@ -318,10 +430,11 @@ node app.js
 
 ### Development Environment
 
-- **Python**: System python3 package not included (managed by uv)
-- **Node.js**: Version managed by Volta (includes npm, pnpm)
+- **Python**: Managed by selected package manager (uv/poetry/pyenv/mise). System python3 is installed for poetry compatibility
+- **Node.js**: Managed by selected version manager (Volta/nvm/fnm/mise)
 - **pnpm**: Fast package manager with persistent global store and cache
 - **Ports**: Port 3000 is forwarded by default
+- **Package Managers**: Only selected tools are installed. All volume mount points are created for future use
 
 ### Environment Switching Notes
 
@@ -484,11 +597,13 @@ Tests display results with color output and return exit code 1 if any test fails
 
 ## Project Files
 
-- `setup-docker.sh` - Setup script
+- `setup-docker.sh` - Setup script with Normal/Custom mode selection
 - `switch-env.sh` - Environment switching script
 - `test.sh` - Test script
-- `Dockerfile.template` - Dockerfile template
-- `docker-compose.yml.template` - docker-compose.yml template
+- `Dockerfile.template` - Dockerfile template for Normal mode (recommended tools for Python & Node.js)
+- `Dockerfile.custom.template` - Dockerfile template for Custom mode (selective installation)
+- `docker-compose.yml.template` - docker-compose.yml template for Normal mode
+- `docker-compose.custom.template` - docker-compose.yml template for Custom mode
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container configuration template
 - `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
 
