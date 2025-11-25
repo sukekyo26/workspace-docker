@@ -345,16 +345,15 @@ if [ -d ".envs" ]; then
                 fi
             done
 
-            # Check for PYTHON_MANAGER and NODEJS_MANAGER (added in custom mode)
-            if grep -q "^SETUP_MODE=2" "$env_file"; then
-                for var in "PYTHON_MANAGER" "NODEJS_MANAGER"; do
-                    if grep -q "^${var}=" "$env_file"; then
-                        echo -e "    ${GREEN}✓${NC} $var is defined (custom mode)"
-                    else
-                        echo -e "    ${YELLOW}⊘${NC} $var is missing (custom mode variable)"
-                    fi
-                done
-            fi
+            # Check for PYTHON_MANAGER and NODEJS_MANAGER (should be in both modes)
+            for var in "PYTHON_MANAGER" "NODEJS_MANAGER"; do
+                if grep -q "^${var}=" "$env_file"; then
+                    echo -e "    ${GREEN}✓${NC} $var is defined"
+                else
+                    echo -e "    ${RED}✗${NC} $var is missing"
+                    env_format_ok=false
+                fi
+            done
         done
 
         if [ "$env_format_ok" = true ]; then
