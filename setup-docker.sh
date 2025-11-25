@@ -212,11 +212,6 @@ if [ ! -f ".devcontainer/docker-compose.yml.template" ]; then
     exit 1
 fi
 
-if [ ! -f ".devcontainer/docker-compose.yml.template" ]; then
-    echo -e "${RED}ERROR:${NC} .devcontainer/docker-compose.yml.template not found"
-    exit 1
-fi
-
 # Function to generate Docker CLI installation section
 generate_docker_install() {
     if [ "$1" = true ]; then
