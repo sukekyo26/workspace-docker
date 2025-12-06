@@ -65,6 +65,40 @@ EOF
     fi
 }
 
+# Function to generate AWS SAM CLI installation section
+generate_aws_sam_cli_install() {
+    if [ "$1" = true ]; then
+        cat << 'EOF'
+# Install AWS SAM CLI
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+      amd64) DOWNLOAD_ARCH="x86_64" ;; \
+      arm64) DOWNLOAD_ARCH="aarch64" ;; \
+      *) DOWNLOAD_ARCH="x86_64" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -L "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
+    unzip aws-sam-cli.zip -d sam-installation && \
+    sudo ./sam-installation/install && \
+    rm -rf sam-installation aws-sam-cli.zip
+EOF
+    else
+        echo ""
+    fi
+}
+
+# Function to generate Slack CLI installation section
+generate_slack_cli_install() {
+    if [ "$1" = true ]; then
+        cat << 'EOF'
+# Install Slack CLI
+RUN curl -fsSL https://downloads.slack-edge.com/slack-cli/install.sh | bash
+EOF
+    else
+        echo ""
+    fi
+}
+
 # Function to generate uv installation section
 generate_uv_install() {
     if [ "$1" = "uv" ]; then
@@ -247,6 +281,8 @@ USERNAME_ENV=$(grep '^USERNAME=' .env | cut -d'=' -f2-)
 SETUP_MODE=$(grep '^SETUP_MODE=' .env | cut -d'=' -f2-)
 INSTALL_DOCKER=$(grep '^INSTALL_DOCKER=' .env | cut -d'=' -f2-)
 INSTALL_AWS_CLI=$(grep '^INSTALL_AWS_CLI=' .env | cut -d'=' -f2-)
+INSTALL_AWS_SAM_CLI=$(grep '^INSTALL_AWS_SAM_CLI=' .env | cut -d'=' -f2-)
+INSTALL_SLACK_CLI=$(grep '^INSTALL_SLACK_CLI=' .env | cut -d'=' -f2-)
 PYTHON_MANAGER=$(grep '^PYTHON_MANAGER=' .env | cut -d'=' -f2-)
 NODEJS_MANAGER=$(grep '^NODEJS_MANAGER=' .env | cut -d'=' -f2-)
 
@@ -287,12 +323,16 @@ else
     # Default to false/none if variables are empty
     [ -z "$INSTALL_DOCKER" ] && INSTALL_DOCKER=false
     [ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=false
+    [ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=false
+    [ -z "$INSTALL_SLACK_CLI" ] && INSTALL_SLACK_CLI=false
     [ -z "$PYTHON_MANAGER" ] && PYTHON_MANAGER="none"
     [ -z "$NODEJS_MANAGER" ] && NODEJS_MANAGER="none"
 
     # Generate installation sections
     docker_install=$(generate_docker_install "$INSTALL_DOCKER")
     aws_cli_install=$(generate_aws_cli_install "$INSTALL_AWS_CLI")
+    aws_sam_cli_install=$(generate_aws_sam_cli_install "$INSTALL_AWS_SAM_CLI")
+    slack_cli_install=$(generate_slack_cli_install "$INSTALL_SLACK_CLI")
     python3_install=$(generate_python3_install "$PYTHON_MANAGER")
 
     # Generate Python manager installation section
@@ -337,11 +377,15 @@ else
     # Use awk for better multiline handling
     awk -v docker_inst="$docker_install" \
         -v aws_inst="$aws_cli_install" \
+        -v aws_sam_inst="$aws_sam_cli_install" \
+        -v slack_inst="$slack_cli_install" \
         -v python3_inst="$python3_install" \
         -v python_inst="$python_install" \
         -v nodejs_inst="$nodejs_install" '
         /{{DOCKER_INSTALL}}/ { print docker_inst; next }
         /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
+        /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
+        /{{SLACK_CLI_INSTALL}}/ { print slack_inst; next }
         /{{PYTHON3_INSTALL}}/ { print python3_inst; next }
         /{{PYTHON_MANAGER_INSTALL}}/ { print python_inst; next }
         /{{NODEJS_MANAGER_INSTALL}}/ { print nodejs_inst; next }

@@ -5,7 +5,7 @@ A Docker-based Ubuntu development environment template optimized for Python, Nod
 ## Features
 
 - **Flexible Setup**: Choose between Normal (Quick start) or Custom (select software)
-- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2
+- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI
 - **Persistent Storage**: Development tool caches and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
@@ -38,9 +38,11 @@ Container: /home/<username>/workspace/
 **Required:**
 - Docker Engine installed
 - `~/.gitconfig` file (see below)
+ - Docker (required for AWS SAM CLI `sam local` to run functions and API locally)
 
 **Optional:**
 - VS Code + Dev Containers extension
+- For Slack CLI usage: set `SLACK_BOT_TOKEN` or `SLACK_USER_TOKEN` as environment variables (or configure via `slack` CLI auth flow)
 
 The following host configuration files are mounted **read-only** inside the container:
 
@@ -73,7 +75,7 @@ Note: Re-login required for group changes to take effect.
 
 2. **Setup Mode Selection**
    - **Normal (1)**: Quick start mode with recommended tools pre-installed
-     - Installs: Docker CLI, AWS CLI v2, uv, Volta
+   - Installs: Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI, uv, Volta
      - Recommended for Python & Node.js development
      - Fastest way to get started
    - **Custom (2)**: Select which software to install
@@ -95,6 +97,8 @@ Note: Re-login required for group changes to take effect.
 4. **Software Selection** (Custom mode only)
    - **Docker CLI**: Container operations (y/n)
    - **AWS CLI v2**: AWS resource management (y/n)
+  - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (sam build, sam local invoke) (y/n)
+  - **Slack CLI**: Slack command-line tooling for workspace interactions and API testing (y/n)
    - **Python Package Manager**: Choose from:
      1. **uv** (recommended): Fast, all-in-one Python package & version manager
      2. **poetry**: Project-focused dependency management
@@ -296,6 +300,8 @@ node app.js
 **Other Tools**:
 - **Docker CLI**: Container operations (using host Docker daemon via socket mount)
 - **AWS CLI v2**: AWS resource management
+ - **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally (Optional in Custom mode / installed by default in Normal mode)
+ - **Slack CLI**: CLI tooling for Slack workspace integration and API testing (Optional in Custom mode / installed by default in Normal mode)
 
 ### System Packages (Always Installed)
 
@@ -411,10 +417,16 @@ The following packages are always installed in both Normal and Custom modes to p
 | `/var/run/docker.sock` | `/var/run/docker.sock` | Host Docker connection |
 
 ## Important Notes
-
-### Security
-
 - **Docker Socket**: The host Docker socket is mounted, allowing full control of the host Docker environment from within the container
+
+### AWS SAM CLI requirements
+
+- `sam local` uses Docker containers to emulate Lambda functions; ensure Docker is running on the host and the container has access to the Docker socket for local invocation and API testing.
+- The Docker image automatically installs the SAM CLI for the container architecture (amd64 -> x86_64, arm64 -> aarch64). If you encounter issues, please verify the installed SAM binary and architecture compatibility.
+
+### Slack CLI usage
+
+- The Slack CLI requires valid Slack credentials for API calls. Configure tokens via environment variables (e.g., `SLACK_BOT_TOKEN`, `SLACK_USER_TOKEN`) or run the Slack CLI auth flow to store credentials.
 - **Personal Settings**: `~/.aws`, `~/.gitconfig`, `~/.ssh` are mounted read-only
 - **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
 
