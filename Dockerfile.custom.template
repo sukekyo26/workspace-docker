@@ -102,7 +102,8 @@ RUN mkdir -p ~/.cache/pip \
     ~/.npm \
     ~/.cache/pnpm \
     ~/.local/share/pnpm \
-    ~/.docker_history
+    ~/.docker_history \
+    ~/.aws
 
 # Setup persistent bash history
 RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \

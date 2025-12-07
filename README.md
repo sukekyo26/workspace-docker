@@ -47,7 +47,6 @@ Container: /home/<username>/workspace/
 The following host configuration files are mounted **read-only** inside the container:
 
 - **`~/.gitconfig`** - Git configuration (required)
-- `~/.aws/` - AWS CLI credentials and configuration (optional)
 - `~/.ssh/` - SSH keys (optional)
 
 > **Important**: If `~/.gitconfig` doesn't exist, the setup script will fail. At minimum, configure Git with:
@@ -396,6 +395,7 @@ The following packages are always installed in both Normal and Custom modes to p
 | `npm-cache` | `~/.npm` | npm cache |
 | `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
 | `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
+| `aws` | `~/.aws` | AWS CLI credentials and configuration |
 | `bash-history` | `~/.docker_history` | bash history |
 
 > **Note**: All volumes are created regardless of selected package managers for simplicity. Unused volumes remain empty and don't consume significant space.
@@ -404,7 +404,6 @@ The following packages are always installed in both Normal and Custom modes to p
 
 | Host | Container | Purpose |
 |------|-----------|---------|
-| `~/.aws` | `~/.aws` | AWS configuration & credentials |
 | `~/.gitconfig` | `~/.gitconfig` | Git configuration |
 | `~/.ssh` | `~/.ssh` | SSH keys (for Git authentication, etc.) |
 
@@ -427,7 +426,7 @@ The following packages are always installed in both Normal and Custom modes to p
 ### Slack CLI usage
 
 - The Slack CLI requires valid Slack credentials for API calls. Configure tokens via environment variables (e.g., `SLACK_BOT_TOKEN`, `SLACK_USER_TOKEN`) or run the Slack CLI auth flow to store credentials.
-- **Personal Settings**: `~/.aws`, `~/.gitconfig`, `~/.ssh` are mounted read-only
+- **Personal Settings**: `~/.gitconfig`, `~/.ssh` are mounted read-only
 - **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
 
 > **Warning**: The entire `~/.ssh` directory is accessible from within the container. While read-only and cannot be modified, container processes can read the key files. Exercise caution when running untrusted code.
