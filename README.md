@@ -194,6 +194,83 @@ NODEJS_MANAGER=nvm
 
 #### Method 1: VS Code Dev Container (Recommended)
 
+**For single project:**
+1. Open this folder in VS Code
+2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
+3. Container automatically builds, starts, and connects
+
+**For multi-root workspace (multiple projects):**
+
+If you want to work with multiple projects simultaneously with independent settings, use the multi-root workspace feature:
+
+1. Generate workspace file (first time only):
+   ```bash
+   ./generate-workspace.sh
+   ```
+
+2. After connecting to Dev Container, open workspace file from within the container:
+   - Open Command Palette (Ctrl+Shift+P) and select "File: Open Workspace from File..."
+   - Choose `/home/<username>/workspace/workspace-docker/multi-project.code-workspace`
+
+This will open all projects as separate workspace folders, each with independent settings.
+
+See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
+
+#### Method 2: Docker Compose
+
+```bash
+cd /home/<username>/workspace/project-a
+# Using uv
+uv venv --python 3.11
+
+cd /home/<username>/workspace/project-b
+# Using uv
+uv venv --python 3.12
+```
+
+Then configure VS Code to use it:
+
+**project-a/.vscode/settings.json (Python 3.11 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**project-b/.vscode/settings.json (Python 3.12 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 2: Using pyenv-installed Python directly**
+
+**project-a/.vscode/settings.json (pyenv Python 3.11)**
+```json
+{
+  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 3: Using uv Python selector**
+
+```json
+{
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+With this setting, VS Code will use the Python version managed by uv for the project.
+
+### Starting the Development Environment
+
+#### Method 1: VS Code Dev Container (Recommended)
+
 1. Open this folder in VS Code
 2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
 3. Container automatically builds, starts, and connects
@@ -232,6 +309,95 @@ docker compose down --volumes
 # Complete cleanup (containers, volumes, networks, images)
 docker compose down --volumes --rmi all
 ```
+
+### Multi-Root Workspace Support
+
+This setup supports VS Code's multi-root workspace feature, allowing you to manage multiple projects in the parent directory as separate workspace folders with independent settings.
+
+#### Benefits
+- Each project folder is recognized as an independent workspace
+- Different Python/Node.js versions can be configured per project
+- Project-specific settings (e.g., `.vscode/settings.json`) work independently
+- Easy navigation between multiple projects
+
+#### Generating Workspace File
+
+Run the provided script to automatically generate a workspace file:
+
+```bash
+./generate-workspace.sh
+```
+
+This scans all directories in the parent directory (excluding hidden directories) and generates:
+- `multi-project.code-workspace` (in the workspace-docker directory)
+
+The generated file includes all project folders found in the parent directory.
+
+#### Opening Multi-Root Workspace
+
+**From Container**
+1. Connect to container via Dev Containers as a single folder
+2. Open Command Palette (`Ctrl+Shift+P`)
+3. Select "File: Open Workspace from File..."
+4. Choose `/home/<username>/workspace/workspace-docker/multi-project.code-workspace`
+
+Once opened, VS Code remembers it in "Recent Files" for easy access (though you'll need to reconnect to the devcontainer each time).
+
+#### Configuring Per-Project Python Versions
+
+Create `.vscode/settings.json` in each project folder to specify the Python interpreter.
+
+**Example 1: Using virtual environment (recommended)**
+
+First, create a virtual environment with your desired Python version:
+```bash
+cd /home/<username>/workspace/project-a
+# Using uv
+uv venv --python 3.11
+
+cd /home/<username>/workspace/project-b
+# Using uv
+uv venv --python 3.12
+```
+
+Then configure VS Code to use it:
+
+**project-a/.vscode/settings.json (Python 3.11 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**project-b/.vscode/settings.json (Python 3.12 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 2: Using pyenv-installed Python directly**
+
+**project-a/.vscode/settings.json (pyenv Python 3.11)**
+```json
+{
+  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 3: Using uv Python selector**
+
+```json
+{
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+With this setting, VS Code will use the Python version managed by uv for the project.
 
 ## Development Workflows
 

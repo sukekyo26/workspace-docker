@@ -193,9 +193,27 @@ NODEJS_MANAGER=nvm
 
 #### 方法1: VS Code Dev Container（推奨）
 
+**単一プロジェクトの場合：**
 1. VS Codeでこのフォルダを開く
 2. コマンドパレット（Ctrl+Shift+P）から「Dev Containers: Open Folder in Container」を実行
 3. 自動でコンテナがビルド・起動され、VS Codeがコンテナに接続
+
+**マルチルートワークスペース（複数プロジェクト）の場合：**
+
+複数のプロジェクトを同時に独立した設定で作業したい場合は、マルチルートワークスペース機能を使用します：
+
+1. ワークスペースファイルを生成（初回のみ）：
+   ```bash
+   ./generate-workspace.sh
+   ```
+
+2. Dev Containerに接続後、コンテナ内からワークスペースファイルを開く：
+   - コマンドパレット（Ctrl+Shift+P）から「File: Open Workspace from File...」を選択
+   - `/home/<username>/workspace/workspace-docker/multi-project.code-workspace` を選択
+
+これにより、すべてのプロジェクトが個別のワークスペースフォルダとして開き、それぞれ独立した設定で作業できます。
+
+詳細は下記の[マルチルートワークスペースのサポート](#マルチルートワークスペースのサポート)セクションを参照してください。
 
 #### 方法2: Docker Compose
 
@@ -231,6 +249,97 @@ docker compose down --volumes
 # 完全なクリーンアップ（コンテナ、ボリューム、ネットワーク、イメージ）
 docker compose down --volumes --rmi all
 ```
+
+### マルチルートワークスペースのサポート
+
+このセットアップは、VS Codeのマルチルートワークスペース機能をサポートしており、親ディレクトリ内の複数プロジェクトを独立したワークスペースフォルダとして管理できます。
+
+#### メリット
+- 各プロジェクトフォルダが独立したワークスペースとして認識される
+- プロジェクトごとに異なるPython/Node.jsバージョンを設定可能
+- プロジェクト固有の設定（例: `.vscode/settings.json`）が独立して機能
+- 複数プロジェクト間の移動が容易
+
+#### ワークスペースファイルの生成
+
+提供されているスクリプトを実行して、ワークスペースファイルを自動生成します：
+
+```bash
+./generate-workspace.sh
+```
+
+これにより、親ディレクトリ内のすべてのディレクトリ（隠しディレクトリを除く）がスキャンされ、以下のファイルが生成されます：
+- `multi-project.code-workspace`（workspace-dockerディレクトリに配置）
+
+生成されたファイルには、親ディレクトリ内で見つかったすべてのプロジェクトフォルダが含まれます。
+
+#### マルチルートワークスペースの開き方
+
+**コンテナから開く**
+1. Dev Containers経由で単一フォルダとしてコンテナに接続
+2. コマンドパレット（`Ctrl+Shift+P`）を開く
+3. 「File: Open Workspace from File...」を選択
+4. `/home/<username>/workspace/workspace-docker/multi-project.code-workspace` を選択
+
+一度開けば、VS Codeの「最近使ったファイル」に表示されるので、次回から簡単にアクセスできます（ただし、devcontainerへの再接続は毎回必要です）。
+
+```
+
+#### プロジェクトごとのPythonバージョン設定
+
+各プロジェクトフォルダに `.vscode/settings.json` を作成してPythonインタープリターを指定します。
+
+**例1: 仮想環境を使用（推奨）**
+
+まず、使用したいPythonバージョンで仮想環境を作成します：
+```bash
+cd /home/<username>/workspace/project-a
+# uvを使用
+uv venv --python 3.11
+
+cd /home/<username>/workspace/project-b
+# uvを使用
+uv venv --python 3.12
+```
+
+次に、VS Codeでそれを使用するように設定します：
+
+**project-a/.vscode/settings.json (Python 3.11の仮想環境)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**project-b/.vscode/settings.json (Python 3.12の仮想環境)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**例2: pyenvでインストールしたPythonを直接使用**
+
+**project-a/.vscode/settings.json (pyenv Python 3.11)**
+```json
+{
+  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**例3: uvのPython選択機能を使用**
+
+```json
+{
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+この設定では、VS Codeがプロジェクト用にuvで管理されているPythonバージョンを使用します。
 
 ## 開発の流れ
 
