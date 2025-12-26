@@ -99,6 +99,28 @@ EOF
     fi
 }
 
+# Function to generate GitHub CLI installation section
+generate_github_cli_install() {
+    if [ "$1" = true ]; then
+        cat << 'EOF'
+# Install GitHub CLI
+USER root
+RUN mkdir -p -m 755 /etc/apt/keyrings && \
+    out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg && \
+    cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    mkdir -p -m 755 /etc/apt/sources.list.d && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y gh && \
+    rm -rf /var/lib/apt/lists/*
+USER ${USERNAME}
+EOF
+    else
+        echo ""
+    fi
+}
+
 # Function to generate uv installation section
 generate_uv_install() {
     if [ "$1" = "uv" ]; then
@@ -283,6 +305,7 @@ INSTALL_DOCKER=$(grep '^INSTALL_DOCKER=' .env | cut -d'=' -f2-)
 INSTALL_AWS_CLI=$(grep '^INSTALL_AWS_CLI=' .env | cut -d'=' -f2-)
 INSTALL_AWS_SAM_CLI=$(grep '^INSTALL_AWS_SAM_CLI=' .env | cut -d'=' -f2-)
 INSTALL_SLACK_CLI=$(grep '^INSTALL_SLACK_CLI=' .env | cut -d'=' -f2-)
+INSTALL_GITHUB_CLI=$(grep '^INSTALL_GITHUB_CLI=' .env | cut -d'=' -f2-)
 PYTHON_MANAGER=$(grep '^PYTHON_MANAGER=' .env | cut -d'=' -f2-)
 NODEJS_MANAGER=$(grep '^NODEJS_MANAGER=' .env | cut -d'=' -f2-)
 
@@ -325,6 +348,7 @@ else
     [ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=false
     [ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=false
     [ -z "$INSTALL_SLACK_CLI" ] && INSTALL_SLACK_CLI=false
+    [ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=false
     [ -z "$PYTHON_MANAGER" ] && PYTHON_MANAGER="none"
     [ -z "$NODEJS_MANAGER" ] && NODEJS_MANAGER="none"
 
@@ -333,6 +357,7 @@ else
     aws_cli_install=$(generate_aws_cli_install "$INSTALL_AWS_CLI")
     aws_sam_cli_install=$(generate_aws_sam_cli_install "$INSTALL_AWS_SAM_CLI")
     slack_cli_install=$(generate_slack_cli_install "$INSTALL_SLACK_CLI")
+    github_cli_install=$(generate_github_cli_install "$INSTALL_GITHUB_CLI")
     python3_install=$(generate_python3_install "$PYTHON_MANAGER")
 
     # Generate Python manager installation section
@@ -379,6 +404,7 @@ else
         -v aws_inst="$aws_cli_install" \
         -v aws_sam_inst="$aws_sam_cli_install" \
         -v slack_inst="$slack_cli_install" \
+        -v github_inst="$github_cli_install" \
         -v python3_inst="$python3_install" \
         -v python_inst="$python_install" \
         -v nodejs_inst="$nodejs_install" '
@@ -386,6 +412,7 @@ else
         /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
         /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
         /{{SLACK_CLI_INSTALL}}/ { print slack_inst; next }
+        /{{GITHUB_CLI_INSTALL}}/ { print github_inst; next }
         /{{PYTHON3_INSTALL}}/ { print python3_inst; next }
         /{{PYTHON_MANAGER_INSTALL}}/ { print python_inst; next }
         /{{NODEJS_MANAGER_INSTALL}}/ { print nodejs_inst; next }

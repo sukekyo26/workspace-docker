@@ -37,6 +37,9 @@ services:
       # AWS（永続化）
       - aws:/home/${USERNAME}/.aws
 
+      # GitHub CLI（永続化）
+      - gh-config:/home/${USERNAME}/.config/gh
+
       # bash履歴（永続化）
       - bash-history:/home/${USERNAME}/.docker_history
     ports:
@@ -59,4 +62,5 @@ volumes:
   pnpm-cache:
   pnpm-store:
   aws:
+  gh-config:
   bash-history:

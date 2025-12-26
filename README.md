@@ -5,7 +5,7 @@ A Docker-based Ubuntu development environment template optimized for Python, Nod
 ## Features
 
 - **Flexible Setup**: Choose between Normal (Quick start) or Custom (select software)
-- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI
+- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI, GitHub CLI
 - **Persistent Storage**: Development tool caches and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
@@ -74,7 +74,7 @@ Note: Re-login required for group changes to take effect.
 
 2. **Setup Mode Selection**
    - **Normal (1)**: Quick start mode with recommended tools pre-installed
-   - Installs: Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI, uv, Volta
+   - Installs: Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI, GitHub CLI, uv, Volta
      - Recommended for Python & Node.js development
      - Fastest way to get started
    - **Custom (2)**: Select which software to install
@@ -98,6 +98,7 @@ Note: Re-login required for group changes to take effect.
    - **AWS CLI v2**: AWS resource management (y/n)
   - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (sam build, sam local invoke) (y/n)
   - **Slack CLI**: Slack command-line tooling for workspace interactions and API testing (y/n)
+  - **GitHub CLI**: GitHub command-line interface for repository management and workflows (y/n)
    - **Python Package Manager**: Choose from:
      1. **uv** (recommended): Fast, all-in-one Python package & version manager
      2. **poetry**: Project-focused dependency management
@@ -467,6 +468,7 @@ node app.js
 - **AWS CLI v2**: AWS resource management
  - **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally (Optional in Custom mode / installed by default in Normal mode)
  - **Slack CLI**: CLI tooling for Slack workspace integration and API testing (Optional in Custom mode / installed by default in Normal mode)
+ - **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows (Optional in Custom mode / installed by default in Normal mode)
 
 ### System Packages (Always Installed)
 
@@ -562,6 +564,7 @@ The following packages are always installed in both Normal and Custom modes to p
 | `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
 | `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
 | `aws` | `~/.aws` | AWS CLI credentials and configuration |
+| `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
 | `bash-history` | `~/.docker_history` | bash history |
 
 > **Note**: All volumes are created regardless of selected package managers for simplicity. Unused volumes remain empty and don't consume significant space.
