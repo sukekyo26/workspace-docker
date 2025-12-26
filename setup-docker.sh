@@ -97,7 +97,6 @@ done
 install_docker=true
 install_aws_cli=true
 install_aws_sam_cli=true
-install_slack_cli=true
 install_github_cli=true
 python_manager="uv"    # Default: uv
 nodejs_manager="volta" # Default: volta
@@ -136,17 +135,6 @@ if [ "$setup_mode" = "2" ]; then
         case $choice in
             [Yy]*) install_aws_sam_cli=true; break ;;
             [Nn]*) install_aws_sam_cli=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
-        esac
-    done
-
-    # Slack CLI
-    while true; do
-        read -p "Install Slack CLI? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
-        case $choice in
-            [Yy]*) install_slack_cli=true; break ;;
-            [Nn]*) install_slack_cli=false; break ;;
             *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
         esac
     done
@@ -325,18 +313,6 @@ EOF
     fi
 }
 
-# Function to generate Slack CLI installation section
-generate_slack_cli_install() {
-    if [ "$1" = true ]; then
-        cat << 'EOF'
-# Install Slack CLI
-RUN curl -fsSL https://downloads.slack-edge.com/slack-cli/install.sh | bash
-EOF
-    else
-        echo ""
-    fi
-}
-
 # Function to generate GitHub CLI installation section
 generate_github_cli_install() {
     if [ "$1" = true ]; then
@@ -499,7 +475,6 @@ else
     docker_install=$(generate_docker_install "$install_docker")
     aws_cli_install=$(generate_aws_cli_install "$install_aws_cli")
     aws_sam_cli_install=$(generate_aws_sam_cli_install "$install_aws_sam_cli")
-    slack_cli_install=$(generate_slack_cli_install "$install_slack_cli")
     github_cli_install=$(generate_github_cli_install "$install_github_cli")
 
     # Generate python3 system package install (only for poetry)
@@ -553,7 +528,6 @@ ${poetry_inst}"
     awk -v docker_inst="$docker_install" \
         -v aws_inst="$aws_cli_install" \
         -v aws_sam_inst="$aws_sam_cli_install" \
-        -v slack_inst="$slack_cli_install" \
         -v github_inst="$github_cli_install" \
         -v python3_inst="$python3_install" \
         -v python_inst="$python_install" \
@@ -561,7 +535,6 @@ ${poetry_inst}"
         /{{DOCKER_INSTALL}}/ { print docker_inst; next }
         /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
         /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
-        /{{SLACK_CLI_INSTALL}}/ { print slack_inst; next }
         /{{GITHUB_CLI_INSTALL}}/ { print github_inst; next }
         /{{PYTHON3_INSTALL}}/ { print python3_inst; next }
         /{{PYTHON_MANAGER_INSTALL}}/ { print python_inst; next }
@@ -598,7 +571,6 @@ SETUP_MODE=$setup_mode
 INSTALL_DOCKER=$install_docker
 INSTALL_AWS_CLI=$install_aws_cli
 INSTALL_AWS_SAM_CLI=$install_aws_sam_cli
-INSTALL_SLACK_CLI=$install_slack_cli
 INSTALL_GITHUB_CLI=$install_github_cli
 PYTHON_MANAGER=$python_manager
 NODEJS_MANAGER=$nodejs_manager
@@ -616,14 +588,13 @@ echo "Docker GID: $docker_gid (automatically detected)"
 echo ""
 if [ "$setup_mode" = "1" ]; then
     echo "Setup mode: Normal (Quick start)"
-    echo "Software installed: Docker CLI, AWS CLI v2, AWS SAM CLI, Slack CLI, GitHub CLI, uv, Volta (recommended for Python & Node.js development)"
+    echo "Software installed: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI, uv, Volta (recommended for Python & Node.js development)"
 else
     echo "Setup mode: Custom"
     echo "Software selected:"
     [ "$install_docker" = true ] && echo "  - Docker CLI: Yes" || echo "  - Docker CLI: No"
     [ "$install_aws_cli" = true ] && echo "  - AWS CLI v2: Yes" || echo "  - AWS CLI v2: No"
     [ "$install_aws_sam_cli" = true ] && echo "  - AWS SAM CLI: Yes" || echo "  - AWS SAM CLI: No"
-    [ "$install_slack_cli" = true ] && echo "  - Slack CLI: Yes" || echo "  - Slack CLI: No"
     [ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
     echo "  - Python Manager: $python_manager"
     echo "  - Node.js Manager: $nodejs_manager"

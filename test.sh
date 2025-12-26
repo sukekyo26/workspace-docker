@@ -220,7 +220,7 @@ placeholders_ok=true
 
 # Define expected placeholders for each template
 declare -A expected_placeholders=(
-    ["Dockerfile.custom.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL SLACK_CLI_INSTALL PYTHON3_INSTALL PYTHON_MANAGER_INSTALL NODEJS_MANAGER_INSTALL"
+    ["Dockerfile.custom.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL PYTHON3_INSTALL PYTHON_MANAGER_INSTALL NODEJS_MANAGER_INSTALL"
     ["docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
     ["docker-compose.custom.template"]="CONTAINER_SERVICE_NAME"
     [".devcontainer/devcontainer.json.template"]="CONTAINER_SERVICE_NAME USERNAME"

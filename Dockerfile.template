@@ -108,9 +108,6 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     sudo ./sam-installation/install && \
     rm -rf sam-installation aws-sam-cli.zip
 
-# Install Slack CLI
-RUN curl -fsSL https://downloads.slack-edge.com/slack-cli/install.sh | bash
-
 # Install GitHub CLI
 USER root
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
