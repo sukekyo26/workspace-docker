@@ -205,23 +205,15 @@ fi
 uid=$(id -u)
 gid=$(id -g)
 
-# Automatically get Docker socket GID (host's Docker group GID)
-if [ -S /var/run/docker.sock ]; then
-    # Docker socket exists, get its group ID
-    docker_gid=$(stat -c '%g' /var/run/docker.sock 2>/dev/null)
-    if [ -z "$docker_gid" ]; then
-        echo -e "${RED}ERROR:${NC} Failed to get Docker socket GID. Permission denied?"
-        exit 1
-    fi
-else
-    # Fallback to docker group if socket doesn't exist
-    docker_gid=$(getent group docker | cut -d: -f3)
-    if [ -z "$docker_gid" ]; then
-        echo -e "${RED}ERROR:${NC} Docker socket not found and Docker group not found. Please install Docker first."
-        exit 1
-    fi
-    echo -e "${YELLOW}WARNING:${NC} Docker socket not found. Using docker group GID: $docker_gid"
+# Automatically get Docker socket GID using robust detection
+docker_gid=$(detect_docker_gid)
+if [ -z "$docker_gid" ]; then
+    echo -e "${RED}ERROR:${NC} Failed to detect Docker GID."
+    echo "Tried: /var/run/docker.sock, rootless socket, docker group"
+    echo "Please ensure Docker is installed and running."
+    exit 1
 fi
+echo -e "${GREEN}Detected Docker GID:${NC} $docker_gid"
 
 # Check if template files exist
 if [ ! -f "docker-compose.yml.template" ]; then
@@ -310,6 +302,12 @@ EOF
 # Create symlink to .env for docker compose to use
 # Using relative path to ensure portability across different environments
 ln -sf .envs/$container_service_name.env .env
+
+# Verify symlink was created correctly
+if ! validate_symlink ".env" ".envs/"; then
+    echo -e "${RED}ERROR:${NC} Failed to create symlink to .envs/$container_service_name.env"
+    exit 1
+fi
 
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo "Container service name: $container_service_name"

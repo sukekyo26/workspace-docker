@@ -56,6 +56,13 @@ if [ ! -f ".envs/$container_service_name.env" ]; then
     exit 1
 fi
 
+# Validate existing .env symlink if present
+if [ -L ".env" ]; then
+    if ! validate_symlink ".env" ".envs/"; then
+        echo -e "${YELLOW}WARNING:${NC} Current .env symlink is broken, will be replaced"
+    fi
+fi
+
 # Get current environment
 current_env=""
 if [ -L ".env" ]; then
@@ -75,16 +82,22 @@ fi
 # Using relative path to ensure portability across different environments
 ln -sf .envs/$container_service_name.env .env
 
-# Read environment variables from the new .env file
-CONTAINER_SERVICE_NAME=$(grep '^CONTAINER_SERVICE_NAME=' .env | cut -d'=' -f2-)
-USERNAME_ENV=$(grep '^USERNAME=' .env | cut -d'=' -f2-)
-SETUP_MODE=$(grep '^SETUP_MODE=' .env | cut -d'=' -f2-)
-INSTALL_DOCKER=$(grep '^INSTALL_DOCKER=' .env | cut -d'=' -f2-)
-INSTALL_AWS_CLI=$(grep '^INSTALL_AWS_CLI=' .env | cut -d'=' -f2-)
-INSTALL_AWS_SAM_CLI=$(grep '^INSTALL_AWS_SAM_CLI=' .env | cut -d'=' -f2-)
-INSTALL_GITHUB_CLI=$(grep '^INSTALL_GITHUB_CLI=' .env | cut -d'=' -f2-)
-PYTHON_MANAGER=$(grep '^PYTHON_MANAGER=' .env | cut -d'=' -f2-)
-NODEJS_MANAGER=$(grep '^NODEJS_MANAGER=' .env | cut -d'=' -f2-)
+# Verify symlink was created correctly
+if ! validate_symlink ".env" ".envs/"; then
+    echo -e "${RED}ERROR:${NC} Failed to create symlink to .envs/$container_service_name.env"
+    exit 1
+fi
+
+# Read environment variables from the new .env file using safe parser
+CONTAINER_SERVICE_NAME=$(read_env_var "CONTAINER_SERVICE_NAME" ".env")
+USERNAME_ENV=$(read_env_var "USERNAME" ".env")
+SETUP_MODE=$(read_env_var "SETUP_MODE" ".env")
+INSTALL_DOCKER=$(read_env_var "INSTALL_DOCKER" ".env")
+INSTALL_AWS_CLI=$(read_env_var "INSTALL_AWS_CLI" ".env")
+INSTALL_AWS_SAM_CLI=$(read_env_var "INSTALL_AWS_SAM_CLI" ".env")
+INSTALL_GITHUB_CLI=$(read_env_var "INSTALL_GITHUB_CLI" ".env")
+PYTHON_MANAGER=$(read_env_var "PYTHON_MANAGER" ".env")
+NODEJS_MANAGER=$(read_env_var "NODEJS_MANAGER" ".env")
 
 # Validate extracted variables
 if [ -z "$CONTAINER_SERVICE_NAME" ]; then

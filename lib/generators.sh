@@ -9,6 +9,115 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=versions.conf
 source "$LIB_DIR/versions.conf"
 
+# ============================================================
+# Utility Functions
+# ============================================================
+
+# Safely read environment variables from a .env file
+# Usage: read_env_var "VAR_NAME" "file.env"
+# Returns: value of VAR_NAME or empty string
+read_env_var() {
+    local var_name="$1"
+    local env_file="$2"
+    local value=""
+
+    if [[ ! -f "$env_file" ]]; then
+        return 1
+    fi
+
+    # Use awk to properly handle values containing '='
+    value=$(awk -F= -v key="$var_name" '
+        $1 == key {
+            # Join all fields after the first with "=" to handle values containing "="
+            val = ""
+            for (i = 2; i <= NF; i++) {
+                val = val (i > 2 ? "=" : "") $i
+            }
+            # Remove surrounding quotes if present
+            gsub(/^["'\'']|["'\'']$/, "", val)
+            print val
+            exit
+        }
+    ' "$env_file")
+
+    printf '%s' "$value"
+}
+
+# Validate symlink and its target
+# Usage: validate_symlink "symlink_path" "expected_target_dir"
+# Returns: 0 if valid, 1 if broken, 2 if not a symlink
+validate_symlink() {
+    local symlink="$1"
+    local expected_dir="$2"
+
+    # Check if symlink exists
+    if [[ ! -L "$symlink" ]]; then
+        return 2  # Not a symlink
+    fi
+
+    # Check if target exists
+    if [[ ! -e "$symlink" ]]; then
+        return 1  # Broken symlink
+    fi
+
+    # Optionally check if target is in expected directory
+    if [[ -n "$expected_dir" ]]; then
+        local target
+        target=$(readlink "$symlink")
+        if [[ ! "$target" =~ ^"$expected_dir" ]]; then
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# Detect Docker GID with support for rootless mode
+# Usage: detect_docker_gid
+# Returns: Docker GID or exits with error
+detect_docker_gid() {
+    local docker_gid=""
+
+    # Method 1: Check Docker socket directly
+    if [[ -S /var/run/docker.sock ]]; then
+        docker_gid=$(stat -c '%g' /var/run/docker.sock 2>/dev/null)
+        if [[ -n "$docker_gid" ]]; then
+            echo "$docker_gid"
+            return 0
+        fi
+    fi
+
+    # Method 2: Check rootless Docker socket
+    local rootless_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/docker.sock"
+    if [[ -S "$rootless_socket" ]]; then
+        docker_gid=$(stat -c '%g' "$rootless_socket" 2>/dev/null)
+        if [[ -n "$docker_gid" ]]; then
+            echo "$docker_gid"
+            return 0
+        fi
+    fi
+
+    # Method 3: Get from docker group
+    docker_gid=$(getent group docker 2>/dev/null | cut -d: -f3)
+    if [[ -n "$docker_gid" ]]; then
+        echo "$docker_gid"
+        return 0
+    fi
+
+    # Method 4: Fallback to common default
+    # Docker typically uses GID 999 or 998
+    if getent group 999 >/dev/null 2>&1; then
+        echo "999"
+        return 0
+    fi
+
+    return 1
+}
+
+# ============================================================
+# Dockerfile Generator Functions
+# ============================================================
+
 # Function to generate Docker CLI installation section
 generate_docker_install() {
     if [ "$1" = true ]; then
