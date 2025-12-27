@@ -29,6 +29,7 @@ RUN apt update -y && \
     rsync \
     procps \
     iproute2 \
+    shellcheck \
     build-essential \
     libssl-dev \
     zlib1g-dev \
