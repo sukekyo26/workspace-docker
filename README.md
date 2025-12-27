@@ -215,59 +215,6 @@ This will open all projects as separate workspace folders, each with independent
 
 See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
 
-#### Per-Project Python Version Configuration
-
-Create virtual environments with different Python versions for each project:
-
-```bash
-cd /home/<username>/workspace/project-a
-# Using uv
-uv venv --python 3.11
-
-cd /home/<username>/workspace/project-b
-# Using uv
-uv venv --python 3.12
-```
-
-Then configure VS Code to use it:
-
-**project-a/.vscode/settings.json (Python 3.11 via venv)**
-```json
-{
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-**project-b/.vscode/settings.json (Python 3.12 via venv)**
-```json
-{
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-**Example 2: Using pyenv-installed Python directly**
-
-**project-a/.vscode/settings.json (pyenv Python 3.11)**
-```json
-{
-  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-**Example 3: Using uv Python selector**
-
-```json
-{
-  "python.defaultInterpreterPath": "python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-With this setting, VS Code will use the Python version managed by uv for the project.
-
 ### Starting the Development Environment
 
 #### Method 1: VS Code Dev Container (Recommended)
@@ -585,11 +532,6 @@ The following packages are always installed in both Normal and Custom modes to p
 
 ## Important Notes
 - **Docker Socket**: The host Docker socket is mounted, allowing full control of the host Docker environment from within the container
-
-### AWS SAM CLI requirements
-
-- `sam local` uses Docker containers to emulate Lambda functions; ensure Docker is running on the host and the container has access to the Docker socket for local invocation and API testing.
-- The Docker image automatically installs the SAM CLI for the container architecture (amd64 -> x86_64, arm64 -> aarch64). If you encounter issues, please verify the installed SAM binary and architecture compatibility.
 
 ### Security and Personal Settings
 
