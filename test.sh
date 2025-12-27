@@ -513,6 +513,81 @@ if [ -f "lib/generators.sh" ]; then
                 exit 1
             fi
         fi
+
+        # Test utility functions
+        # Test read_env_var function
+        if type read_env_var &>/dev/null; then
+            # Create a temporary test env file
+            test_env_file=$(mktemp)
+            cat > "$test_env_file" << 'TESTENV'
+SIMPLE_VAR=simple_value
+QUOTED_VAR="quoted value"
+EQUALS_VAR=value=with=equals
+EMPTY_VAR=
+TESTENV
+            # Test simple value
+            output=$(read_env_var "SIMPLE_VAR" "$test_env_file")
+            if [ "$output" = "simple_value" ]; then
+                echo -e "  ${GREEN}✓${NC} read_env_var handles simple values"
+            else
+                echo -e "  ${RED}✗${NC} read_env_var failed for simple value: got '$output'"
+                rm -f "$test_env_file"
+                exit 1
+            fi
+
+            # Test value with equals sign
+            output=$(read_env_var "EQUALS_VAR" "$test_env_file")
+            if [ "$output" = "value=with=equals" ]; then
+                echo -e "  ${GREEN}✓${NC} read_env_var handles values with equals signs"
+            else
+                echo -e "  ${RED}✗${NC} read_env_var failed for equals value: got '$output'"
+                rm -f "$test_env_file"
+                exit 1
+            fi
+
+            rm -f "$test_env_file"
+        fi
+
+        # Test detect_docker_gid function
+        if type detect_docker_gid &>/dev/null; then
+            output=$(detect_docker_gid)
+            if [[ "$output" =~ ^[0-9]+$ ]]; then
+                echo -e "  ${GREEN}✓${NC} detect_docker_gid returns numeric GID: $output"
+            else
+                echo -e "  ${RED}✗${NC} detect_docker_gid failed to return numeric GID"
+                exit 1
+            fi
+        fi
+
+        # Test validate_symlink function
+        if type validate_symlink &>/dev/null; then
+            # Create a temporary test directory
+            test_dir=$(mktemp -d)
+            mkdir -p "$test_dir/target"
+            echo "test" > "$test_dir/target/file.txt"
+            ln -sf target/file.txt "$test_dir/valid_link"
+            ln -sf nonexistent "$test_dir/broken_link"
+
+            # Test valid symlink
+            if validate_symlink "$test_dir/valid_link" "target/"; then
+                echo -e "  ${GREEN}✓${NC} validate_symlink detects valid symlink"
+            else
+                echo -e "  ${RED}✗${NC} validate_symlink failed for valid symlink"
+                rm -rf "$test_dir"
+                exit 1
+            fi
+
+            # Test broken symlink
+            if ! validate_symlink "$test_dir/broken_link" ""; then
+                echo -e "  ${GREEN}✓${NC} validate_symlink detects broken symlink"
+            else
+                echo -e "  ${RED}✗${NC} validate_symlink failed to detect broken symlink"
+                rm -rf "$test_dir"
+                exit 1
+            fi
+
+            rm -rf "$test_dir"
+        fi
     ) && test_result "Generator library functions work correctly" "pass" || test_result "Generator library functions work correctly" "fail"
 else
     test_result "Package manager functions work correctly" "skip"
