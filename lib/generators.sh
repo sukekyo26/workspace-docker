@@ -291,14 +291,15 @@ EOF
 }
 
 # Function to generate nvm installation section
-# Uses NVM_VERSION from versions.conf
+# Automatically fetches latest version from GitHub API
 generate_nvm_install() {
     if [ "$1" = "nvm" ]; then
-        cat << EOF
-# nvm (Node.js version manager)
+        cat << 'EOF'
+# nvm (Node.js version manager - automatically fetch latest version)
 # Note: nvm install script automatically adds configuration to ~/.bashrc
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | bash
-ENV NVM_DIR="/home/\${USERNAME}/.nvm"
+RUN LATEST=$(curl -s https://api.github.com/repos/nvm-sh/nvm/releases/latest | grep tag_name | cut -d '"' -f 4) && \
+    curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${LATEST}/install.sh" | bash
+ENV NVM_DIR="/home/${USERNAME}/.nvm"
 EOF
     else
         echo ""

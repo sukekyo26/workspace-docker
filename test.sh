@@ -441,7 +441,7 @@ if [ -f "lib/generators.sh" ]; then
         # Test nvm installation function
         if type generate_nvm_install &>/dev/null; then
             output=$(generate_nvm_install "nvm")
-            if echo "$output" | grep -q "nvm (Node.js version manager)"; then
+            if echo "$output" | grep -q "nvm (Node.js version manager"; then
                 echo -e "  ${GREEN}✓${NC} generate_nvm_install produces expected output"
             else
                 echo -e "  ${RED}✗${NC} generate_nvm_install output is unexpected"
