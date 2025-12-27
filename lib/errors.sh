@@ -12,8 +12,8 @@ NC='\033[0m'
 # Log levels (exported for external use)
 export LOG_LEVEL_ERROR=0
 export LOG_LEVEL_WARN=1
-LOG_LEVEL_INFO=2
-LOG_LEVEL_DEBUG=3
+export LOG_LEVEL_INFO=2
+export LOG_LEVEL_DEBUG=3
 
 # Default log level
 CURRENT_LOG_LEVEL=${LOG_LEVEL:-$LOG_LEVEL_INFO}
