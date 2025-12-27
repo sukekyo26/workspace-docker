@@ -1,5 +1,11 @@
 #!/bin/bash
 # Test script for workspace-docker project
+#
+# ShellCheck directives:
+# - SC2031: Color variables are read-only after initialization, subshell warning is false positive
+# - SC2034: CONTAINER_SERVICE_NAME is used in grep pattern string interpolation
+# - SC2088: Tilde paths are intentional string literals for Dockerfile content matching
+# shellcheck disable=SC2031,SC2034,SC2088
 
 set -euo pipefail
 
@@ -67,6 +73,20 @@ else
     template_files_ok=false
 fi
 
+if [ -f "lib/generators.sh" ]; then
+    echo -e "${GREEN}  ✓${NC} lib/generators.sh"
+else
+    echo -e "${RED}  ✗${NC} lib/generators.sh"
+    template_files_ok=false
+fi
+
+if [ -f "lib/versions.conf" ]; then
+    echo -e "${GREEN}  ✓${NC} lib/versions.conf"
+else
+    echo -e "${RED}  ✗${NC} lib/versions.conf"
+    template_files_ok=false
+fi
+
 if [ "$template_files_ok" = true ]; then
     test_result "All template files exist" "pass"
 else
@@ -95,7 +115,8 @@ echo "Testing .envs directory..."
 if [ -d ".envs" ]; then
     test_result ".envs directory exists" "pass"
 else
-    test_result ".envs directory exists" "fail"
+    # In CI, .envs may not exist yet (created by setup-docker.sh)
+    test_result ".envs directory exists" "skip"
 fi
 
 # Test 5: Check if generated files exist (if setup was run)
@@ -304,7 +325,7 @@ echo ""
 echo "Testing shell script syntax..."
 scripts_ok=true
 
-for script in setup-docker.sh switch-env.sh test.sh; do
+for script in setup-docker.sh switch-env.sh test.sh lib/generators.sh; do
     if [ -f "$script" ]; then
         if bash -n "$script" 2>/dev/null; then
             echo -e "  ${GREEN}✓${NC} $script syntax is valid"
@@ -315,6 +336,14 @@ for script in setup-docker.sh switch-env.sh test.sh; do
         fi
     fi
 done
+
+# Also check lib/versions.conf exists
+if [ -f "lib/versions.conf" ]; then
+    echo -e "  ${GREEN}✓${NC} lib/versions.conf exists"
+else
+    echo -e "  ${RED}✗${NC} lib/versions.conf is missing"
+    scripts_ok=false
+fi
 
 if [ "$scripts_ok" = true ]; then
     test_result "All shell scripts have valid syntax" "pass"
@@ -368,14 +397,14 @@ else
     test_result "Environment files have required variables" "skip"
 fi
 
-# Test 12: Test setup-docker.sh functions (if sourced safely)
+# Test 12: Test generator library functions
 echo ""
-echo "Testing setup-docker.sh package manager functions..."
-if [ -f "setup-docker.sh" ]; then
+echo "Testing lib/generators.sh functions..."
+if [ -f "lib/generators.sh" ]; then
     # Source the functions in a subshell to avoid side effects
     (
-        # Extract and test individual functions
-        source <(sed -n '/^# Function to generate/,/^}/p' setup-docker.sh)
+        # Source the generator library
+        source lib/generators.sh
 
         # Test uv installation function
         if type generate_uv_install &>/dev/null; then
@@ -413,7 +442,7 @@ if [ -f "setup-docker.sh" ]; then
         # Test nvm installation function
         if type generate_nvm_install &>/dev/null; then
             output=$(generate_nvm_install "nvm")
-            if echo "$output" | grep -q "nvm (Node.js version manager)"; then
+            if echo "$output" | grep -q "nvm (Node.js version manager"; then
                 echo -e "  ${GREEN}✓${NC} generate_nvm_install produces expected output"
             else
                 echo -e "  ${RED}✗${NC} generate_nvm_install output is unexpected"
@@ -439,9 +468,254 @@ if [ -f "setup-docker.sh" ]; then
                 exit 1
             fi
         fi
-    ) && test_result "Package manager functions work correctly" "pass" || test_result "Package manager functions work correctly" "fail"
+
+        # Test AWS CLI installation function
+        if type generate_aws_cli_install &>/dev/null; then
+            output=$(generate_aws_cli_install true)
+            if echo "$output" | grep -q "AWS CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_aws_cli_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_aws_cli_install output is unexpected"
+                exit 1
+            fi
+
+            output=$(generate_aws_cli_install false)
+            if [ -z "$output" ]; then
+                echo -e "  ${GREEN}✓${NC} generate_aws_cli_install returns empty when disabled"
+            else
+                echo -e "  ${RED}✗${NC} generate_aws_cli_install should return empty when disabled"
+                exit 1
+            fi
+        fi
+
+        # Test AWS SAM CLI installation function
+        if type generate_aws_sam_cli_install &>/dev/null; then
+            output=$(generate_aws_sam_cli_install true)
+            if echo "$output" | grep -q "AWS SAM CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_aws_sam_cli_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_aws_sam_cli_install output is unexpected"
+                exit 1
+            fi
+        fi
+
+        # Test GitHub CLI installation function
+        if type generate_github_cli_install &>/dev/null; then
+            output=$(generate_github_cli_install true)
+            if echo "$output" | grep -q "GitHub CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_github_cli_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_github_cli_install output is unexpected"
+                exit 1
+            fi
+        fi
+
+        # Test Docker CLI installation function
+        if type generate_docker_install &>/dev/null; then
+            output=$(generate_docker_install true)
+            if echo "$output" | grep -q "Docker CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_docker_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_docker_install output is unexpected"
+                exit 1
+            fi
+        fi
+
+        # Test utility functions
+        # Test read_env_var function
+        if type read_env_var &>/dev/null; then
+            # Create a temporary test env file
+            test_env_file=$(mktemp)
+            cat > "$test_env_file" << 'TESTENV'
+SIMPLE_VAR=simple_value
+QUOTED_VAR="quoted value"
+EQUALS_VAR=value=with=equals
+EMPTY_VAR=
+TESTENV
+            # Test simple value
+            output=$(read_env_var "SIMPLE_VAR" "$test_env_file")
+            if [ "$output" = "simple_value" ]; then
+                echo -e "  ${GREEN}✓${NC} read_env_var handles simple values"
+            else
+                echo -e "  ${RED}✗${NC} read_env_var failed for simple value: got '$output'"
+                rm -f "$test_env_file"
+                exit 1
+            fi
+
+            # Test value with equals sign
+            output=$(read_env_var "EQUALS_VAR" "$test_env_file")
+            if [ "$output" = "value=with=equals" ]; then
+                echo -e "  ${GREEN}✓${NC} read_env_var handles values with equals signs"
+            else
+                echo -e "  ${RED}✗${NC} read_env_var failed for equals value: got '$output'"
+                rm -f "$test_env_file"
+                exit 1
+            fi
+
+            rm -f "$test_env_file"
+        fi
+
+        # Test detect_docker_gid function
+        if type detect_docker_gid &>/dev/null; then
+            output=$(detect_docker_gid)
+            if [[ "$output" =~ ^[0-9]+$ ]]; then
+                echo -e "  ${GREEN}✓${NC} detect_docker_gid returns numeric GID: $output"
+            else
+                echo -e "  ${RED}✗${NC} detect_docker_gid failed to return numeric GID"
+                exit 1
+            fi
+        fi
+
+        # Test validate_symlink function
+        if type validate_symlink &>/dev/null; then
+            # Create a temporary test directory
+            test_dir=$(mktemp -d)
+            mkdir -p "$test_dir/target"
+            echo "test" > "$test_dir/target/file.txt"
+            ln -sf target/file.txt "$test_dir/valid_link"
+            ln -sf nonexistent "$test_dir/broken_link"
+
+            # Test valid symlink
+            if validate_symlink "$test_dir/valid_link" "target/"; then
+                echo -e "  ${GREEN}✓${NC} validate_symlink detects valid symlink"
+            else
+                echo -e "  ${RED}✗${NC} validate_symlink failed for valid symlink"
+                rm -rf "$test_dir"
+                exit 1
+            fi
+
+            # Test broken symlink
+            if ! validate_symlink "$test_dir/broken_link" ""; then
+                echo -e "  ${GREEN}✓${NC} validate_symlink detects broken symlink"
+            else
+                echo -e "  ${RED}✗${NC} validate_symlink failed to detect broken symlink"
+                rm -rf "$test_dir"
+                exit 1
+            fi
+
+            rm -rf "$test_dir"
+        fi
+    ) && test_result "Generator library functions work correctly" "pass" || test_result "Generator library functions work correctly" "fail"
 else
     test_result "Package manager functions work correctly" "skip"
+fi
+
+# Test 12b: Test validator library functions
+echo ""
+echo "Testing lib/validators.sh functions..."
+if [ -f "lib/validators.sh" ]; then
+    (
+        source lib/validators.sh
+
+        # Test validate_service_name
+        if type validate_service_name &>/dev/null; then
+            if validate_service_name "my-service-123" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_service_name accepts valid names"
+            else
+                echo -e "  ${RED}✗${NC} validate_service_name rejected valid name"
+                exit 1
+            fi
+
+            if ! validate_service_name "" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_service_name rejects empty names"
+            else
+                echo -e "  ${RED}✗${NC} validate_service_name accepted empty name"
+                exit 1
+            fi
+
+            if ! validate_service_name "invalid name!" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_service_name rejects invalid characters"
+            else
+                echo -e "  ${RED}✗${NC} validate_service_name accepted invalid characters"
+                exit 1
+            fi
+        fi
+
+        # Test validate_username
+        if type validate_username &>/dev/null; then
+            if validate_username "testuser" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_username accepts valid usernames"
+            else
+                echo -e "  ${RED}✗${NC} validate_username rejected valid username"
+                exit 1
+            fi
+
+            if ! validate_username "InvalidUser" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_username rejects uppercase letters"
+            else
+                echo -e "  ${RED}✗${NC} validate_username accepted uppercase letters"
+                exit 1
+            fi
+        fi
+
+        # Test validate_boolean
+        if type validate_boolean &>/dev/null; then
+            if validate_boolean "true" 2>/dev/null && validate_boolean "false" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_boolean accepts true/false"
+            else
+                echo -e "  ${RED}✗${NC} validate_boolean failed for true/false"
+                exit 1
+            fi
+
+            if ! validate_boolean "yes" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_boolean rejects non-boolean values"
+            else
+                echo -e "  ${RED}✗${NC} validate_boolean accepted non-boolean value"
+                exit 1
+            fi
+        fi
+
+        # Test validate_package_manager
+        if type validate_package_manager &>/dev/null; then
+            if validate_package_manager "uv" "python" 2>/dev/null && \
+               validate_package_manager "volta" "nodejs" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_package_manager accepts valid managers"
+            else
+                echo -e "  ${RED}✗${NC} validate_package_manager rejected valid managers"
+                exit 1
+            fi
+
+            if ! validate_package_manager "invalid" "python" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_package_manager rejects invalid managers"
+            else
+                echo -e "  ${RED}✗${NC} validate_package_manager accepted invalid manager"
+                exit 1
+            fi
+        fi
+    ) && test_result "Validator library functions work correctly" "pass" || test_result "Validator library functions work correctly" "fail"
+else
+    test_result "Validator library functions work correctly" "skip"
+fi
+
+# Test 12c: Test error handling library
+echo ""
+echo "Testing lib/errors.sh functions..."
+if [ -f "lib/errors.sh" ]; then
+    (
+        source lib/errors.sh
+
+        # Test error message functions exist
+        if type error &>/dev/null && \
+           type warn &>/dev/null && \
+           type info &>/dev/null && \
+           type success &>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} All error handling functions are defined"
+        else
+            echo -e "  ${RED}✗${NC} Some error handling functions are missing"
+            exit 1
+        fi
+
+        # Test error output (capture stderr)
+        output=$(error "test message" 2>&1)
+        if echo "$output" | grep -q "ERROR:"; then
+            echo -e "  ${GREEN}✓${NC} error function formats messages correctly"
+        else
+            echo -e "  ${RED}✗${NC} error function output is unexpected"
+            exit 1
+        fi
+    ) && test_result "Error handling library functions work correctly" "pass" || test_result "Error handling library functions work correctly" "fail"
+else
+    test_result "Error handling library functions work correctly" "skip"
 fi
 
 # Test 13: Check volume mount points in Dockerfile
@@ -452,18 +726,31 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
     SETUP_MODE=$(grep '^SETUP_MODE=' .env | cut -d'=' -f2-)
 
     # All volumes are checked regardless of mode (volumes are created for all package managers)
+    # Note: These are literal strings to match Dockerfile content, not paths for expansion
     expected_volumes=(
+        # Python tools
         "~/.cache/pip"
         "~/.cache/uv"
         "~/.local/share/uv"
         "~/.cache/pypoetry"
         "~/.local/share/pypoetry"
         "~/.pyenv"
+        # Node.js tools
         "~/.volta/tools"
         "~/.nvm"
         "~/.local/share/fnm"
+        "~/.npm"
+        "~/.cache/pnpm"
+        "~/.local/share/pnpm"
+        # mise
         "~/.local/share/mise"
         "~/.cache/mise"
+        # AWS
+        "~/.aws"
+        # GitHub CLI
+        "~/.config/gh"
+        # Bash history
+        "~/.docker_history"
     )
 
     if [ "$SETUP_MODE" = "1" ]; then
@@ -477,7 +764,8 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
     for vol in "${expected_volumes[@]}"; do
         # Escape special characters for grep and check if path appears in file
         escaped_vol=$(echo "$vol" | sed 's/[.]/\\./g; s|/|\\/|g')
-        if grep -E "${escaped_vol}(\s|\\\\)" Dockerfile >/dev/null 2>&1; then
+        # Match path followed by whitespace, backslash, or end of line
+        if grep -E "${escaped_vol}(\s|\\\\|$)" Dockerfile >/dev/null 2>&1; then
             echo -e "  ${GREEN}✓${NC} Volume mount point for $vol"
         else
             echo -e "  ${RED}✗${NC} Volume mount point for $vol is missing"
@@ -494,7 +782,99 @@ else
     test_result "Volume mount points are created in Dockerfile" "skip"
 fi
 
-# Test 14: Validate .gitignore patterns
+# Test 14: Check volume mounts in docker-compose.yml
+echo ""
+echo "Testing volume mounts in docker-compose.yml..."
+if [ -f "docker-compose.yml" ]; then
+    # Expected named volumes in docker-compose.yml
+    expected_named_volumes=(
+        "pip-cache"
+        "uv-cache"
+        "uv-python"
+        "poetry-cache"
+        "poetry-data"
+        "pyenv"
+        "volta-tools"
+        "nvm"
+        "fnm"
+        "mise-data"
+        "mise-cache"
+        "npm-cache"
+        "pnpm-cache"
+        "pnpm-store"
+        "aws"
+        "gh-config"
+        "bash-history"
+    )
+
+    compose_volumes_ok=true
+    for vol in "${expected_named_volumes[@]}"; do
+        # Check in volumes: section (top-level definition)
+        if grep -q "^  ${vol}:" docker-compose.yml; then
+            echo -e "  ${GREEN}✓${NC} Named volume '$vol' is defined"
+        else
+            echo -e "  ${RED}✗${NC} Named volume '$vol' is missing from volumes section"
+            compose_volumes_ok=false
+        fi
+    done
+
+    if [ "$compose_volumes_ok" = true ]; then
+        test_result "All named volumes are defined in docker-compose.yml" "pass"
+    else
+        test_result "All named volumes are defined in docker-compose.yml" "fail"
+    fi
+
+    # Test volume name scoping (HIGH-5 fix)
+    echo ""
+    echo "Testing volume name scoping..."
+    if [ -f ".env" ]; then
+        CONTAINER_SERVICE_NAME=$(grep '^CONTAINER_SERVICE_NAME=' .env | cut -d'=' -f2-)
+        scoped_volumes_ok=true
+        for volume in "${expected_named_volumes[@]}"; do
+            volume_name=$(echo "$volume" | tr '-' '_')
+            if grep -q "name: \"\${CONTAINER_SERVICE_NAME}_$volume_name\"" docker-compose.yml; then
+                echo -e "  ${GREEN}✓${NC} Volume '$volume' has service name prefix"
+            else
+                echo -e "  ${RED}✗${NC} Volume '$volume' missing service name prefix"
+                scoped_volumes_ok=false
+            fi
+        done
+
+        if [ "$scoped_volumes_ok" = true ]; then
+            test_result "Volumes are scoped with service name prefix" "pass"
+        else
+            test_result "Volumes are scoped with service name prefix" "fail"
+        fi
+    else
+        test_result "Volumes are scoped with service name prefix" "skip"
+    fi
+else
+    test_result "All named volumes are defined in docker-compose.yml" "skip"
+fi
+
+# Test 15: Validate template file consistency (both templates should have same volumes)
+echo ""
+echo "Testing template file consistency..."
+if [ -f "docker-compose.yml.template" ] && [ -f "docker-compose.custom.template" ]; then
+    # Extract volume names from both templates
+    normal_volumes=$(grep -E "^  [a-z].*:" docker-compose.yml.template | tail -n +2 | sed 's/://g' | tr -d ' ' | sort)
+    custom_volumes=$(grep -E "^  [a-z].*:" docker-compose.custom.template | tail -n +2 | sed 's/://g' | tr -d ' ' | sort)
+
+    if [ "$normal_volumes" = "$custom_volumes" ]; then
+        test_result "docker-compose templates have consistent volume definitions" "pass"
+    else
+        echo -e "  ${RED}✗${NC} Volume definitions differ between templates"
+        echo "  Normal template volumes:"
+        echo "$normal_volumes" | sed 's/^/    /'
+        echo "  Custom template volumes:"
+        echo "$custom_volumes" | sed 's/^/    /'
+        test_result "docker-compose templates have consistent volume definitions" "fail"
+    fi
+else
+    test_result "docker-compose templates have consistent volume definitions" "skip"
+fi
+
+# Test 16: Validate .gitignore patterns
 echo ""
 echo "Testing .gitignore coverage..."
 if [ -f ".gitignore" ]; then

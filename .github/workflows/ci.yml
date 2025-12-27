@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          scandir: "."
+          ignore_paths: ".devcontainer"
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Make test script executable
+        run: chmod +x test.sh
+
+      - name: Run tests
+        run: ./test.sh
+
+  template-validation:
+    name: Template Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check template files exist
+        run: |
+          files=(
+            "Dockerfile.template"
+            "Dockerfile.custom.template"
+            "docker-compose.yml.template"
+            "docker-compose.custom.template"
+            ".devcontainer/devcontainer.json.template"
+            ".devcontainer/docker-compose.yml.template"
+          )
+          for file in "${files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing template file: $file"
+              exit 1
+            fi
+            echo "✓ Found: $file"
+          done
+
+      - name: Validate YAML templates
+        run: |
+          for file in docker-compose.yml.template docker-compose.custom.template .devcontainer/docker-compose.yml.template; do
+            echo "Checking $file..."
+            # Replace template variables with dummy values for validation
+            sed 's/{{[^}]*}}/dummy/g' "$file" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || {
+              echo "❌ Invalid YAML: $file"
+              exit 1
+            }
+            echo "✓ Valid: $file"
+          done
+
+      - name: Validate JSON templates
+        run: |
+          for file in .devcontainer/devcontainer.json.template; do
+            echo "Checking $file..."
+            # Check for basic JSON structure (template has variables so full validation isn't possible)
+            if ! grep -q '"name"' "$file"; then
+              echo "❌ Missing required field in: $file"
+              exit 1
+            fi
+            echo "✓ Valid structure: $file"
+          done
+
+  dockerfile-lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Lint Dockerfile.template
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile.template
+          ignore: DL3008,DL3013,DL3059,DL3046,SC2016,DL4006,DL3004,SC2174,DL4001
+          # DL3008: Pin versions in apt-get (using latest for dev)
+          # DL3013: Pin versions in pip
+          # DL3059: Multiple consecutive RUN
+          # DL3046: useradd -l flag (acceptable for dev environment)
+          # SC2016: Single quotes (intentional, not actual issue)
+          # DL4006: pipefail (acceptable for dev environment)
+          # DL3004: sudo usage (necessary for dev environment)
+          # SC2174: mkdir -p with -m (not an actual issue)
+          # DL4001: wget and curl both used (both needed)
+
+      # Note: Dockerfile.custom.template is not linted because it contains
+      # template placeholders ({{VARIABLE}}) that Hadolint cannot parse
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [shellcheck, test, template-validation, dockerfile-lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create test .env file
+        run: |
+          cat > .env << 'EOF'
+          CONTAINER_SERVICE_NAME=ci-test
+          USERNAME=testuser
+          UID=1000
+          GID=1000
+          DOCKER_GID=999
+          SETUP_MODE=1
+          UBUNTU_VERSION=24.04
+          EOF
+
+      - name: Generate Dockerfile from template
+        run: |
+          # Simple template generation for CI
+          cp Dockerfile.template Dockerfile
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: workspace-docker-test:ci
+          build-args: |
+            UBUNTU_VERSION=24.04
+            USERNAME=testuser
+            UID=1000
+            GID=1000
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

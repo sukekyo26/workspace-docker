@@ -12,6 +12,7 @@ A Docker-based Ubuntu development environment template optimized for Python, Nod
 - **Host Docker Access**: Safely utilize host Docker from within the container
 - **Automatic Environment Detection**: Auto-detects UID/GID/Docker GID to avoid permission issues
 - **UTF-8 Locale**: Properly displays multilingual text including Japanese
+- **Quality Assurance**: Built-in validation libraries and comprehensive test suite with GitHub Actions CI/CD
 
 ## Workspace Structure
 
@@ -214,67 +215,6 @@ If you want to work with multiple projects simultaneously with independent setti
 This will open all projects as separate workspace folders, each with independent settings.
 
 See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
-
-#### Per-Project Python Version Configuration
-
-Create virtual environments with different Python versions for each project:
-
-```bash
-cd /home/<username>/workspace/project-a
-# Using uv
-uv venv --python 3.11
-
-cd /home/<username>/workspace/project-b
-# Using uv
-uv venv --python 3.12
-```
-
-Then configure VS Code to use it:
-
-**project-a/.vscode/settings.json (Python 3.11 via venv)**
-```json
-{
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-**project-b/.vscode/settings.json (Python 3.12 via venv)**
-```json
-{
-  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-**Example 2: Using pyenv-installed Python directly**
-
-**project-a/.vscode/settings.json (pyenv Python 3.11)**
-```json
-{
-  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-**Example 3: Using uv Python selector**
-
-```json
-{
-  "python.defaultInterpreterPath": "python",
-  "python.analysis.extraPaths": ["${workspaceFolder}"]
-}
-```
-
-With this setting, VS Code will use the Python version managed by uv for the project.
-
-### Starting the Development Environment
-
-#### Method 1: VS Code Dev Container (Recommended)
-
-1. Open this folder in VS Code
-2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
-3. Container automatically builds, starts, and connects
 
 #### Method 2: Docker Compose
 
@@ -482,6 +422,7 @@ The following packages are always installed in both Normal and Custom modes to p
 - **git** - Version control system
 - **make** - Build automation tool
 - **build-essential** - C/C++ compilers and build tools (gcc, g++, make, libc-dev)
+- **shellcheck** - Shell script static analysis tool
 
 #### Editors
 - **vim** - Powerful text editor
@@ -507,6 +448,7 @@ The following packages are always installed in both Normal and Custom modes to p
 - **bash-completion** - Command auto-completion
 - **procps** - Process monitoring utilities (ps, top, etc.)
 - **iproute2** - Advanced networking utilities (ip command)
+- **lsb-release** - Linux Standard Base version reporting utility
 
 #### Development Libraries
 - **libssl-dev** - SSL/TLS development libraries
@@ -585,11 +527,6 @@ The following packages are always installed in both Normal and Custom modes to p
 
 ## Important Notes
 - **Docker Socket**: The host Docker socket is mounted, allowing full control of the host Docker environment from within the container
-
-### AWS SAM CLI requirements
-
-- `sam local` uses Docker containers to emulate Lambda functions; ensure Docker is running on the host and the container has access to the Docker socket for local invocation and API testing.
-- The Docker image automatically installs the SAM CLI for the container architecture (amd64 -> x86_64, arm64 -> aarch64). If you encounter issues, please verify the installed SAM binary and architecture compatibility.
 
 ### Security and Personal Settings
 
@@ -775,15 +712,33 @@ Tests display results with color output and return exit code 1 if any test fails
 
 ## Project Files
 
+### Core Scripts
 - `setup-docker.sh` - Setup script with Normal/Custom mode selection
 - `switch-env.sh` - Environment switching script
-- `test.sh` - Test script
+- `test.sh` - Comprehensive test script (22 validation checks)
+- `generate-workspace.sh` - Multi-root workspace generator
+
+### Templates
 - `Dockerfile.template` - Dockerfile template for Normal mode (recommended tools for Python & Node.js)
 - `Dockerfile.custom.template` - Dockerfile template for Custom mode (selective installation)
 - `docker-compose.yml.template` - docker-compose.yml template for Normal mode
 - `docker-compose.custom.template` - docker-compose.yml template for Custom mode
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container configuration template
 - `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
+
+### Libraries (`lib/`)
+- `lib/versions.conf` - Centralized version configuration
+- `lib/generators.sh` - Shared template generation functions
+- `lib/validators.sh` - Input validation library (service names, usernames, boolean values, package managers)
+- `lib/errors.sh` - Error handling and messaging library
+
+### CI/CD
+- `.github/workflows/ci.yml` - GitHub Actions workflow for automated testing and validation
+  - ShellCheck static analysis
+  - 22-item test suite execution
+  - Template validation (YAML/JSON)
+  - Dockerfile linting with Hadolint
+  - Docker build verification
 
 ## Documentation
 

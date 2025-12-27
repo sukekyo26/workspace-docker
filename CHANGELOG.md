@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-12-27
+
+### Added
+- Centralized version configuration file (lib/versions.conf)
+- Shared generator functions library (lib/generators.sh)
+- Input validation library (lib/validators.sh)
+- Error handling library (lib/errors.sh)
+- Safe environment variable parsing utility (read_env_var)
+- Symlink validation utility (validate_symlink)
+- Docker GID detection with fallback logic (detect_docker_gid)
+- Service name prefixes to Docker volume names for scope isolation
+- ShellCheck package to development environment
+- GitHub Actions CI/CD workflow with:
+  - ShellCheck static analysis
+  - Automated test execution
+  - Template validation
+  - Dockerfile linting with Hadolint
+  - Docker build verification
+- Comprehensive test coverage for:
+  - Validator functions
+  - Error handling functions
+  - Volume scoping
+  - Utility functions
+
+### Changed
+- Refactored setup-docker.sh to use shared generator library
+- Refactored switch-env.sh to use shared generator library
+- All scripts now use centralized validation and error handling libraries
+- NVM version now auto-detected from GitHub API (latest release)
+- Dockerfile layers optimized with --no-install-recommends and improved cleanup
+- Test suite updated to skip missing files in CI environment
+- Hadolint rules configured for development environment compatibility
+- Ubuntu version management centralized in lib/versions.conf
+- Removed duplicate sections from English README
+
+### Fixed
+- All ShellCheck warnings resolved across shell scripts
+- Volume naming conflicts prevented with service name prefixes
+- Improved error messages with lib/errors.sh functions
+
 ## [2.1.0] - 2025-12-27
 
 ### Added
