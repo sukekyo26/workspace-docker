@@ -81,12 +81,12 @@ validate_package_manager() {
     case "$type" in
         python)
             case "$manager" in
-                none|uv|poetry|pyenv-uv|pyenv-poetry)
+                none|uv|poetry|pyenv-poetry)
                     return 0
                     ;;
                 *)
                     echo "ERROR: Invalid Python package manager: $manager" >&2
-                    echo "Valid options: none, uv, poetry, pyenv-uv, pyenv-poetry" >&2
+                    echo "Valid options: none, uv, poetry, pyenv-poetry" >&2
                     return 1
                     ;;
             esac
