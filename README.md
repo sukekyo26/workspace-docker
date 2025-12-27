@@ -38,7 +38,7 @@ Container: /home/<username>/workspace/
 **Required:**
 - Docker Engine installed
 - `~/.gitconfig` file (see below)
- - Docker (required for AWS SAM CLI `sam local` to run functions and API locally)
+- Docker (required for AWS SAM CLI `sam local` to run functions and API locally)
 
 **Optional:**
 - VS Code + Dev Containers extension
@@ -95,8 +95,8 @@ Note: Re-login required for group changes to take effect.
 4. **Software Selection** (Custom mode only)
    - **Docker CLI**: Container operations (y/n)
    - **AWS CLI v2**: AWS resource management (y/n)
-  - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (sam build, sam local invoke) (y/n)
-  - **GitHub CLI**: GitHub command-line interface for repository management and workflows (y/n)
+   - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (sam build, sam local invoke) (y/n)
+   - **GitHub CLI**: GitHub command-line interface for repository management and workflows (y/n)
    - **Python Package Manager**: Choose from:
      1. **uv** (recommended): Fast, all-in-one Python package & version manager
      2. **poetry**: Project-focused dependency management
@@ -464,8 +464,8 @@ node app.js
 **Other Tools**:
 - **Docker CLI**: Container operations (using host Docker daemon via socket mount)
 - **AWS CLI v2**: AWS resource management
- - **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally (Optional in Custom mode / installed by default in Normal mode)
- - **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows (Optional in Custom mode / installed by default in Normal mode)
+- **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally (Optional in Custom mode / installed by default in Normal mode)
+- **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows (Optional in Custom mode / installed by default in Normal mode)
 
 ### System Packages (Always Installed)
 
