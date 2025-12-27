@@ -30,21 +30,3 @@ services:
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
-
-volumes:
-  pip-cache:
-  uv-cache:
-  uv-python:
-  poetry-cache:
-  poetry-data:
-  pyenv:
-  volta-tools:
-  nvm:
-  fnm:
-  mise-data:
-  mise-cache:
-  npm-cache:
-  pnpm-cache:
-  pnpm-store:
-  aws:
-  bash-history:
