@@ -7,18 +7,15 @@ IFS=$'\n\t'
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load shared generator functions
+# Load shared libraries
 # shellcheck source=lib/generators.sh
 source "$SCRIPT_DIR/lib/generators.sh"
+# shellcheck source=lib/validators.sh
+source "$SCRIPT_DIR/lib/validators.sh"
+# shellcheck source=lib/errors.sh
+source "$SCRIPT_DIR/lib/errors.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-echo -e "${CYAN}=== Switch Environment ===${NC}"
+section_header "Switch Environment"
 
 # Check if argument is provided
 if [ $# -eq 1 ]; then
@@ -30,28 +27,27 @@ fi
 
 # Check if empty
 if [ -z "$container_service_name" ]; then
-    echo -e "${RED}ERROR:${NC} Container service name cannot be empty"
-    exit 1
+    die "Container service name cannot be empty"
 fi
 
 # Check if .envs/<service_name>.env file exists
 if [ ! -f ".envs/$container_service_name.env" ]; then
-    echo -e "${RED}ERROR:${NC} .envs/$container_service_name.env not found"
+    error ".envs/$container_service_name.env not found"
     echo "Available environments:"
     if [ -d ".envs" ]; then
         shopt -s nullglob
         env_files=(.envs/*.env)
         if [ ${#env_files[@]} -eq 0 ]; then
-            echo -e "  ${YELLOW}No environments found${NC}"
+            warn "No environments found"
         else
             for env_file in "${env_files[@]}"; do
                 service_name=$(basename "$env_file" .env)
-                echo -e "  ${CYAN}$service_name${NC}"
+                info "  $service_name"
             done
         fi
         shopt -u nullglob
     else
-        echo -e "  ${YELLOW}No environments found${NC}"
+        warn "No environments found"
     fi
     exit 1
 fi
@@ -59,7 +55,7 @@ fi
 # Validate existing .env symlink if present
 if [ -L ".env" ]; then
     if ! validate_symlink ".env" ".envs/"; then
-        echo -e "${YELLOW}WARNING:${NC} Current .env symlink is broken, will be replaced"
+        warn "Current .env symlink is broken, will be replaced"
     fi
 fi
 
@@ -74,7 +70,7 @@ fi
 
 # Check if already using this environment
 if [ "$current_env" = "$container_service_name" ]; then
-    echo -e "${YELLOW}INFO:${NC} Already using environment: $container_service_name"
+    info "Already using environment: $container_service_name"
     exit 0
 fi
 
@@ -84,8 +80,7 @@ ln -sf .envs/$container_service_name.env .env
 
 # Verify symlink was created correctly
 if ! validate_symlink ".env" ".envs/"; then
-    echo -e "${RED}ERROR:${NC} Failed to create symlink to .envs/$container_service_name.env"
-    exit 1
+    die "Failed to create symlink to .envs/$container_service_name.env"
 fi
 
 # Read environment variables from the new .env file using safe parser
@@ -101,16 +96,13 @@ NODEJS_MANAGER=$(read_env_var "NODEJS_MANAGER" ".env")
 
 # Validate extracted variables
 if [ -z "$CONTAINER_SERVICE_NAME" ]; then
-    echo -e "${RED}ERROR:${NC} CONTAINER_SERVICE_NAME is missing from .envs/$container_service_name.env"
-    exit 1
+    die "CONTAINER_SERVICE_NAME is missing from .envs/$container_service_name.env"
 fi
 if [ -z "$USERNAME_ENV" ]; then
-    echo -e "${RED}ERROR:${NC} USERNAME is missing from .envs/$container_service_name.env"
-    exit 1
+    die "USERNAME is missing from .envs/$container_service_name.env"
 fi
 if [ -z "$SETUP_MODE" ]; then
-    echo -e "${RED}ERROR:${NC} SETUP_MODE is missing from .envs/$container_service_name.env"
-    exit 1
+    die "SETUP_MODE is missing from .envs/$container_service_name.env"
 fi
 
 # Regenerate docker-compose.yml

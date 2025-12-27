@@ -7,27 +7,19 @@ IFS=$'\n\t'
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load shared generator functions
+# Load shared libraries
 # shellcheck source=lib/generators.sh
 source "$SCRIPT_DIR/lib/generators.sh"
+# shellcheck source=lib/validators.sh
+source "$SCRIPT_DIR/lib/validators.sh"
+# shellcheck source=lib/errors.sh
+source "$SCRIPT_DIR/lib/errors.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-echo -e "${GREEN}=== Generate Dockerfile for Ubuntu on Docker ===${NC}"
+section_header "Generate Dockerfile for Ubuntu on Docker"
 
 # Check if ~/.gitconfig exists
 if [ ! -f ~/.gitconfig ]; then
-    echo -e "${RED}ERROR:${NC} ~/.gitconfig not found"
-    echo -e "${YELLOW}Please configure Git first:${NC}"
-    echo ""
-    echo "  git config --global user.name \"Your Name\""
-    echo "  git config --global user.email \"your.email@example.com\""
-    echo ""
+    die_with_hint "~/.gitconfig not found" "Please configure Git first:\n  git config --global user.name \"Your Name\"\n  git config --global user.email \"your.email@example.com\""
     exit 1
 fi
 
@@ -35,70 +27,31 @@ fi
 while true; do
     read -p "Enter container service name: " container_service_name
 
-    # Check if empty
-    if [ -z "$container_service_name" ]; then
-        echo -e "${RED}ERROR:${NC} Container service name cannot be empty"
-        continue
+    if validate_service_name "$container_service_name" 2>&1; then
+        break
     fi
-
-    # Validate container service name (alphanumeric, hyphen, underscore only)
-    if ! [[ "$container_service_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        echo -e "${RED}ERROR:${NC} Container service name must contain only alphanumeric characters, '-', and '_'"
-        continue
-    fi
-
-    # Check length (max 63 characters for DNS compatibility)
-    if [ ${#container_service_name} -gt 63 ]; then
-        echo -e "${RED}ERROR:${NC} Container service name must be 63 characters or less (current: ${#container_service_name})"
-        continue
-    fi
-
-    break
 done
 
 # Set username
 while true; do
     read -p "Enter Ubuntu on Docker username: " username
 
-    # Check if empty
-    if [ -z "$username" ]; then
-        echo -e "${RED}ERROR:${NC} Username cannot be empty"
-        continue
+    if validate_username "$username" 2>&1; then
+        break
     fi
-
-    # Validate username (must start with lowercase letter or underscore)
-    if ! [[ "$username" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
-        echo -e "${RED}ERROR:${NC} Username must start with a lowercase letter or '_', and contain only lowercase letters, numbers, '-', and '_'"
-        continue
-    fi
-
-    # Check length (max 32 characters for Linux compatibility)
-    if [ ${#username} -gt 32 ]; then
-        echo -e "${RED}ERROR:${NC} Username must be 32 characters or less (current: ${#username})"
-        continue
-    fi
-
-    break
 done
 
 # Ask for setup mode
-echo ""
-echo "Select setup mode:"
+subsection_header "Setup Mode Selection"
 echo "  1) Normal (Quick start - recommended tools pre-installed)"
 echo "  2) Custom (Select software to install)"
 echo ""
 while true; do
     read -p "Enter setup mode [1/2]: " setup_mode
 
-    case $setup_mode in
-        1|2)
-            break
-            ;;
-        *)
-            echo -e "${RED}ERROR:${NC} Please enter 1 or 2"
-            continue
-            ;;
-    esac
+    if validate_setup_mode "$setup_mode" 2>&1; then
+        break
+    fi
 done
 
 # Initialize software installation flags
@@ -121,7 +74,7 @@ if [ "$setup_mode" = "2" ]; then
         case $choice in
             [Yy]*) install_docker=true; break ;;
             [Nn]*) install_docker=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
+            *) error "Please enter Y or n" ;;
         esac
     done
 
@@ -132,7 +85,7 @@ if [ "$setup_mode" = "2" ]; then
         case $choice in
             [Yy]*) install_aws_cli=true; break ;;
             [Nn]*) install_aws_cli=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
+            *) error "Please enter Y or n" ;;
         esac
     done
 
@@ -143,7 +96,7 @@ if [ "$setup_mode" = "2" ]; then
         case $choice in
             [Yy]*) install_aws_sam_cli=true; break ;;
             [Nn]*) install_aws_sam_cli=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
+            *) error "Please enter Y or n" ;;
         esac
     done
 
@@ -154,7 +107,7 @@ if [ "$setup_mode" = "2" ]; then
         case $choice in
             [Yy]*) install_github_cli=true; break ;;
             [Nn]*) install_github_cli=false; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
+            *) error "Please enter Y or n" ;;
         esac
     done
 
@@ -175,7 +128,7 @@ if [ "$setup_mode" = "2" ]; then
             3) python_manager="pyenv-poetry"; break ;;
             4) python_manager="mise"; break ;;
             5) python_manager="none"; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter 1-5" ;;
+            *) error "Please enter 1-5" ;;
         esac
     done
 
@@ -196,7 +149,7 @@ if [ "$setup_mode" = "2" ]; then
             3) nodejs_manager="fnm"; break ;;
             4) nodejs_manager="mise"; break ;;
             5) nodejs_manager="none"; break ;;
-            *) echo -e "${RED}ERROR:${NC} Please enter 1-5" ;;
+            *) error "Please enter 1-5" ;;
         esac
     done
 fi
@@ -208,33 +161,15 @@ gid=$(id -g)
 # Automatically get Docker socket GID using robust detection
 docker_gid=$(detect_docker_gid)
 if [ -z "$docker_gid" ]; then
-    echo -e "${RED}ERROR:${NC} Failed to detect Docker GID."
-    echo "Tried: /var/run/docker.sock, rootless socket, docker group"
-    echo "Please ensure Docker is installed and running."
-    exit 1
+    die_with_hint "Failed to detect Docker GID" "Tried: /var/run/docker.sock, rootless socket, docker group\nPlease ensure Docker is installed and running"
 fi
-echo -e "${GREEN}Detected Docker GID:${NC} $docker_gid"
+success "Detected Docker GID: $docker_gid"
 
 # Check if template files exist
-if [ ! -f "docker-compose.yml.template" ]; then
-    echo -e "${RED}ERROR:${NC} docker-compose.yml.template not found"
-    exit 1
-fi
-
-if [ ! -f "Dockerfile.template" ]; then
-    echo -e "${RED}ERROR:${NC} Dockerfile.template not found"
-    exit 1
-fi
-
-if [ ! -f ".devcontainer/devcontainer.json.template" ]; then
-    echo -e "${RED}ERROR:${NC} .devcontainer/devcontainer.json.template not found"
-    exit 1
-fi
-
-if [ ! -f ".devcontainer/docker-compose.yml.template" ]; then
-    echo -e "${RED}ERROR:${NC} .devcontainer/docker-compose.yml.template not found"
-    exit 1
-fi
+validate_file_exists "docker-compose.yml.template" "docker-compose.yml.template" || exit 1
+validate_file_exists "Dockerfile.template" "Dockerfile.template" || exit 1
+validate_file_exists ".devcontainer/devcontainer.json.template" ".devcontainer/devcontainer.json.template" || exit 1
+validate_file_exists ".devcontainer/docker-compose.yml.template" ".devcontainer/docker-compose.yml.template" || exit 1
 
 # Generate docker-compose.yml and Dockerfile
 echo "Generating docker-compose.yml..."
@@ -305,8 +240,7 @@ ln -sf .envs/$container_service_name.env .env
 
 # Verify symlink was created correctly
 if ! validate_symlink ".env" ".envs/"; then
-    echo -e "${RED}ERROR:${NC} Failed to create symlink to .envs/$container_service_name.env"
-    exit 1
+    die "Failed to create symlink to .envs/$container_service_name.env"
 fi
 
 echo -e "${GREEN}=== Setup Complete ===${NC}"
