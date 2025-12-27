@@ -283,8 +283,6 @@ docker compose down --volumes --rmi all
 
 一度開けば、VS Codeの「最近使ったファイル」に表示されるので、次回から簡単にアクセスできます（ただし、devcontainerへの再接続は毎回必要です）。
 
-```
-
 #### プロジェクトごとのPythonバージョン設定
 
 各プロジェクトフォルダに `.vscode/settings.json` を作成してPythonインタープリターを指定します。
