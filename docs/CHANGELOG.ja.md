@@ -7,6 +7,46 @@
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-12-27
+
+### 追加
+- 一元化されたバージョン設定ファイル（lib/versions.conf）
+- 共有ジェネレータ関数ライブラリ（lib/generators.sh）
+- 入力検証ライブラリ（lib/validators.sh）
+- エラーハンドリングライブラリ（lib/errors.sh）
+- 安全な環境変数パース機能（read_env_var）
+- シンボリックリンク検証機能（validate_symlink）
+- フォールバックロジック付きDocker GID検出機能（detect_docker_gid）
+- スコープ分離のためDockerボリューム名にサービス名プレフィックスを追加
+- 開発環境にShellCheckパッケージを追加
+- GitHub Actions CI/CDワークフロー追加:
+  - ShellCheck静的解析
+  - 自動テスト実行
+  - テンプレート検証
+  - HadolintによるDockerfile Lint
+  - Dockerビルド検証
+- 包括的なテストカバレッジ追加:
+  - バリデータ関数
+  - エラーハンドリング関数
+  - ボリュームスコープ
+  - ユーティリティ関数
+
+### 変更
+- setup-docker.shを共有ジェネレータライブラリ使用にリファクタリング
+- switch-env.shを共有ジェネレータライブラリ使用にリファクタリング
+- 全スクリプトで一元化された検証およびエラーハンドリングライブラリを使用
+- NVMバージョンをGitHub APIから自動取得（最新リリース）
+- Dockerfileレイヤーを--no-install-recommendsと改善されたクリーンアップで最適化
+- テストスイートをCI環境で存在しないファイルをスキップするよう更新
+- Hadolintルールを開発環境互換性のため設定
+- Ubuntuバージョン管理をlib/versions.confに一元化
+- 英語版READMEから重複セクションを削除
+
+### 修正
+- 全シェルスクリプトのShellCheck警告を解決
+- サービス名プレフィックスによりボリューム名の競合を防止
+- lib/errors.sh関数によりエラーメッセージを改善
+
 ## [2.1.0] - 2025-12-27
 
 ### 追加
