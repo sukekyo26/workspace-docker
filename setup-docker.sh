@@ -111,8 +111,8 @@ if [ "$setup_mode" = "2" ]; then
         read -p "Install Docker CLI? [Y/n]: " choice
         choice=${choice:-Y}  # Default to Y if empty
         case $choice in
-            y|Y) install_docker=true; break ;;
-            n|N) install_docker=false; break ;;
+            [Yy]*) install_docker=true; break ;;
+            [Nn]*) install_docker=false; break ;;
             *) echo -e "${RED}ERROR:${NC} Please enter Y or n" ;;
         esac
     done
