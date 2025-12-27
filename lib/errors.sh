@@ -71,7 +71,7 @@ die() {
 error_with_hint() {
     local error_msg="$1"
     local hint_msg="$2"
-    
+
     error "$error_msg"
     if [[ -n "$hint_msg" ]]; then
         echo -e "${YELLOW}HINT:${NC} $hint_msg" >&2
@@ -104,7 +104,7 @@ subsection_header() {
 confirm() {
     local prompt="$1"
     local response
-    
+
     read -p "$prompt [y/N]: " response
     case "$response" in
         [yY][eE][sS]|[yY])
