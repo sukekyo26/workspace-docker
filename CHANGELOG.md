@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-12-27
+
+### Added
+- AWS SAM CLI with automatic architecture detection (x86_64/aarch64)
+- AWS configuration persistence via Docker volume (~/.aws)
+- GitHub CLI (gh) with persistent configuration and authentication storage
+- Multi-root workspace generator script (generate-workspace.sh)
+- Comprehensive multi-root workspace documentation in README
+- Volume support for AWS CLI and GitHub CLI configurations
+
+### Changed
+- AWS CLI configuration now persists in Docker volume instead of bind mount
+- Dockerfile templates reorganized with improved tool installation order
+- README updated with AWS SAM CLI and GitHub CLI setup instructions
+
+### Fixed
+- AWS credential path and permission issues resolved with volume-based persistence
+
 ## [2.0.0] - 2025-11-25
 
 ### Added
