@@ -67,6 +67,20 @@ else
     template_files_ok=false
 fi
 
+if [ -f "lib/generators.sh" ]; then
+    echo -e "${GREEN}  ✓${NC} lib/generators.sh"
+else
+    echo -e "${RED}  ✗${NC} lib/generators.sh"
+    template_files_ok=false
+fi
+
+if [ -f "lib/versions.conf" ]; then
+    echo -e "${GREEN}  ✓${NC} lib/versions.conf"
+else
+    echo -e "${RED}  ✗${NC} lib/versions.conf"
+    template_files_ok=false
+fi
+
 if [ "$template_files_ok" = true ]; then
     test_result "All template files exist" "pass"
 else
@@ -304,7 +318,7 @@ echo ""
 echo "Testing shell script syntax..."
 scripts_ok=true
 
-for script in setup-docker.sh switch-env.sh test.sh; do
+for script in setup-docker.sh switch-env.sh test.sh lib/generators.sh; do
     if [ -f "$script" ]; then
         if bash -n "$script" 2>/dev/null; then
             echo -e "  ${GREEN}✓${NC} $script syntax is valid"
@@ -315,6 +329,14 @@ for script in setup-docker.sh switch-env.sh test.sh; do
         fi
     fi
 done
+
+# Also check lib/versions.conf exists
+if [ -f "lib/versions.conf" ]; then
+    echo -e "  ${GREEN}✓${NC} lib/versions.conf exists"
+else
+    echo -e "  ${RED}✗${NC} lib/versions.conf is missing"
+    scripts_ok=false
+fi
 
 if [ "$scripts_ok" = true ]; then
     test_result "All shell scripts have valid syntax" "pass"
@@ -368,14 +390,14 @@ else
     test_result "Environment files have required variables" "skip"
 fi
 
-# Test 12: Test setup-docker.sh functions (if sourced safely)
+# Test 12: Test generator library functions
 echo ""
-echo "Testing setup-docker.sh package manager functions..."
-if [ -f "setup-docker.sh" ]; then
+echo "Testing lib/generators.sh functions..."
+if [ -f "lib/generators.sh" ]; then
     # Source the functions in a subshell to avoid side effects
     (
-        # Extract and test individual functions
-        source <(sed -n '/^# Function to generate/,/^}/p' setup-docker.sh)
+        # Source the generator library
+        source lib/generators.sh
 
         # Test uv installation function
         if type generate_uv_install &>/dev/null; then
@@ -439,7 +461,59 @@ if [ -f "setup-docker.sh" ]; then
                 exit 1
             fi
         fi
-    ) && test_result "Package manager functions work correctly" "pass" || test_result "Package manager functions work correctly" "fail"
+
+        # Test AWS CLI installation function
+        if type generate_aws_cli_install &>/dev/null; then
+            output=$(generate_aws_cli_install true)
+            if echo "$output" | grep -q "AWS CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_aws_cli_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_aws_cli_install output is unexpected"
+                exit 1
+            fi
+
+            output=$(generate_aws_cli_install false)
+            if [ -z "$output" ]; then
+                echo -e "  ${GREEN}✓${NC} generate_aws_cli_install returns empty when disabled"
+            else
+                echo -e "  ${RED}✗${NC} generate_aws_cli_install should return empty when disabled"
+                exit 1
+            fi
+        fi
+
+        # Test AWS SAM CLI installation function
+        if type generate_aws_sam_cli_install &>/dev/null; then
+            output=$(generate_aws_sam_cli_install true)
+            if echo "$output" | grep -q "AWS SAM CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_aws_sam_cli_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_aws_sam_cli_install output is unexpected"
+                exit 1
+            fi
+        fi
+
+        # Test GitHub CLI installation function
+        if type generate_github_cli_install &>/dev/null; then
+            output=$(generate_github_cli_install true)
+            if echo "$output" | grep -q "GitHub CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_github_cli_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_github_cli_install output is unexpected"
+                exit 1
+            fi
+        fi
+
+        # Test Docker CLI installation function
+        if type generate_docker_install &>/dev/null; then
+            output=$(generate_docker_install true)
+            if echo "$output" | grep -q "Docker CLI"; then
+                echo -e "  ${GREEN}✓${NC} generate_docker_install produces expected output"
+            else
+                echo -e "  ${RED}✗${NC} generate_docker_install output is unexpected"
+                exit 1
+            fi
+        fi
+    ) && test_result "Generator library functions work correctly" "pass" || test_result "Generator library functions work correctly" "fail"
 else
     test_result "Package manager functions work correctly" "skip"
 fi
@@ -453,17 +527,29 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
 
     # All volumes are checked regardless of mode (volumes are created for all package managers)
     expected_volumes=(
+        # Python tools
         "~/.cache/pip"
         "~/.cache/uv"
         "~/.local/share/uv"
         "~/.cache/pypoetry"
         "~/.local/share/pypoetry"
         "~/.pyenv"
+        # Node.js tools
         "~/.volta/tools"
         "~/.nvm"
         "~/.local/share/fnm"
+        "~/.npm"
+        "~/.cache/pnpm"
+        "~/.local/share/pnpm"
+        # mise
         "~/.local/share/mise"
         "~/.cache/mise"
+        # AWS
+        "~/.aws"
+        # GitHub CLI
+        "~/.config/gh"
+        # Bash history
+        "~/.docker_history"
     )
 
     if [ "$SETUP_MODE" = "1" ]; then
@@ -477,7 +563,8 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
     for vol in "${expected_volumes[@]}"; do
         # Escape special characters for grep and check if path appears in file
         escaped_vol=$(echo "$vol" | sed 's/[.]/\\./g; s|/|\\/|g')
-        if grep -E "${escaped_vol}(\s|\\\\)" Dockerfile >/dev/null 2>&1; then
+        # Match path followed by whitespace, backslash, or end of line
+        if grep -E "${escaped_vol}(\s|\\\\|$)" Dockerfile >/dev/null 2>&1; then
             echo -e "  ${GREEN}✓${NC} Volume mount point for $vol"
         else
             echo -e "  ${RED}✗${NC} Volume mount point for $vol is missing"
@@ -494,7 +581,74 @@ else
     test_result "Volume mount points are created in Dockerfile" "skip"
 fi
 
-# Test 14: Validate .gitignore patterns
+# Test 14: Check volume mounts in docker-compose.yml
+echo ""
+echo "Testing volume mounts in docker-compose.yml..."
+if [ -f "docker-compose.yml" ]; then
+    # Expected named volumes in docker-compose.yml
+    expected_named_volumes=(
+        "pip-cache"
+        "uv-cache"
+        "uv-python"
+        "poetry-cache"
+        "poetry-data"
+        "pyenv"
+        "volta-tools"
+        "nvm"
+        "fnm"
+        "mise-data"
+        "mise-cache"
+        "npm-cache"
+        "pnpm-cache"
+        "pnpm-store"
+        "aws"
+        "gh-config"
+        "bash-history"
+    )
+
+    compose_volumes_ok=true
+    for vol in "${expected_named_volumes[@]}"; do
+        # Check in volumes: section (top-level definition)
+        if grep -q "^  ${vol}:" docker-compose.yml; then
+            echo -e "  ${GREEN}✓${NC} Named volume '$vol' is defined"
+        else
+            echo -e "  ${RED}✗${NC} Named volume '$vol' is missing from volumes section"
+            compose_volumes_ok=false
+        fi
+    done
+
+    if [ "$compose_volumes_ok" = true ]; then
+        test_result "All named volumes are defined in docker-compose.yml" "pass"
+    else
+        test_result "All named volumes are defined in docker-compose.yml" "fail"
+    fi
+else
+    test_result "All named volumes are defined in docker-compose.yml" "skip"
+fi
+
+# Test 15: Validate template file consistency (both templates should have same volumes)
+echo ""
+echo "Testing template file consistency..."
+if [ -f "docker-compose.yml.template" ] && [ -f "docker-compose.custom.template" ]; then
+    # Extract volume names from both templates
+    normal_volumes=$(grep -E "^  [a-z].*:" docker-compose.yml.template | tail -n +2 | sed 's/://g' | tr -d ' ' | sort)
+    custom_volumes=$(grep -E "^  [a-z].*:" docker-compose.custom.template | tail -n +2 | sed 's/://g' | tr -d ' ' | sort)
+
+    if [ "$normal_volumes" = "$custom_volumes" ]; then
+        test_result "docker-compose templates have consistent volume definitions" "pass"
+    else
+        echo -e "  ${RED}✗${NC} Volume definitions differ between templates"
+        echo "  Normal template volumes:"
+        echo "$normal_volumes" | sed 's/^/    /'
+        echo "  Custom template volumes:"
+        echo "$custom_volumes" | sed 's/^/    /'
+        test_result "docker-compose templates have consistent volume definitions" "fail"
+    fi
+else
+    test_result "docker-compose templates have consistent volume definitions" "skip"
+fi
+
+# Test 16: Validate .gitignore patterns
 echo ""
 echo "Testing .gitignore coverage..."
 if [ -f ".gitignore" ]; then
