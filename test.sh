@@ -593,6 +593,124 @@ else
     test_result "Package manager functions work correctly" "skip"
 fi
 
+# Test 12b: Test validator library functions
+echo ""
+echo "Testing lib/validators.sh functions..."
+if [ -f "lib/validators.sh" ]; then
+    (
+        source lib/validators.sh
+
+        # Test validate_service_name
+        if type validate_service_name &>/dev/null; then
+            if validate_service_name "my-service-123" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_service_name accepts valid names"
+            else
+                echo -e "  ${RED}✗${NC} validate_service_name rejected valid name"
+                exit 1
+            fi
+
+            if ! validate_service_name "" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_service_name rejects empty names"
+            else
+                echo -e "  ${RED}✗${NC} validate_service_name accepted empty name"
+                exit 1
+            fi
+
+            if ! validate_service_name "invalid name!" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_service_name rejects invalid characters"
+            else
+                echo -e "  ${RED}✗${NC} validate_service_name accepted invalid characters"
+                exit 1
+            fi
+        fi
+
+        # Test validate_username
+        if type validate_username &>/dev/null; then
+            if validate_username "testuser" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_username accepts valid usernames"
+            else
+                echo -e "  ${RED}✗${NC} validate_username rejected valid username"
+                exit 1
+            fi
+
+            if ! validate_username "InvalidUser" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_username rejects uppercase letters"
+            else
+                echo -e "  ${RED}✗${NC} validate_username accepted uppercase letters"
+                exit 1
+            fi
+        fi
+
+        # Test validate_boolean
+        if type validate_boolean &>/dev/null; then
+            if validate_boolean "true" 2>/dev/null && validate_boolean "false" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_boolean accepts true/false"
+            else
+                echo -e "  ${RED}✗${NC} validate_boolean failed for true/false"
+                exit 1
+            fi
+
+            if ! validate_boolean "yes" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_boolean rejects non-boolean values"
+            else
+                echo -e "  ${RED}✗${NC} validate_boolean accepted non-boolean value"
+                exit 1
+            fi
+        fi
+
+        # Test validate_package_manager
+        if type validate_package_manager &>/dev/null; then
+            if validate_package_manager "uv" "python" 2>/dev/null && \
+               validate_package_manager "volta" "nodejs" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_package_manager accepts valid managers"
+            else
+                echo -e "  ${RED}✗${NC} validate_package_manager rejected valid managers"
+                exit 1
+            fi
+
+            if ! validate_package_manager "invalid" "python" 2>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} validate_package_manager rejects invalid managers"
+            else
+                echo -e "  ${RED}✗${NC} validate_package_manager accepted invalid manager"
+                exit 1
+            fi
+        fi
+    ) && test_result "Validator library functions work correctly" "pass" || test_result "Validator library functions work correctly" "fail"
+else
+    test_result "Validator library functions work correctly" "skip"
+fi
+
+# Test 12c: Test error handling library
+echo ""
+echo "Testing lib/errors.sh functions..."
+if [ -f "lib/errors.sh" ]; then
+    (
+        source lib/errors.sh
+
+        # Test error message functions exist
+        if type error &>/dev/null && \
+           type warn &>/dev/null && \
+           type info &>/dev/null && \
+           type success &>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} All error handling functions are defined"
+        else
+            echo -e "  ${RED}✗${NC} Some error handling functions are missing"
+            exit 1
+        fi
+
+        # Test error output (capture stderr)
+        output=$(error "test message" 2>&1)
+        if echo "$output" | grep -q "ERROR:"; then
+            echo -e "  ${GREEN}✓${NC} error function formats messages correctly"
+        else
+            echo -e "  ${RED}✗${NC} error function output is unexpected"
+            exit 1
+        fi
+    ) && test_result "Error handling library functions work correctly" "pass" || test_result "Error handling library functions work correctly" "fail"
+else
+    test_result "Error handling library functions work correctly" "skip"
+fi
+
 # Test 13: Check volume mount points in Dockerfile
 echo ""
 echo "Testing volume mount directories in Dockerfile..."
@@ -696,6 +814,31 @@ if [ -f "docker-compose.yml" ]; then
         test_result "All named volumes are defined in docker-compose.yml" "pass"
     else
         test_result "All named volumes are defined in docker-compose.yml" "fail"
+    fi
+
+    # Test volume name scoping (HIGH-5 fix)
+    echo ""
+    echo "Testing volume name scoping..."
+    if [ -f ".env" ]; then
+        CONTAINER_SERVICE_NAME=$(grep '^CONTAINER_SERVICE_NAME=' .env | cut -d'=' -f2-)
+        scoped_volumes_ok=true
+        for volume in "${expected_named_volumes[@]}"; do
+            volume_name=$(echo "$volume" | tr '-' '_')
+            if grep -q "name: \"\${CONTAINER_SERVICE_NAME}_$volume_name\"" docker-compose.yml; then
+                echo -e "  ${GREEN}✓${NC} Volume '$volume' has service name prefix"
+            else
+                echo -e "  ${RED}✗${NC} Volume '$volume' missing service name prefix"
+                scoped_volumes_ok=false
+            fi
+        done
+
+        if [ "$scoped_volumes_ok" = true ]; then
+            test_result "Volumes are scoped with service name prefix" "pass"
+        else
+            test_result "Volumes are scoped with service name prefix" "fail"
+        fi
+    else
+        test_result "Volumes are scoped with service name prefix" "skip"
     fi
 else
     test_result "All named volumes are defined in docker-compose.yml" "skip"
