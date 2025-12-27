@@ -6,42 +6,42 @@ ARG GID
 
 RUN apt update -y && \
     apt install -y \
-        curl \
-        wget \
-        ca-certificates \
-        gnupg \
-        openssh-client \
-        git \
-        make \
-        sudo \
-        vim \
-        nano \
-        zip \
-        unzip \
-        tar \
-        gzip \
-        bzip2 \
-        xz-utils \
-        tree \
-        jq \
-        less \
-        rsync \
-        procps \
-        iproute2 \
-        build-essential \
-        libssl-dev \
-        zlib1g-dev \
-        libbz2-dev \
-        libreadline-dev \
-        libsqlite3-dev \
-        libncursesw5-dev \
-        tk-dev \
-        libxml2-dev \
-        libxmlsec1-dev \
-        libffi-dev \
-        liblzma-dev \
-        bash-completion \
-        locales \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
+    openssh-client \
+    git \
+    make \
+    sudo \
+    vim \
+    nano \
+    zip \
+    unzip \
+    tar \
+    gzip \
+    bzip2 \
+    xz-utils \
+    tree \
+    jq \
+    less \
+    rsync \
+    procps \
+    iproute2 \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
+    bash-completion \
+    locales \
     && rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
@@ -79,6 +79,10 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
 
 {{AWS_CLI_INSTALL}}
 
+{{AWS_SAM_CLI_INSTALL}}
+
+{{GITHUB_CLI_INSTALL}}
+
 {{PYTHON_MANAGER_INSTALL}}
 
 {{NODEJS_MANAGER_INSTALL}}
@@ -98,7 +102,9 @@ RUN mkdir -p ~/.cache/pip \
     ~/.npm \
     ~/.cache/pnpm \
     ~/.local/share/pnpm \
-    ~/.docker_history
+    ~/.docker_history \
+    ~/.aws \
+    ~/.config/gh
 
 # Setup persistent bash history
 RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \

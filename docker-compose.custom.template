@@ -31,9 +31,14 @@ services:
       - pnpm-store:/home/${USERNAME}/.local/share/pnpm
 
       # 個人設定（読み取り専用）
-      - ~/.aws:/home/${USERNAME}/.aws:ro
       - ~/.gitconfig:/home/${USERNAME}/.gitconfig:ro
       - ~/.ssh:/home/${USERNAME}/.ssh:ro
+
+      # AWS（永続化）
+      - aws:/home/${USERNAME}/.aws
+
+      # GitHub CLI（永続化）
+      - gh-config:/home/${USERNAME}/.config/gh
 
       # bash履歴（永続化）
       - bash-history:/home/${USERNAME}/.docker_history
@@ -56,4 +61,6 @@ volumes:
   npm-cache:
   pnpm-cache:
   pnpm-store:
+  aws:
+  gh-config:
   bash-history:

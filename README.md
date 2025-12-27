@@ -5,7 +5,7 @@ A Docker-based Ubuntu development environment template optimized for Python, Nod
 ## Features
 
 - **Flexible Setup**: Choose between Normal (Quick start) or Custom (select software)
-- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2
+- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
 - **Persistent Storage**: Development tool caches and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
@@ -38,6 +38,7 @@ Container: /home/<username>/workspace/
 **Required:**
 - Docker Engine installed
 - `~/.gitconfig` file (see below)
+- Docker (required for AWS SAM CLI `sam local` to run functions and API locally)
 
 **Optional:**
 - VS Code + Dev Containers extension
@@ -45,7 +46,6 @@ Container: /home/<username>/workspace/
 The following host configuration files are mounted **read-only** inside the container:
 
 - **`~/.gitconfig`** - Git configuration (required)
-- `~/.aws/` - AWS CLI credentials and configuration (optional)
 - `~/.ssh/` - SSH keys (optional)
 
 > **Important**: If `~/.gitconfig` doesn't exist, the setup script will fail. At minimum, configure Git with:
@@ -73,7 +73,7 @@ Note: Re-login required for group changes to take effect.
 
 2. **Setup Mode Selection**
    - **Normal (1)**: Quick start mode with recommended tools pre-installed
-     - Installs: Docker CLI, AWS CLI v2, uv, Volta
+   - Installs: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI, uv, Volta
      - Recommended for Python & Node.js development
      - Fastest way to get started
    - **Custom (2)**: Select which software to install
@@ -95,6 +95,8 @@ Note: Re-login required for group changes to take effect.
 4. **Software Selection** (Custom mode only)
    - **Docker CLI**: Container operations (y/n)
    - **AWS CLI v2**: AWS resource management (y/n)
+   - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (sam build, sam local invoke) (y/n)
+   - **GitHub CLI**: GitHub command-line interface for repository management and workflows (y/n)
    - **Python Package Manager**: Choose from:
      1. **uv** (recommended): Fast, all-in-one Python package & version manager
      2. **poetry**: Project-focused dependency management
@@ -191,6 +193,85 @@ NODEJS_MANAGER=nvm
 
 #### Method 1: VS Code Dev Container (Recommended)
 
+**For single project:**
+1. Open this folder in VS Code
+2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
+3. Container automatically builds, starts, and connects
+
+**For multi-root workspace (multiple projects):**
+
+If you want to work with multiple projects simultaneously with independent settings, use the multi-root workspace feature:
+
+1. Generate workspace file (first time only):
+   ```bash
+   ./generate-workspace.sh
+   ```
+
+2. After connecting to Dev Container, open workspace file from within the container:
+   - Open Command Palette (Ctrl+Shift+P) and select "File: Open Workspace from File..."
+   - Choose `/home/<username>/workspace/workspace-docker/multi-project.code-workspace`
+
+This will open all projects as separate workspace folders, each with independent settings.
+
+See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
+
+#### Per-Project Python Version Configuration
+
+Create virtual environments with different Python versions for each project:
+
+```bash
+cd /home/<username>/workspace/project-a
+# Using uv
+uv venv --python 3.11
+
+cd /home/<username>/workspace/project-b
+# Using uv
+uv venv --python 3.12
+```
+
+Then configure VS Code to use it:
+
+**project-a/.vscode/settings.json (Python 3.11 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**project-b/.vscode/settings.json (Python 3.12 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 2: Using pyenv-installed Python directly**
+
+**project-a/.vscode/settings.json (pyenv Python 3.11)**
+```json
+{
+  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 3: Using uv Python selector**
+
+```json
+{
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+With this setting, VS Code will use the Python version managed by uv for the project.
+
+### Starting the Development Environment
+
+#### Method 1: VS Code Dev Container (Recommended)
+
 1. Open this folder in VS Code
 2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
 3. Container automatically builds, starts, and connects
@@ -229,6 +310,95 @@ docker compose down --volumes
 # Complete cleanup (containers, volumes, networks, images)
 docker compose down --volumes --rmi all
 ```
+
+### Multi-Root Workspace Support
+
+This setup supports VS Code's multi-root workspace feature, allowing you to manage multiple projects in the parent directory as separate workspace folders with independent settings.
+
+#### Benefits
+- Each project folder is recognized as an independent workspace
+- Different Python/Node.js versions can be configured per project
+- Project-specific settings (e.g., `.vscode/settings.json`) work independently
+- Easy navigation between multiple projects
+
+#### Generating Workspace File
+
+Run the provided script to automatically generate a workspace file:
+
+```bash
+./generate-workspace.sh
+```
+
+This scans all directories in the parent directory (excluding hidden directories) and generates:
+- `multi-project.code-workspace` (in the workspace-docker directory)
+
+The generated file includes all project folders found in the parent directory.
+
+#### Opening Multi-Root Workspace
+
+**From Container**
+1. Connect to container via Dev Containers as a single folder
+2. Open Command Palette (`Ctrl+Shift+P`)
+3. Select "File: Open Workspace from File..."
+4. Choose `/home/<username>/workspace/workspace-docker/multi-project.code-workspace`
+
+Once opened, VS Code remembers it in "Recent Files" for easy access (though you'll need to reconnect to the devcontainer each time).
+
+#### Configuring Per-Project Python Versions
+
+Create `.vscode/settings.json` in each project folder to specify the Python interpreter.
+
+**Example 1: Using virtual environment (recommended)**
+
+First, create a virtual environment with your desired Python version:
+```bash
+cd /home/<username>/workspace/project-a
+# Using uv
+uv venv --python 3.11
+
+cd /home/<username>/workspace/project-b
+# Using uv
+uv venv --python 3.12
+```
+
+Then configure VS Code to use it:
+
+**project-a/.vscode/settings.json (Python 3.11 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**project-b/.vscode/settings.json (Python 3.12 via venv)**
+```json
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 2: Using pyenv-installed Python directly**
+
+**project-a/.vscode/settings.json (pyenv Python 3.11)**
+```json
+{
+  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+**Example 3: Using uv Python selector**
+
+```json
+{
+  "python.defaultInterpreterPath": "python",
+  "python.analysis.extraPaths": ["${workspaceFolder}"]
+}
+```
+
+With this setting, VS Code will use the Python version managed by uv for the project.
 
 ## Development Workflows
 
@@ -296,6 +466,8 @@ node app.js
 **Other Tools**:
 - **Docker CLI**: Container operations (using host Docker daemon via socket mount)
 - **AWS CLI v2**: AWS resource management
+- **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally (Optional in Custom mode / installed by default in Normal mode)
+- **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows (Optional in Custom mode / installed by default in Normal mode)
 
 ### System Packages (Always Installed)
 
@@ -390,6 +562,8 @@ The following packages are always installed in both Normal and Custom modes to p
 | `npm-cache` | `~/.npm` | npm cache |
 | `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
 | `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
+| `aws` | `~/.aws` | AWS CLI credentials and configuration |
+| `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
 | `bash-history` | `~/.docker_history` | bash history |
 
 > **Note**: All volumes are created regardless of selected package managers for simplicity. Unused volumes remain empty and don't consume significant space.
@@ -398,7 +572,6 @@ The following packages are always installed in both Normal and Custom modes to p
 
 | Host | Container | Purpose |
 |------|-----------|---------|
-| `~/.aws` | `~/.aws` | AWS configuration & credentials |
 | `~/.gitconfig` | `~/.gitconfig` | Git configuration |
 | `~/.ssh` | `~/.ssh` | SSH keys (for Git authentication, etc.) |
 
@@ -411,11 +584,16 @@ The following packages are always installed in both Normal and Custom modes to p
 | `/var/run/docker.sock` | `/var/run/docker.sock` | Host Docker connection |
 
 ## Important Notes
-
-### Security
-
 - **Docker Socket**: The host Docker socket is mounted, allowing full control of the host Docker environment from within the container
-- **Personal Settings**: `~/.aws`, `~/.gitconfig`, `~/.ssh` are mounted read-only
+
+### AWS SAM CLI requirements
+
+- `sam local` uses Docker containers to emulate Lambda functions; ensure Docker is running on the host and the container has access to the Docker socket for local invocation and API testing.
+- The Docker image automatically installs the SAM CLI for the container architecture (amd64 -> x86_64, arm64 -> aarch64). If you encounter issues, please verify the installed SAM binary and architecture compatibility.
+
+### Security and Personal Settings
+
+- **Personal Settings**: `~/.gitconfig`, `~/.ssh` are mounted read-only
 - **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
 
 > **Warning**: The entire `~/.ssh` directory is accessible from within the container. While read-only and cannot be modified, container processes can read the key files. Exercise caution when running untrusted code.

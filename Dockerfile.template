@@ -6,42 +6,42 @@ ARG GID
 
 RUN apt update -y && \
     apt install -y \
-        curl \
-        wget \
-        ca-certificates \
-        gnupg \
-        openssh-client \
-        git \
-        make \
-        sudo \
-        vim \
-        nano \
-        zip \
-        unzip \
-        tar \
-        gzip \
-        bzip2 \
-        xz-utils \
-        tree \
-        jq \
-        less \
-        rsync \
-        procps \
-        iproute2 \
-        build-essential \
-        libssl-dev \
-        zlib1g-dev \
-        libbz2-dev \
-        libreadline-dev \
-        libsqlite3-dev \
-        libncursesw5-dev \
-        tk-dev \
-        libxml2-dev \
-        libxmlsec1-dev \
-        libffi-dev \
-        liblzma-dev \
-        bash-completion \
-        locales \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
+    openssh-client \
+    git \
+    make \
+    sudo \
+    vim \
+    nano \
+    zip \
+    unzip \
+    tar \
+    gzip \
+    bzip2 \
+    xz-utils \
+    tree \
+    jq \
+    less \
+    rsync \
+    procps \
+    iproute2 \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
+    bash-completion \
+    locales \
     && rm -rf /var/lib/apt/lists/* && \
     locale-gen en_US.UTF-8
 
@@ -95,6 +95,32 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     sudo ./aws/install && \
     rm -rf aws awscliv2.zip
 
+# Install AWS SAM CLI (auto-detect architecture)
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+    amd64) DOWNLOAD_ARCH="x86_64" ;; \
+    arm64) DOWNLOAD_ARCH="aarch64" ;; \
+    *) DOWNLOAD_ARCH="x86_64" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -L "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
+    unzip aws-sam-cli.zip -d sam-installation && \
+    sudo ./sam-installation/install && \
+    rm -rf sam-installation aws-sam-cli.zip
+
+# Install GitHub CLI
+USER root
+RUN mkdir -p -m 755 /etc/apt/keyrings && \
+    out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg && \
+    cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    mkdir -p -m 755 /etc/apt/sources.list.d && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y gh && \
+    rm -rf /var/lib/apt/lists/*
+USER ${USERNAME}
+
 # uv (Python package manager and version manager)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
@@ -120,7 +146,9 @@ RUN mkdir -p ~/.cache/pip \
     ~/.npm \
     ~/.cache/pnpm \
     ~/.local/share/pnpm \
-    ~/.docker_history
+    ~/.docker_history \
+    ~/.aws \
+    ~/.config/gh
 
 # Setup persistent bash history
 RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \
