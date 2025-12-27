@@ -1,5 +1,11 @@
 #!/bin/bash
 # Test script for workspace-docker project
+#
+# ShellCheck directives:
+# - SC2031: Color variables are read-only after initialization, subshell warning is false positive
+# - SC2034: CONTAINER_SERVICE_NAME is used in grep pattern string interpolation
+# - SC2088: Tilde paths are intentional string literals for Dockerfile content matching
+# shellcheck disable=SC2031,SC2034,SC2088
 
 set -euo pipefail
 
@@ -719,6 +725,7 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
     SETUP_MODE=$(grep '^SETUP_MODE=' .env | cut -d'=' -f2-)
 
     # All volumes are checked regardless of mode (volumes are created for all package managers)
+    # Note: These are literal strings to match Dockerfile content, not paths for expansion
     expected_volumes=(
         # Python tools
         "~/.cache/pip"

@@ -22,7 +22,7 @@ if [ $# -eq 1 ]; then
     container_service_name=$1
 else
     # Prompt for container service name
-    read -p "Enter container service name to switch to: " container_service_name
+    read -rp "Enter container service name to switch to: " container_service_name
 fi
 
 # Check if empty
@@ -76,7 +76,7 @@ fi
 
 # Switch symlink
 # Using relative path to ensure portability across different environments
-ln -sf .envs/$container_service_name.env .env
+ln -sf ".envs/${container_service_name}.env" .env
 
 # Verify symlink was created correctly
 if ! validate_symlink ".env" ".envs/"; then

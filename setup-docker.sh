@@ -18,14 +18,13 @@ source "$SCRIPT_DIR/lib/errors.sh"
 section_header "Generate Dockerfile for Ubuntu on Docker"
 
 # Check if ~/.gitconfig exists
-if [ ! -f ~/.gitconfig ]; then
-    die_with_hint "~/.gitconfig not found" "Please configure Git first:\n  git config --global user.name \"Your Name\"\n  git config --global user.email \"your.email@example.com\""
-    exit 1
+if [ ! -f "$HOME/.gitconfig" ]; then
+    die_with_hint "$HOME/.gitconfig not found" "Please configure Git first:\n  git config --global user.name \"Your Name\"\n  git config --global user.email \"your.email@example.com\""
 fi
 
 # Set container service name
 while true; do
-    read -p "Enter container service name: " container_service_name
+    read -rp "Enter container service name: " container_service_name
 
     if validate_service_name "$container_service_name" 2>&1; then
         break
@@ -34,7 +33,7 @@ done
 
 # Set username
 while true; do
-    read -p "Enter Ubuntu on Docker username: " username
+    read -rp "Enter Ubuntu on Docker username: " username
 
     if validate_username "$username" 2>&1; then
         break
@@ -47,7 +46,7 @@ echo "  1) Normal (Quick start - recommended tools pre-installed)"
 echo "  2) Custom (Select software to install)"
 echo ""
 while true; do
-    read -p "Enter setup mode [1/2]: " setup_mode
+    read -rp "Enter setup mode [1/2]: " setup_mode
 
     if validate_setup_mode "$setup_mode" 2>&1; then
         break
@@ -69,7 +68,7 @@ if [ "$setup_mode" = "2" ]; then
 
     # Docker CLI
     while true; do
-        read -p "Install Docker CLI? [Y/n]: " choice
+        read -rp "Install Docker CLI? [Y/n]: " choice
         choice=${choice:-Y}  # Default to Y if empty
         case $choice in
             [Yy]*) install_docker=true; break ;;
@@ -80,7 +79,7 @@ if [ "$setup_mode" = "2" ]; then
 
     # AWS CLI v2
     while true; do
-        read -p "Install AWS CLI v2? [Y/n]: " choice
+        read -rp "Install AWS CLI v2? [Y/n]: " choice
         choice=${choice:-Y}  # Default to Y if empty
         case $choice in
             [Yy]*) install_aws_cli=true; break ;;
@@ -91,7 +90,7 @@ if [ "$setup_mode" = "2" ]; then
 
     # AWS SAM CLI
     while true; do
-        read -p "Install AWS SAM CLI? [Y/n]: " choice
+        read -rp "Install AWS SAM CLI? [Y/n]: " choice
         choice=${choice:-Y}  # Default to Y if empty
         case $choice in
             [Yy]*) install_aws_sam_cli=true; break ;;
@@ -102,7 +101,7 @@ if [ "$setup_mode" = "2" ]; then
 
     # GitHub CLI
     while true; do
-        read -p "Install GitHub CLI? [Y/n]: " choice
+        read -rp "Install GitHub CLI? [Y/n]: " choice
         choice=${choice:-Y}  # Default to Y if empty
         case $choice in
             [Yy]*) install_github_cli=true; break ;;
@@ -120,7 +119,7 @@ if [ "$setup_mode" = "2" ]; then
     echo "  4) mise (multi-language version manager)"
     echo "  5) none (skip Python tools)"
     while true; do
-        read -p "Enter choice [1-5] (default: 1): " choice
+        read -rp "Enter choice [1-5] (default: 1): " choice
         choice=${choice:-1}
         case $choice in
             1) python_manager="uv"; break ;;
@@ -141,7 +140,7 @@ if [ "$setup_mode" = "2" ]; then
     echo "  4) mise (multi-language version manager)"
     echo "  5) none (skip Node.js tools)"
     while true; do
-        read -p "Enter choice [1-5] (default: 1): " choice
+        read -rp "Enter choice [1-5] (default: 1): " choice
         choice=${choice:-1}
         case $choice in
             1) nodejs_manager="volta"; break ;;
@@ -215,7 +214,7 @@ mkdir -p .envs
 
 # Generate .env file for this service
 echo "Generating .envs/$container_service_name.env..."
-cat > .envs/$container_service_name.env << EOF
+cat > ".envs/${container_service_name}.env" << EOF
 # Environment variables for $container_service_name
 # Generated on $(date)
 
@@ -236,7 +235,7 @@ EOF
 
 # Create symlink to .env for docker compose to use
 # Using relative path to ensure portability across different environments
-ln -sf .envs/$container_service_name.env .env
+ln -sf ".envs/${container_service_name}.env" .env
 
 # Verify symlink was created correctly
 if ! validate_symlink ".env" ".envs/"; then

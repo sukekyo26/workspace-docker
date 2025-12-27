@@ -2,9 +2,6 @@
 # Error handling and logging functions
 # This library provides consistent error messages and logging
 
-# Get the directory where this script is located
-LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -12,9 +9,9 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Log levels
-LOG_LEVEL_ERROR=0
-LOG_LEVEL_WARN=1
+# Log levels (exported for external use)
+export LOG_LEVEL_ERROR=0
+export LOG_LEVEL_WARN=1
 LOG_LEVEL_INFO=2
 LOG_LEVEL_DEBUG=3
 
@@ -105,7 +102,7 @@ confirm() {
     local prompt="$1"
     local response
 
-    read -p "$prompt [y/N]: " response
+    read -rp "$prompt [y/N]: " response
     case "$response" in
         [yY][eE][sS]|[yY])
             return 0
