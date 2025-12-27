@@ -215,7 +215,9 @@ This will open all projects as separate workspace folders, each with independent
 
 See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
 
-#### Method 2: Docker Compose
+#### Per-Project Python Version Configuration
+
+Create virtual environments with different Python versions for each project:
 
 ```bash
 cd /home/<username>/workspace/project-a
