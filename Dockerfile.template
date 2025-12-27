@@ -1,4 +1,5 @@
-FROM ubuntu:latest
+ARG UBUNTU_VERSION
+FROM ubuntu:${UBUNTU_VERSION}
 
 ARG USERNAME
 ARG UID
@@ -98,9 +99,9 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 # Install AWS SAM CLI (auto-detect architecture)
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
-        amd64) DOWNLOAD_ARCH="x86_64" ;; \
-        arm64) DOWNLOAD_ARCH="aarch64" ;; \
-        *) DOWNLOAD_ARCH="x86_64" ;; \
+    amd64) DOWNLOAD_ARCH="x86_64" ;; \
+    arm64) DOWNLOAD_ARCH="aarch64" ;; \
+    *) DOWNLOAD_ARCH="x86_64" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
     curl -L "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \

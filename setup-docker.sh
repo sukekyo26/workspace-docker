@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Exit immediately if a command exits with a non-zero status
-set -e
+set -euo pipefail
+IFS=$'\n\t'
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -296,6 +297,7 @@ USERNAME=$username
 UID=$uid
 GID=$gid
 DOCKER_GID=$docker_gid
+UBUNTU_VERSION=$UBUNTU_VERSION
 SETUP_MODE=$setup_mode
 INSTALL_DOCKER=$install_docker
 INSTALL_AWS_CLI=$install_aws_cli

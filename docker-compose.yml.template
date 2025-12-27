@@ -4,6 +4,7 @@ services:
     build:
       context: .
       args:
+        - UBUNTU_VERSION=${UBUNTU_VERSION}
         - USERNAME=${USERNAME}
         - UID=${UID}
         - GID=${GID}
