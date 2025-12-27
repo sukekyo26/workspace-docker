@@ -71,9 +71,9 @@ generate_aws_sam_cli_install() {
 # Install AWS SAM CLI
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
-      amd64) DOWNLOAD_ARCH="x86_64" ;; \
-      arm64) DOWNLOAD_ARCH="aarch64" ;; \
-      *) DOWNLOAD_ARCH="x86_64" ;; \
+        amd64) DOWNLOAD_ARCH="x86_64" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
     curl -L "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
