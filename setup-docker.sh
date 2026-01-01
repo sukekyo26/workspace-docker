@@ -40,118 +40,60 @@ while true; do
     fi
 done
 
-# Ask for setup mode
-subsection_header "Setup Mode Selection"
-echo "  1) Normal (Quick start - recommended tools pre-installed)"
-echo "  2) Custom (Select software to install)"
+# Software installation selection
+subsection_header "Software Installation Selection"
+echo "proto is always installed (multi-language version manager)"
 echo ""
-while true; do
-    read -rp "Enter setup mode [1/2]: " setup_mode
-
-    if validate_setup_mode "$setup_mode" 2>&1; then
-        break
-    fi
-done
 
 # Initialize software installation flags
 install_docker=true
 install_aws_cli=true
 install_aws_sam_cli=true
 install_github_cli=true
-python_manager="uv"    # Default: uv
-nodejs_manager="volta" # Default: volta
 
-# Custom mode: ask for each software
-if [ "$setup_mode" = "2" ]; then
-    echo ""
-    echo -e "${CYAN}=== Software Installation Selection ===${NC}"
+# Docker CLI
+while true; do
+    read -rp "Install Docker CLI? [Y/n]: " choice
+    choice=${choice:-Y}  # Default to Y if empty
+    case $choice in
+        [Yy]*) install_docker=true; break ;;
+        [Nn]*) install_docker=false; break ;;
+        *) error "Please enter Y or n" ;;
+    esac
+done
 
-    # Docker CLI
-    while true; do
-        read -rp "Install Docker CLI? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
-        case $choice in
-            [Yy]*) install_docker=true; break ;;
-            [Nn]*) install_docker=false; break ;;
-            *) error "Please enter Y or n" ;;
-        esac
-    done
+# AWS CLI v2
+while true; do
+    read -rp "Install AWS CLI v2? [Y/n]: " choice
+    choice=${choice:-Y}  # Default to Y if empty
+    case $choice in
+        [Yy]*) install_aws_cli=true; break ;;
+        [Nn]*) install_aws_cli=false; break ;;
+        *) error "Please enter Y or n" ;;
+    esac
+done
 
-    # AWS CLI v2
-    while true; do
-        read -rp "Install AWS CLI v2? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
-        case $choice in
-            [Yy]*) install_aws_cli=true; break ;;
-            [Nn]*) install_aws_cli=false; break ;;
-            *) error "Please enter Y or n" ;;
-        esac
-    done
+# AWS SAM CLI
+while true; do
+    read -rp "Install AWS SAM CLI? [Y/n]: " choice
+    choice=${choice:-Y}  # Default to Y if empty
+    case $choice in
+        [Yy]*) install_aws_sam_cli=true; break ;;
+        [Nn]*) install_aws_sam_cli=false; break ;;
+        *) error "Please enter Y or n" ;;
+    esac
+done
 
-    # AWS SAM CLI
-    while true; do
-        read -rp "Install AWS SAM CLI? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
-        case $choice in
-            [Yy]*) install_aws_sam_cli=true; break ;;
-            [Nn]*) install_aws_sam_cli=false; break ;;
-            *) error "Please enter Y or n" ;;
-        esac
-    done
-
-    # GitHub CLI
-    while true; do
-        read -rp "Install GitHub CLI? [Y/n]: " choice
-        choice=${choice:-Y}  # Default to Y if empty
-        case $choice in
-            [Yy]*) install_github_cli=true; break ;;
-            [Nn]*) install_github_cli=false; break ;;
-            *) error "Please enter Y or n" ;;
-        esac
-    done
-
-    # Python package manager selection
-    echo ""
-    echo "Select Python package manager:"
-    echo "  1) uv (recommended: fast, all-in-one)"
-    echo "  2) poetry (project management focused)"
-    echo "  3) pyenv + poetry (version + project management)"
-    echo "  4) mise (multi-language version manager)"
-    echo "  5) none (skip Python tools)"
-    while true; do
-        read -rp "Enter choice [1-5] (default: 1): " choice
-        choice=${choice:-1}
-        case $choice in
-            1) python_manager="uv"; break ;;
-            2) python_manager="poetry"; break ;;
-            3) python_manager="pyenv-poetry"; break ;;
-            4) python_manager="mise"; break ;;
-            5) python_manager="none"; break ;;
-            *) error "Please enter 1-5" ;;
-        esac
-    done
-
-    # Node.js package manager selection
-    echo ""
-    echo "Select Node.js version manager:"
-    echo "  1) Volta (recommended: auto-switching)"
-    echo "  2) nvm (traditional, widely used)"
-    echo "  3) fnm (fast, Rust-based)"
-    echo "  4) mise (multi-language version manager)"
-    echo "  5) none (skip Node.js tools)"
-    while true; do
-        read -rp "Enter choice [1-5] (default: 1): " choice
-        choice=${choice:-1}
-        case $choice in
-            1) nodejs_manager="volta"; break ;;
-            2) nodejs_manager="nvm"; break ;;
-            3) nodejs_manager="fnm"; break ;;
-            4) nodejs_manager="mise"; break ;;
-            5) nodejs_manager="none"; break ;;
-            *) error "Please enter 1-5" ;;
-        esac
-    done
-fi
+# GitHub CLI
+while true; do
+    read -rp "Install GitHub CLI? [Y/n]: " choice
+    choice=${choice:-Y}  # Default to Y if empty
+    case $choice in
+        [Yy]*) install_github_cli=true; break ;;
+        [Nn]*) install_github_cli=false; break ;;
+        *) error "Please enter Y or n" ;;
+    esac
+done
 
 # Automatically get UID and GID from current user
 uid=$(id -u)
@@ -172,32 +114,17 @@ validate_file_exists ".devcontainer/docker-compose.yml.template" ".devcontainer/
 
 # Generate docker-compose.yml and Dockerfile
 echo "Generating docker-compose.yml..."
-if [ "$setup_mode" = "1" ]; then
-    # Normal mode: use existing template
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-        docker-compose.yml.template > docker-compose.yml
-else
-    # Custom mode: use custom template
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-        docker-compose.custom.template > docker-compose.yml
-fi
+sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
+    docker-compose.yml.template > docker-compose.yml
 
 echo "Generating Dockerfile..."
-if [ "$setup_mode" = "1" ]; then
-    # Normal mode: use existing template
-    cp Dockerfile.template Dockerfile
-else
-    # Custom mode: generate from custom template using shared library function
-    generate_dockerfile_from_template \
-        "Dockerfile.custom.template" \
-        "Dockerfile" \
-        "$install_docker" \
-        "$install_aws_cli" \
-        "$install_aws_sam_cli" \
-        "$install_github_cli" \
-        "$python_manager" \
-        "$nodejs_manager"
-fi
+generate_dockerfile_from_template \
+    "Dockerfile.template" \
+    "Dockerfile" \
+    "$install_docker" \
+    "$install_aws_cli" \
+    "$install_aws_sam_cli" \
+    "$install_github_cli"
 
 echo "Generating .devcontainer/devcontainer.json..."
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
@@ -224,13 +151,10 @@ UID=$uid
 GID=$gid
 DOCKER_GID=$docker_gid
 UBUNTU_VERSION=$UBUNTU_VERSION
-SETUP_MODE=$setup_mode
 INSTALL_DOCKER=$install_docker
 INSTALL_AWS_CLI=$install_aws_cli
 INSTALL_AWS_SAM_CLI=$install_aws_sam_cli
 INSTALL_GITHUB_CLI=$install_github_cli
-PYTHON_MANAGER=$python_manager
-NODEJS_MANAGER=$nodejs_manager
 EOF
 
 # Create symlink to .env for docker compose to use
@@ -248,19 +172,12 @@ echo "Username: $username"
 echo "UID/GID: $uid/$gid (automatically detected)"
 echo "Docker GID: $docker_gid (automatically detected)"
 echo ""
-if [ "$setup_mode" = "1" ]; then
-    echo "Setup mode: Normal (Quick start)"
-    echo "Software installed: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI, uv, Volta (recommended for Python & Node.js development)"
-else
-    echo "Setup mode: Custom"
-    echo "Software selected:"
-    [ "$install_docker" = true ] && echo "  - Docker CLI: Yes" || echo "  - Docker CLI: No"
-    [ "$install_aws_cli" = true ] && echo "  - AWS CLI v2: Yes" || echo "  - AWS CLI v2: No"
-    [ "$install_aws_sam_cli" = true ] && echo "  - AWS SAM CLI: Yes" || echo "  - AWS SAM CLI: No"
-    [ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
-    echo "  - Python Manager: $python_manager"
-    echo "  - Node.js Manager: $nodejs_manager"
-fi
+echo "Software installed:"
+echo "  - proto: Yes (always installed)"
+[ "$install_docker" = true ] && echo "  - Docker CLI: Yes" || echo "  - Docker CLI: No"
+[ "$install_aws_cli" = true ] && echo "  - AWS CLI v2: Yes" || echo "  - AWS CLI v2: No"
+[ "$install_aws_sam_cli" = true ] && echo "  - AWS SAM CLI: Yes" || echo "  - AWS SAM CLI: No"
+[ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
 echo ""
 echo "Generated files:"
 echo "  - Dockerfile"

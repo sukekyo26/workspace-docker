@@ -1,12 +1,13 @@
 # workspace-docker
 
-Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。モダンな開発ツールがプリインストールされ、Python・Node.js・Docker開発に最適化された環境を提供します。
+Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。proto（多言語バージョンマネージャー）とモダンな開発ツールがプリインストールされています。
 
 ## 主な特徴
 
-- **柔軟なセットアップ**: ノーマル（クイックスタート）またはカスタム（ソフトウェア選択）モード
-- **最新の開発ツール**: uv（Python）、Volta（Node.js）、Docker CLI、AWS CLI v2、AWS SAM CLI、GitHub CLI
-- **永続化対応**: 開発ツールのキャッシュや設定が永続化され、コンテナ再作成後も保持
+- **柔軟なセットアップ**: protoは常にインストールされ、他のツールは選択可能
+- **proto**: Python、Node.js、Bun、Deno、Go、Rust、および100以上のツールに対応した統合的な多言語バージョンマネージャー
+- **モダンな開発ツール**: Docker CLI、AWS CLI v2、AWS SAM CLI、GitHub CLI
+- **永続化対応**: protoツールや設定が永続化され、コンテナ再作成後も保持
 - **ワークスペース統合**: 複数プロジェクトを一つの開発環境で管理
 - **VS Code Dev Container対応**: `.devcontainer`設定により、VS Codeとシームレスに統合
 - **ホストDocker活用**: コンテナ内からホストのDockerを安全に利用
@@ -72,17 +73,7 @@ sudo usermod -aG docker $USER
 bash setup-docker.sh
 ```
 
-2. **セットアップモードの選択**
-   - **ノーマル (1)**: 推奨ツールがプリインストールされたクイックスタートモード
-   - インストール内容: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI, uv, Volta
-     - Python & Node.js開発に推奨
-     - 最も早く開始できる方法
-   - **カスタム (2)**: インストールするソフトウェアを選択
-     - インストールするツールを細かく制御可能
-     - 不要なツールを除外してイメージサイズを削減
-     - 注意: ソフトウェアの選択に関わらず、すべてのツール用のキャッシュディレクトリとボリュームは作成されます
-
-3. **入力が必要な情報**
+2. **入力が必要な情報**
    - **コンテナ/サービス名**:
      - 使用可能文字: 英数字（`a-z`, `A-Z`, `0-9`）、ハイフン（`-`）、アンダースコア（`_`）
      - 文字数制限: 1～63文字
@@ -93,31 +84,20 @@ bash setup-docker.sh
      - 文字数制限: 1～32文字
      - 例: `user`, `dev_user`, `john-doe`
 
-4. **ソフトウェアの選択**（カスタムモードのみ）
-   - **Docker CLI**: コンテナ操作 (y/n)
-   - **AWS CLI v2**: AWSリソース管理 (y/n)
-   - **AWS SAM CLI**: サーバーレスLambda関数のローカルでのビルド、テスト、実行 (y/n)
-   - **GitHub CLI**: リポジトリ管理、プルリクエスト、Issueおよびワークフロー操作のためのCLI (y/n)
-   - **Pythonパッケージ管理ツール**: 以下から選択:
-     1. **uv**（推奨）: 高速、オールインワンのPythonパッケージ・バージョン管理
-     2. **poetry**: プロジェクト中心の依存関係管理
-     3. **pyenv + poetry**: バージョン管理（pyenv）+ 依存関係管理（poetry）
-     4. **mise**: 多言語対応バージョン管理ツール（Python、Node.js等）
-     5. **none**: Pythonツールをスキップ
-   - **Node.jsバージョン管理ツール**: 以下から選択:
-     1. **Volta**（推奨）: プロジェクトベースの自動バージョン切り替え
-     2. **nvm**: 伝統的で広く使われているNode.jsバージョン管理ツール
-     3. **fnm**: Fast Node Manager（Rust製、nvmの高速代替）
-     4. **mise**: 多言語対応バージョン管理ツール（Python、Node.js等）
-     5. **none**: Node.jsツールをスキップ
+3. **ソフトウェアの選択**
+   - **proto**: 常にインストール（多言語バージョンマネージャー）
+   - **Docker CLI**: コンテナ操作（デフォルト: Yes）
+   - **AWS CLI v2**: AWSリソース管理（デフォルト: Yes）
+   - **AWS SAM CLI**: サーバーレスLambda関数のローカルでのビルド、テスト、実行（デフォルト: Yes）
+   - **GitHub CLI**: リポジトリ管理、プルリクエスト、Issueおよびワークフロー操作のためのCLI（デフォルト: Yes）
 
-5. **自動検出される情報**
+4. **自動検出される情報**
    - **UID/GID**: 現在のユーザーのUID/GIDを自動検出
    - **Docker GID**: ホストのDocker グループGIDを自動検出（`/var/run/docker.sock`から取得）
 
-6. **生成されるファイル**
-   - `Dockerfile` - テンプレート（ノーマルまたはカスタム）から生成
-   - `docker-compose.yml` - テンプレート（ノーマルまたはカスタム）から生成
+5. **生成されるファイル**
+   - `Dockerfile` - テンプレートから生成
+   - `docker-compose.yml` - テンプレートから生成
    - `.devcontainer/devcontainer.json` - VS Code Dev Container設定（テンプレートから生成）
    - `.devcontainer/docker-compose.yml` - Dev Container用docker-compose設定（テンプレートから生成）
    - `.envs/<service_name>.env` - 環境変数ファイル（サービス名ごとに管理、ソフトウェア選択フラグを含む）
@@ -156,7 +136,6 @@ ln -sf .envs/prod.env .env   # prodサービスに切り替え
 
 #### .envファイルの内容例
 
-**ノーマルモード:**
 ```env
 # Environment variables for dev
 # Generated on Fri Nov  8 12:34:56 UTC 2025
@@ -166,28 +145,10 @@ USERNAME=devuser
 UID=1000
 GID=1000
 DOCKER_GID=989
-SETUP_MODE=1
 INSTALL_DOCKER=true
 INSTALL_AWS_CLI=true
-PYTHON_MANAGER=uv
-NODEJS_MANAGER=volta
-```
-
-**カスタムモード:**
-```env
-# Environment variables for dev
-# Generated on Fri Nov  8 12:34:56 UTC 2025
-
-CONTAINER_SERVICE_NAME=dev
-USERNAME=devuser
-UID=1000
-GID=1000
-DOCKER_GID=989
-SETUP_MODE=2
-INSTALL_DOCKER=true
-INSTALL_AWS_CLI=false
-PYTHON_MANAGER=poetry
-NODEJS_MANAGER=nvm
+INSTALL_AWS_SAM_CLI=true
+INSTALL_GITHUB_CLI=true
 ```
 
 ### 開発環境の起動方法
@@ -345,15 +306,13 @@ uv venv --python 3.12
 ### Python開発の例
 
 ```bash
-# Python をインストール
-uv python install 3.13
+# proto経由でPythonとuvをインストール
+proto install python 3.13
+proto install uv
 
 # プロジェクト作成
 uv init my-python-project
 cd my-python-project
-
-# Python バージョン指定
-uv python pin 3.13
 
 # 依存関係追加
 uv add requests pandas
@@ -369,9 +328,9 @@ uv run pytest
 ### Node.js開発の例
 
 ```bash
-# Node.js と pnpm をインストール
-volta install node@24
-volta install pnpm
+# proto経由でNode.jsとpnpmをインストール
+proto install node 22
+proto install pnpm
 
 # プロジェクト作成
 pnpm init
@@ -387,31 +346,44 @@ pnpm start
 node app.js
 ```
 
+### protoでその他の言語を使う
+
+```bash
+# その他のランタイムをインストール
+proto install bun
+proto install deno
+proto install go
+proto install rust
+
+# インストール済みツールの一覧
+proto list
+
+# プロジェクト用にツールバージョンを固定（.prototoolsファイルを作成）
+proto pin node 22
+proto pin python 3.13
+```
+
 ## プリインストールアプリケーション
 
 ### 開発ツール
 
-**Pythonパッケージ管理ツール** (カスタムモードで選択、デフォルト: ノーマルモードではuv):
-- **uv**: 高速でオールインワンのPythonパッケージ・バージョン管理（Rust製、pip互換）
-- **poetry**: モダンなPython依存関係管理・パッケージング
-- **pyenv + poetry**: Pythonバージョン管理（pyenv）+ 依存関係管理（poetry）
-- **mise**: 多言語対応バージョン管理ツール（Python、Node.js、Ruby等）
+**proto**（常にインストール）:
+- **proto**: 統合的な多言語バージョンマネージャー。以下をサポート:
+  - **Python**（+ poetry、uv）
+  - **Node.js**（+ npm、pnpm、yarn）
+  - **Bun**、**Deno**、**Go**、**Rust**、**Ruby**
+  - プラグイン経由で100以上のサードパーティツール
+  - `.prototools`ファイルによるプロジェクトベースのバージョン切り替え
 
-**Node.jsバージョン管理ツール** (カスタムモードで選択、デフォルト: ノーマルモードではVolta):
-- **Volta**: プロジェクトベースで自動切り替えするNode.jsバージョン管理
-- **nvm**: 伝統的で最も広く使われているNode.jsバージョン管理ツール
-- **fnm**: Fast Node Manager（Rust製、nvmの高速代替）
-- **mise**: 多言語対応バージョン管理ツール（Python、Node.js、Ruby等）
-
-**その他のツール**:
-- **Docker CLI**: コンテナ操作（ホストのDockerデーモンをソケット経由で利用）
+**オプションツール**（セットアップ時に選択可能、デフォルトですべてインストール）:
+- **Docker CLI**: コンテナ操作（ホストのDockerデーモンをソケットマウント経由で利用）
 - **AWS CLI v2**: AWSリソース管理
-- **AWS SAM CLI**: サーバーレスLambda関数のローカルでのビルド、テスト、実行（カスタムモードではオプション / ノーマルモードではデフォルトでインストール）
-- **GitHub CLI**: リポジトリ管理、プルリクエスト、Issue、ワークフロー操作のためのGitHubコマンドラインインターフェース（カスタムモードではオプション / ノーマルモードではデフォルトでインストール）
+- **AWS SAM CLI**: サーバーレスLambda関数のローカルでのビルド、テスト、実行
+- **GitHub CLI**: リポジトリ管理、プルリクエスト、Issue、ワークフロー操作のためのGitHubコマンドラインインターフェース
 
 ### システムパッケージ（常時インストール）
 
-以下のパッケージはノーマル・カスタム両モードで常にインストールされ、完全な開発環境を提供します。
+以下のパッケージは常にインストールされ、完全な開発環境を提供します。
 
 #### 必須パッケージ
 - **ca-certificates** - SSL/TLS証明書管理、安全なHTTPS接続に必要
@@ -490,25 +462,10 @@ node app.js
 
 | ボリューム名 | マウント先 | 用途 |
 |--------------|------------|------|
-| `pip-cache` | `~/.cache/pip` | pip キャッシュ |
-| `uv-cache` | `~/.cache/uv` | uv キャッシュ |
-| `uv-python` | `~/.local/share/uv` | uv インストールPythonバージョン |
-| `poetry-cache` | `~/.cache/pypoetry` | Poetry キャッシュ |
-| `poetry-data` | `~/.local/share/pypoetry` | Poetry データ |
-| `pyenv` | `~/.pyenv` | pyenv Pythonバージョン |
-| `volta-tools` | `~/.volta/tools` | Volta ツール |
-| `nvm` | `~/.nvm` | nvm Node.jsバージョン |
-| `fnm` | `~/.local/share/fnm` | fnm Node.jsバージョン |
-| `mise-data` | `~/.local/share/mise` | mise インストールツール |
-| `mise-cache` | `~/.cache/mise` | mise キャッシュ |
-| `npm-cache` | `~/.npm` | npm キャッシュ |
-| `pnpm-cache` | `~/.cache/pnpm` | pnpm メタデータキャッシュ |
-| `pnpm-store` | `~/.local/share/pnpm` | pnpm グローバルストア |
+| `proto` | `~/.proto` | protoインストール済みツールとバージョン |
 | `aws` | `~/.aws` | AWS CLI認証情報・設定 |
 | `gh-config` | `~/.config/gh` | GitHub CLI設定と認証情報 |
 | `bash-history` | `~/.docker_history` | bash 履歴 |
-
-> **注意**: 選択したパッケージ管理ツールに関わらず、すべてのボリュームが作成されます。未使用のボリュームは空のままで、著しい容量を消費しません。
 
 ### 読み取り専用マウント
 
@@ -713,23 +670,21 @@ bash test.sh
 ## プロジェクトファイル
 
 ### コアスクリプト
-- `setup-docker.sh` - ノーマル/カスタムモード選択機能付きセットアップスクリプト
+- `setup-docker.sh` - ツール選択機能付きセットアップスクリプト
 - `switch-env.sh` - 環境切り替えスクリプト
-- `test.sh` - 包括的なテストスクリプト（22項目の検証チェック）
+- `test.sh` - 包括的なテストスクリプト
 - `generate-workspace.sh` - マルチルートワークスペース生成スクリプト
 
 ### テンプレート
-- `Dockerfile.template` - ノーマルモード用Dockerfileテンプレート（Python & Node.js開発推奨ツール）
-- `Dockerfile.custom.template` - カスタムモード用Dockerfileテンプレート（選択的インストール）
-- `docker-compose.yml.template` - ノーマルモード用docker-compose.ymlテンプレート
-- `docker-compose.custom.template` - カスタムモード用docker-compose.ymlテンプレート
+- `Dockerfile.template` - プレースホルダー付きDockerfileテンプレート
+- `docker-compose.yml.template` - docker-compose.ymlテンプレート
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート
 - `.devcontainer/docker-compose.yml.template` - Dev Container用docker-compose設定のテンプレート
 
 ### ライブラリ（`lib/`）
 - `lib/versions.conf` - 一元化されたバージョン設定
 - `lib/generators.sh` - 共有テンプレート生成関数
-- `lib/validators.sh` - 入力検証ライブラリ（サービス名、ユーザー名、真偽値、パッケージマネージャー）
+- `lib/validators.sh` - 入力検証ライブラリ（サービス名、ユーザー名、真偽値）
 - `lib/errors.sh` - エラーハンドリングとメッセージングライブラリ
 
 ### CI/CD

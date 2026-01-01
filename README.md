@@ -1,12 +1,13 @@
 # workspace-docker
 
-A Docker-based Ubuntu development environment template optimized for Python, Node.js, and Docker development with pre-installed modern development tools.
+A Docker-based Ubuntu development environment template with proto (multi-language version manager) and modern development tools.
 
 ## Features
 
-- **Flexible Setup**: Choose between Normal (Quick start) or Custom (select software)
-- **Modern Development Tools**: uv (Python), Volta (Node.js), Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
-- **Persistent Storage**: Development tool caches and configurations persist across container recreations
+- **Flexible Setup**: Select which tools to install with proto always included
+- **proto**: Unified multi-language version manager for Python, Node.js, Bun, Deno, Go, Rust, and 100+ more tools
+- **Modern Development Tools**: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
+- **Persistent Storage**: proto tools and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
 - **Host Docker Access**: Safely utilize host Docker from within the container
@@ -72,17 +73,7 @@ Note: Re-login required for group changes to take effect.
    bash setup-docker.sh
    ```
 
-2. **Setup Mode Selection**
-   - **Normal (1)**: Quick start mode with recommended tools pre-installed
-   - Installs: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI, uv, Volta
-     - Recommended for Python & Node.js development
-     - Fastest way to get started
-   - **Custom (2)**: Select which software to install
-     - Allows granular control over installed tools
-     - Reduces image size if certain tools aren't needed
-     - Note: Cache directories and volumes are created for all tools regardless of selection
-
-3. **Required Input**
+2. **Required Input**
    - **Container/Service Name**:
      - Allowed characters: alphanumeric (`a-z`, `A-Z`, `0-9`), hyphen (`-`), underscore (`_`)
      - Length: 1-63 characters
@@ -93,31 +84,20 @@ Note: Re-login required for group changes to take effect.
      - Length: 1-32 characters
      - Examples: `user`, `dev_user`, `john-doe`
 
-4. **Software Selection** (Custom mode only)
-   - **Docker CLI**: Container operations (y/n)
-   - **AWS CLI v2**: AWS resource management (y/n)
-   - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (sam build, sam local invoke) (y/n)
-   - **GitHub CLI**: GitHub command-line interface for repository management and workflows (y/n)
-   - **Python Package Manager**: Choose from:
-     1. **uv** (recommended): Fast, all-in-one Python package & version manager
-     2. **poetry**: Project-focused dependency management
-     3. **pyenv + poetry**: Version management + dependency management
-     4. **mise**: Multi-language version manager (supports Python, Node.js, etc.)
-     5. **none**: Skip Python tools
-   - **Node.js Version Manager**: Choose from:
-     1. **Volta** (recommended): Automatic version switching per project
-     2. **nvm**: Traditional, widely-used Node.js version manager
-     3. **fnm**: Fast Node Manager (Rust-based, fast alternative to nvm)
-     4. **mise**: Multi-language version manager (supports Python, Node.js, etc.)
-     5. **none**: Skip Node.js tools
+3. **Software Selection**
+   - **proto**: Always installed (multi-language version manager)
+   - **Docker CLI**: Container operations (default: Yes)
+   - **AWS CLI v2**: AWS resource management (default: Yes)
+   - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (default: Yes)
+   - **GitHub CLI**: GitHub command-line interface for repository management and workflows (default: Yes)
 
-5. **Auto-detected Information**
+4. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
    - **Docker GID**: Automatically detects host Docker group GID (from `/var/run/docker.sock`)
 
-6. **Generated Files**
-   - `Dockerfile` - Generated from template (normal or custom)
-   - `docker-compose.yml` - Generated from template (normal or custom)
+5. **Generated Files**
+   - `Dockerfile` - Generated from template
+   - `docker-compose.yml` - Generated from template
    - `.devcontainer/devcontainer.json` - VS Code Dev Container configuration
    - `.devcontainer/docker-compose.yml` - Dev Container docker-compose configuration
    - `.envs/<service_name>.env` - Environment variables (managed per service, includes software selection flags)
@@ -156,7 +136,6 @@ ln -sf .envs/prod.env .env   # Switch to prod service
 
 #### Example .env File Content
 
-**Normal Mode:**
 ```env
 # Environment variables for dev
 # Generated on Fri Nov  8 12:34:56 UTC 2025
@@ -166,28 +145,10 @@ USERNAME=devuser
 UID=1000
 GID=1000
 DOCKER_GID=989
-SETUP_MODE=1
 INSTALL_DOCKER=true
 INSTALL_AWS_CLI=true
-PYTHON_MANAGER=uv
-NODEJS_MANAGER=volta
-```
-
-**Custom Mode:**
-```env
-# Environment variables for dev
-# Generated on Fri Nov  8 12:34:56 UTC 2025
-
-CONTAINER_SERVICE_NAME=dev
-USERNAME=devuser
-UID=1000
-GID=1000
-DOCKER_GID=989
-SETUP_MODE=2
-INSTALL_DOCKER=true
-INSTALL_AWS_CLI=false
-PYTHON_MANAGER=poetry
-NODEJS_MANAGER=nvm
+INSTALL_AWS_SAM_CLI=true
+INSTALL_GITHUB_CLI=true
 ```
 
 ### Starting the Development Environment
@@ -293,12 +254,15 @@ Create `.vscode/settings.json` in each project folder to specify the Python inte
 First, create a virtual environment with your desired Python version:
 ```bash
 cd /home/<username>/workspace/project-a
-# Using uv
-uv venv --python 3.11
+# Using proto + uv
+proto install python 3.11
+proto install uv
+uv venv
 
 cd /home/<username>/workspace/project-b
-# Using uv
-uv venv --python 3.12
+# Using proto + uv
+proto install python 3.12
+uv venv
 ```
 
 Then configure VS Code to use it:
@@ -345,15 +309,13 @@ With this setting, VS Code will use the Python version managed by uv for the pro
 ### Python Development
 
 ```bash
-# Install Python
-uv python install 3.13
+# Install Python and uv via proto
+proto install python 3.13
+proto install uv
 
 # Create project
 uv init my-python-project
 cd my-python-project
-
-# Pin Python version
-uv python pin 3.13
 
 # Add dependencies
 uv add requests pandas
@@ -369,9 +331,9 @@ uv run pytest
 ### Node.js Development
 
 ```bash
-# Install Node.js and pnpm
-volta install node@24
-volta install pnpm
+# Install Node.js and pnpm via proto
+proto install node 22
+proto install pnpm
 
 # Create project
 pnpm init
@@ -387,31 +349,44 @@ pnpm start
 node app.js
 ```
 
+### Other Languages with proto
+
+```bash
+# Install other runtimes
+proto install bun
+proto install deno
+proto install go
+proto install rust
+
+# List installed tools
+proto list
+
+# Pin tool version for project (creates .prototools file)
+proto pin node 22
+proto pin python 3.13
+```
+
 ## Pre-installed Applications
 
 ### Development Tools
 
-**Python Package Managers** (select one in Custom mode, default: uv in Normal mode):
-- **uv**: Fast, all-in-one Python package & version manager (Rust-based, pip-compatible)
-- **poetry**: Modern Python dependency management and packaging
-- **pyenv + poetry**: Python version management (pyenv) + dependency management (poetry)
-- **mise**: Multi-language version manager (Python, Node.js, Ruby, etc.)
+**proto** (always installed):
+- **proto**: Unified multi-language version manager supporting:
+  - **Python** (+ poetry, uv)
+  - **Node.js** (+ npm, pnpm, yarn)
+  - **Bun**, **Deno**, **Go**, **Rust**, **Ruby**
+  - 100+ third-party tools via plugins
+  - Project-based version switching via `.prototools` file
 
-**Node.js Version Managers** (select one in Custom mode, default: Volta in Normal mode):
-- **Volta**: Seamless Node.js version management with automatic project-based switching
-- **nvm**: Traditional Node.js version manager (most widely used)
-- **fnm**: Fast Node Manager (Rust-based, faster alternative to nvm)
-- **mise**: Multi-language version manager (Python, Node.js, Ruby, etc.)
-
-**Other Tools**:
+**Optional Tools** (selectable during setup, all installed by default):
 - **Docker CLI**: Container operations (using host Docker daemon via socket mount)
 - **AWS CLI v2**: AWS resource management
-- **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally (Optional in Custom mode / installed by default in Normal mode)
-- **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows (Optional in Custom mode / installed by default in Normal mode)
+- **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally
+- **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows
 
 ### System Packages (Always Installed)
 
-The following packages are always installed in both Normal and Custom modes to provide a complete development environment.
+The following packages are always installed to provide a complete development environment.
 
 #### Essential Packages
 - **ca-certificates** - SSL/TLS certificate management for secure HTTPS connections
@@ -490,25 +465,10 @@ The following packages are always installed in both Normal and Custom modes to p
 
 | Volume Name | Mount Path | Purpose |
 |-------------|------------|---------|
-| `pip-cache` | `~/.cache/pip` | pip cache |
-| `uv-cache` | `~/.cache/uv` | uv cache |
-| `uv-python` | `~/.local/share/uv` | uv installed Python versions |
-| `poetry-cache` | `~/.cache/pypoetry` | Poetry cache |
-| `poetry-data` | `~/.local/share/pypoetry` | Poetry data |
-| `pyenv` | `~/.pyenv` | pyenv Python versions |
-| `volta-tools` | `~/.volta/tools` | Volta tools |
-| `nvm` | `~/.nvm` | nvm Node.js versions |
-| `fnm` | `~/.local/share/fnm` | fnm Node.js versions |
-| `mise-data` | `~/.local/share/mise` | mise installed tools |
-| `mise-cache` | `~/.cache/mise` | mise cache |
-| `npm-cache` | `~/.npm` | npm cache |
-| `pnpm-cache` | `~/.cache/pnpm` | pnpm metadata cache |
-| `pnpm-store` | `~/.local/share/pnpm` | pnpm global store |
+| `proto` | `~/.proto` | proto installed tools and versions |
 | `aws` | `~/.aws` | AWS CLI credentials and configuration |
 | `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
 | `bash-history` | `~/.docker_history` | bash history |
-
-> **Note**: All volumes are created regardless of selected package managers for simplicity. Unused volumes remain empty and don't consume significant space.
 
 ### Read-only Mounts
 
@@ -545,11 +505,8 @@ The following packages are always installed in both Normal and Custom modes to p
 
 ### Development Environment
 
-- **Python**: Managed by selected package manager (uv/poetry/pyenv/mise). System python3 is installed for poetry compatibility
-- **Node.js**: Managed by selected version manager (Volta/nvm/fnm/mise)
-- **pnpm**: Fast package manager with persistent global store and cache
+- **proto**: Unified version manager for Python, Node.js, and 100+ other tools
 - **Ports**: Port 3000 is forwarded by default
-- **Package Managers**: Only selected tools are installed. All volume mount points are created for future use
 
 ### Environment Switching Notes
 
@@ -713,23 +670,21 @@ Tests display results with color output and return exit code 1 if any test fails
 ## Project Files
 
 ### Core Scripts
-- `setup-docker.sh` - Setup script with Normal/Custom mode selection
+- `setup-docker.sh` - Interactive setup script for tool selection
 - `switch-env.sh` - Environment switching script
-- `test.sh` - Comprehensive test script (22 validation checks)
+- `test.sh` - Comprehensive test script
 - `generate-workspace.sh` - Multi-root workspace generator
 
 ### Templates
-- `Dockerfile.template` - Dockerfile template for Normal mode (recommended tools for Python & Node.js)
-- `Dockerfile.custom.template` - Dockerfile template for Custom mode (selective installation)
-- `docker-compose.yml.template` - docker-compose.yml template for Normal mode
-- `docker-compose.custom.template` - docker-compose.yml template for Custom mode
+- `Dockerfile.template` - Dockerfile template with placeholders
+- `docker-compose.yml.template` - docker-compose.yml template
 - `.devcontainer/devcontainer.json.template` - VS Code Dev Container configuration template
 - `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
 
 ### Libraries (`lib/`)
 - `lib/versions.conf` - Centralized version configuration
 - `lib/generators.sh` - Shared template generation functions
-- `lib/validators.sh` - Input validation library (service names, usernames, boolean values, package managers)
+- `lib/validators.sh` - Input validation library (service names, usernames, boolean values)
 - `lib/errors.sh` - Error handling and messaging library
 
 ### CI/CD

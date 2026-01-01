@@ -86,13 +86,10 @@ fi
 # Read environment variables from the new .env file using safe parser
 CONTAINER_SERVICE_NAME=$(read_env_var "CONTAINER_SERVICE_NAME" ".env")
 USERNAME_ENV=$(read_env_var "USERNAME" ".env")
-SETUP_MODE=$(read_env_var "SETUP_MODE" ".env")
 INSTALL_DOCKER=$(read_env_var "INSTALL_DOCKER" ".env")
 INSTALL_AWS_CLI=$(read_env_var "INSTALL_AWS_CLI" ".env")
 INSTALL_AWS_SAM_CLI=$(read_env_var "INSTALL_AWS_SAM_CLI" ".env")
 INSTALL_GITHUB_CLI=$(read_env_var "INSTALL_GITHUB_CLI" ".env")
-PYTHON_MANAGER=$(read_env_var "PYTHON_MANAGER" ".env")
-NODEJS_MANAGER=$(read_env_var "NODEJS_MANAGER" ".env")
 
 # Validate extracted variables
 if [ -z "$CONTAINER_SERVICE_NAME" ]; then
@@ -101,48 +98,28 @@ fi
 if [ -z "$USERNAME_ENV" ]; then
     die "USERNAME is missing from .envs/$container_service_name.env"
 fi
-if [ -z "$SETUP_MODE" ]; then
-    die "SETUP_MODE is missing from .envs/$container_service_name.env"
-fi
+
+# Default to true if variables are empty (for backward compatibility with older .env files)
+# Note: In newly generated .env files, these should be explicitly set to 'true' or 'false'
+[ -z "$INSTALL_DOCKER" ] && INSTALL_DOCKER=true
+[ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=true
+[ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=true
+[ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=true
 
 # Regenerate docker-compose.yml
 echo "Regenerating docker-compose.yml..."
-if [ "$SETUP_MODE" = "1" ]; then
-    # Normal mode: use basic template
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
-        docker-compose.yml.template > docker-compose.yml
-else
-    # Custom mode: use custom template
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
-        docker-compose.custom.template > docker-compose.yml
-fi
+sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
+    docker-compose.yml.template > docker-compose.yml
 
 # Regenerate Dockerfile
 echo "Regenerating Dockerfile..."
-if [ "$SETUP_MODE" = "1" ]; then
-    # Normal mode: use basic template
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
-        Dockerfile.template > Dockerfile
-else
-    # Custom mode: generate with selected tools using shared library function
-    # Default to false/none if variables are empty
-    [ -z "$INSTALL_DOCKER" ] && INSTALL_DOCKER=false
-    [ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=false
-    [ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=false
-    [ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=false
-    [ -z "$PYTHON_MANAGER" ] && PYTHON_MANAGER="none"
-    [ -z "$NODEJS_MANAGER" ] && NODEJS_MANAGER="none"
-
-    generate_dockerfile_from_template \
-        "Dockerfile.custom.template" \
-        "Dockerfile" \
-        "$INSTALL_DOCKER" \
-        "$INSTALL_AWS_CLI" \
-        "$INSTALL_AWS_SAM_CLI" \
-        "$INSTALL_GITHUB_CLI" \
-        "$PYTHON_MANAGER" \
-        "$NODEJS_MANAGER"
-fi
+generate_dockerfile_from_template \
+    "Dockerfile.template" \
+    "Dockerfile" \
+    "$INSTALL_DOCKER" \
+    "$INSTALL_AWS_CLI" \
+    "$INSTALL_AWS_SAM_CLI" \
+    "$INSTALL_GITHUB_CLI"
 
 # Regenerate .devcontainer files
 echo "Regenerating .devcontainer/devcontainer.json..."

@@ -241,9 +241,8 @@ placeholders_ok=true
 
 # Define expected placeholders for each template
 declare -A expected_placeholders=(
-    ["Dockerfile.custom.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL PYTHON3_INSTALL PYTHON_MANAGER_INSTALL NODEJS_MANAGER_INSTALL"
+    ["Dockerfile.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL"
     ["docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
-    ["docker-compose.custom.template"]="CONTAINER_SERVICE_NAME"
     [".devcontainer/devcontainer.json.template"]="CONTAINER_SERVICE_NAME USERNAME"
     [".devcontainer/docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
 )
@@ -260,11 +259,6 @@ for template in "${!expected_placeholders[@]}"; do
         done
     fi
 done
-
-# Dockerfile.template uses ARG instead of placeholders
-if [ -f "Dockerfile.template" ]; then
-    echo -e "  ${GREEN}✓${NC} Dockerfile.template uses ARG variables (no placeholders needed)"
-fi
 
 if [ "$placeholders_ok" = true ]; then
     test_result "Template placeholders are consistent" "pass"
@@ -361,7 +355,7 @@ if [ -d ".envs" ]; then
 
     if [ ${#env_files[@]} -gt 0 ]; then
         env_format_ok=true
-        required_vars=("CONTAINER_SERVICE_NAME" "USERNAME" "UID" "GID" "DOCKER_GID" "SETUP_MODE")
+        required_vars=("CONTAINER_SERVICE_NAME" "USERNAME" "UID" "GID" "DOCKER_GID")
 
         for env_file in "${env_files[@]}"; do
             echo -e "  ${CYAN}Checking${NC} $env_file"
@@ -374,8 +368,8 @@ if [ -d ".envs" ]; then
                 fi
             done
 
-            # Check for PYTHON_MANAGER and NODEJS_MANAGER (should be in both modes)
-            for var in "PYTHON_MANAGER" "NODEJS_MANAGER"; do
+            # Check for tool installation variables (Docker CLI, AWS CLI, AWS SAM CLI, GitHub CLI)
+            for var in "INSTALL_DOCKER" "INSTALL_AWS_CLI" "INSTALL_AWS_SAM_CLI" "INSTALL_GITHUB_CLI"; do
                 if grep -q "^${var}=" "$env_file"; then
                     echo -e "    ${GREEN}✓${NC} $var is defined"
                 else
@@ -722,29 +716,10 @@ fi
 echo ""
 echo "Testing volume mount directories in Dockerfile..."
 if [ -f "Dockerfile" ] && [ -f ".env" ]; then
-    # Check SETUP_MODE to determine which volumes to check
-    SETUP_MODE=$(grep '^SETUP_MODE=' .env | cut -d'=' -f2-)
-
-    # All volumes are checked regardless of mode (volumes are created for all package managers)
     # Note: These are literal strings to match Dockerfile content, not paths for expansion
     expected_volumes=(
-        # Python tools
-        "~/.cache/pip"
-        "~/.cache/uv"
-        "~/.local/share/uv"
-        "~/.cache/pypoetry"
-        "~/.local/share/pypoetry"
-        "~/.pyenv"
-        # Node.js tools
-        "~/.volta/tools"
-        "~/.nvm"
-        "~/.local/share/fnm"
-        "~/.npm"
-        "~/.cache/pnpm"
-        "~/.local/share/pnpm"
-        # mise
-        "~/.local/share/mise"
-        "~/.cache/mise"
+        # proto
+        "~/.proto"
         # AWS
         "~/.aws"
         # GitHub CLI
@@ -752,12 +727,6 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
         # Bash history
         "~/.docker_history"
     )
-
-    if [ "$SETUP_MODE" = "1" ]; then
-        echo "  (Normal mode: all volume mount points are created for future use)"
-    else
-        echo "  (Custom mode: all volume mount points are created)"
-    fi
 
     volumes_ok=true
     # Check if volume path exists in Dockerfile (handles multiline mkdir -p)
@@ -788,20 +757,7 @@ echo "Testing volume mounts in docker-compose.yml..."
 if [ -f "docker-compose.yml" ]; then
     # Expected named volumes in docker-compose.yml
     expected_named_volumes=(
-        "pip-cache"
-        "uv-cache"
-        "uv-python"
-        "poetry-cache"
-        "poetry-data"
-        "pyenv"
-        "volta-tools"
-        "nvm"
-        "fnm"
-        "mise-data"
-        "mise-cache"
-        "npm-cache"
-        "pnpm-cache"
-        "pnpm-store"
+        "proto"
         "aws"
         "gh-config"
         "bash-history"
@@ -852,26 +808,28 @@ else
     test_result "All named volumes are defined in docker-compose.yml" "skip"
 fi
 
-# Test 15: Validate template file consistency (both templates should have same volumes)
+# Test 15: Validate template file existence
 echo ""
-echo "Testing template file consistency..."
-if [ -f "docker-compose.yml.template" ] && [ -f "docker-compose.custom.template" ]; then
-    # Extract volume names from both templates
-    normal_volumes=$(grep -E "^  [a-z].*:" docker-compose.yml.template | tail -n +2 | sed 's/://g' | tr -d ' ' | sort)
-    custom_volumes=$(grep -E "^  [a-z].*:" docker-compose.custom.template | tail -n +2 | sed 's/://g' | tr -d ' ' | sort)
+echo "Testing template file existence..."
+if [ -f "docker-compose.yml.template" ] && [ -f "Dockerfile.template" ]; then
+    # Check that required templates exist
+    template_ok=true
+    for template in "docker-compose.yml.template" "Dockerfile.template" ".devcontainer/devcontainer.json.template" ".devcontainer/docker-compose.yml.template"; do
+        if [ -f "$template" ]; then
+            echo -e "  ${GREEN}✓${NC} $template exists"
+        else
+            echo -e "  ${RED}✗${NC} $template is missing"
+            template_ok=false
+        fi
+    done
 
-    if [ "$normal_volumes" = "$custom_volumes" ]; then
-        test_result "docker-compose templates have consistent volume definitions" "pass"
+    if [ "$template_ok" = true ]; then
+        test_result "All required template files exist" "pass"
     else
-        echo -e "  ${RED}✗${NC} Volume definitions differ between templates"
-        echo "  Normal template volumes:"
-        echo "$normal_volumes" | sed 's/^/    /'
-        echo "  Custom template volumes:"
-        echo "$custom_volumes" | sed 's/^/    /'
-        test_result "docker-compose templates have consistent volume definitions" "fail"
+        test_result "All required template files exist" "fail"
     fi
 else
-    test_result "docker-compose templates have consistent volume definitions" "skip"
+    test_result "All required template files exist" "skip"
 fi
 
 # Test 16: Validate .gitignore patterns

@@ -110,20 +110,6 @@ validate_package_manager() {
     esac
 }
 
-# Validate setup mode
-# Usage: validate_setup_mode "mode"
-# Returns: 0 if valid, 1 if invalid
-validate_setup_mode() {
-    local mode="$1"
-
-    if [[ "$mode" != "1" && "$mode" != "2" ]]; then
-        echo "ERROR: Setup mode must be '1' (Normal) or '2' (Custom)" >&2
-        return 1
-    fi
-
-    return 0
-}
-
 # Validate file exists
 # Usage: validate_file_exists "filepath" "description"
 # Returns: 0 if exists, 1 if not

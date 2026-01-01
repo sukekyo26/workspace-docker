@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-01-01
+
+### Changed
+- **BREAKING**: Removed Simple/Custom setup mode selection - now directly prompts for tool installation
+- **BREAKING**: Removed SETUP_MODE from environment variables
+- **BREAKING**: Dockerfile.custom.template merged into Dockerfile.template with placeholder-based generation
+- Simplified setup flow with proto always installed and other tools individually selectable (default: Yes)
+- All tool selection prompts now default to Yes for faster setup
+- Unified template system - single Dockerfile.template for all configurations
+
+### Removed
+- Dockerfile.custom.template (merged into Dockerfile.template)
+- docker-compose.custom.template (no longer needed)
+- validate_setup_mode function from lib/validators.sh
+- SETUP_MODE variable from .env files
+- Mode-related documentation from README files
+
+### Fixed
+- Reduced code complexity by removing 754 lines
+- Improved user experience with streamlined setup process
+- Eliminated confusion between Simple and Custom modes
+
 ## [2.2.0] - 2025-12-27
 
 ### Added
