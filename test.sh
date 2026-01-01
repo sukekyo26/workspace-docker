@@ -368,7 +368,7 @@ if [ -d ".envs" ]; then
                 fi
             done
 
-            # Check for INSTALL_* variables
+            # Check for tool installation variables (Docker CLI, AWS CLI, AWS SAM CLI, GitHub CLI)
             for var in "INSTALL_DOCKER" "INSTALL_AWS_CLI" "INSTALL_AWS_SAM_CLI" "INSTALL_GITHUB_CLI"; do
                 if grep -q "^${var}=" "$env_file"; then
                     echo -e "    ${GREEN}✓${NC} $var is defined"

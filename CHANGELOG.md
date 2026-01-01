@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mode-related documentation from README files
 
 ### Fixed
-- Reduced code complexity by 754 lines (-75% in modified files)
+- Reduced code complexity by removing 754 lines
 - Improved user experience with streamlined setup process
 - Eliminated confusion between Simple and Custom modes
 

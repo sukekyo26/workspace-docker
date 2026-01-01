@@ -344,12 +344,6 @@ pnpm start
 
 # または直接実行
 node app.js
-
-# スクリプト実行
-pnpm start
-
-# または直接実行
-node app.js
 ```
 
 ### protoでその他の言語を使う
