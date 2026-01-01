@@ -15,21 +15,8 @@ services:
       # ワークスペース
       - ..:/home/${USERNAME}/workspace
 
-      # 開発ツール（永続化）
-      - pip-cache:/home/${USERNAME}/.cache/pip
-      - uv-cache:/home/${USERNAME}/.cache/uv
-      - uv-python:/home/${USERNAME}/.local/share/uv
-      - poetry-cache:/home/${USERNAME}/.cache/pypoetry
-      - poetry-data:/home/${USERNAME}/.local/share/pypoetry
-      - pyenv:/home/${USERNAME}/.pyenv
-      - volta-tools:/home/${USERNAME}/.volta/tools
-      - nvm:/home/${USERNAME}/.nvm
-      - fnm:/home/${USERNAME}/.local/share/fnm
-      - mise-data:/home/${USERNAME}/.local/share/mise
-      - mise-cache:/home/${USERNAME}/.cache/mise
-      - npm-cache:/home/${USERNAME}/.npm
-      - pnpm-cache:/home/${USERNAME}/.cache/pnpm
-      - pnpm-store:/home/${USERNAME}/.local/share/pnpm
+      # proto（永続化）
+      - proto:/home/${USERNAME}/.proto
 
       # 個人設定（読み取り専用）
       - ~/.gitconfig:/home/${USERNAME}/.gitconfig:ro
@@ -48,34 +35,8 @@ services:
     tty: true
 
 volumes:
-  pip-cache:
-    name: "${CONTAINER_SERVICE_NAME}_pip_cache"
-  uv-cache:
-    name: "${CONTAINER_SERVICE_NAME}_uv_cache"
-  uv-python:
-    name: "${CONTAINER_SERVICE_NAME}_uv_python"
-  poetry-cache:
-    name: "${CONTAINER_SERVICE_NAME}_poetry_cache"
-  poetry-data:
-    name: "${CONTAINER_SERVICE_NAME}_poetry_data"
-  pyenv:
-    name: "${CONTAINER_SERVICE_NAME}_pyenv"
-  volta-tools:
-    name: "${CONTAINER_SERVICE_NAME}_volta_tools"
-  nvm:
-    name: "${CONTAINER_SERVICE_NAME}_nvm"
-  fnm:
-    name: "${CONTAINER_SERVICE_NAME}_fnm"
-  mise-data:
-    name: "${CONTAINER_SERVICE_NAME}_mise_data"
-  mise-cache:
-    name: "${CONTAINER_SERVICE_NAME}_mise_cache"
-  npm-cache:
-    name: "${CONTAINER_SERVICE_NAME}_npm_cache"
-  pnpm-cache:
-    name: "${CONTAINER_SERVICE_NAME}_pnpm_cache"
-  pnpm-store:
-    name: "${CONTAINER_SERVICE_NAME}_pnpm_store"
+  proto:
+    name: "${CONTAINER_SERVICE_NAME}_proto"
   aws:
     name: "${CONTAINER_SERVICE_NAME}_aws"
   gh-config:
