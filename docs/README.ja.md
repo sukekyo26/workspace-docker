@@ -497,10 +497,9 @@ source ~/.bashrc
 | `proto` | `~/.proto` | protoインストール済みツールとバージョン |
 | `aws` | `~/.aws` | AWS CLI認証情報・設定 |
 | `gh-config` | `~/.config/gh` | GitHub CLI設定と認証情報 |
-| `bash-history` | `~/.docker_history` | bash 履歴 |
 | `cargo` | `~/.cargo` | Rust/Cargoツールとパッケージ |
 | `rustup` | `~/.rustup` | Rustツールチェーン管理 |
-| `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）とカスタム設定（`.bashrc_custom`） |
+| `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）、カスタム設定（`.bashrc_custom`）、bash履歴 |
 
 ### 読み取り専用マウント
 

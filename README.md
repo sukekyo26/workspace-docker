@@ -500,10 +500,9 @@ source ~/.bashrc
 | `proto` | `~/.proto` | proto installed tools and versions |
 | `aws` | `~/.aws` | AWS CLI credentials and configuration |
 | `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
-| `bash-history` | `~/.docker_history` | bash history |
 | `cargo` | `~/.cargo` | Rust/Cargo tools and packages |
 | `rustup` | `~/.rustup` | Rust toolchain management |
-| `local` | `~/.local` | User-installed packages (pipx, uv, etc.) and custom configuration (`.bashrc_custom`) |
+| `local` | `~/.local` | User-installed packages (pipx, uv, etc.), custom configuration (`.bashrc_custom`), and bash history |
 
 ### Read-only Mounts
 
