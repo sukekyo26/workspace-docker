@@ -241,7 +241,7 @@ placeholders_ok=true
 
 # Define expected placeholders for each template
 declare -A expected_placeholders=(
-    ["Dockerfile.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL"
+    ["Dockerfile.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL ZIG_INSTALL"
     ["docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
     [".devcontainer/devcontainer.json.template"]="CONTAINER_SERVICE_NAME USERNAME"
     [".devcontainer/docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
@@ -368,8 +368,8 @@ if [ -d ".envs" ]; then
                 fi
             done
 
-            # Check for tool installation variables (Docker CLI, AWS CLI, AWS SAM CLI, GitHub CLI)
-            for var in "INSTALL_DOCKER" "INSTALL_AWS_CLI" "INSTALL_AWS_SAM_CLI" "INSTALL_GITHUB_CLI"; do
+            # Check for tool installation variables (Docker CLI, AWS CLI, AWS SAM CLI, GitHub CLI, Zig)
+            for var in "INSTALL_DOCKER" "INSTALL_AWS_CLI" "INSTALL_AWS_SAM_CLI" "INSTALL_GITHUB_CLI" "INSTALL_ZIG"; do
                 if grep -q "^${var}=" "$env_file"; then
                     echo -e "    ${GREEN}✓${NC} $var is defined"
                 else

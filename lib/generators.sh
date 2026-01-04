@@ -200,6 +200,31 @@ EOF
     fi
 }
 
+# Function to generate Zig installation section
+generate_zig_install() {
+    if [ "$1" = true ]; then
+        cat << EOF
+# Install Zig (required for cargo-lambda cross-compilation)
+USER root
+RUN ARCH="\$(dpkg --print-architecture)" && \\
+    case "\$ARCH" in \\
+        amd64) DOWNLOAD_ARCH="x86_64" ;; \\
+        arm64) DOWNLOAD_ARCH="aarch64" ;; \\
+        *) DOWNLOAD_ARCH="x86_64" ;; \\
+    esac && \\
+    echo "Detected architecture: \$ARCH -> \$DOWNLOAD_ARCH" && \\
+    curl -fsSL "https://ziglang.org/builds/zig-\${DOWNLOAD_ARCH}-linux-${ZIG_VERSION}.tar.xz" -o /tmp/zig.tar.xz && \\
+    mkdir -p /usr/local/zig && \\
+    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \\
+    ln -s /usr/local/zig/zig /usr/local/bin/zig && \\
+    rm /tmp/zig.tar.xz
+USER \${USERNAME}
+EOF
+    else
+        echo ""
+    fi
+}
+
 # Function to generate Dockerfile from custom template
 generate_dockerfile_from_template() {
     local template_file="$1"
@@ -208,26 +233,31 @@ generate_dockerfile_from_template() {
     local install_aws_cli="$4"
     local install_aws_sam_cli="$5"
     local install_github_cli="$6"
+    local install_zig="$7"
 
     local docker_install
     local aws_cli_install
     local aws_sam_cli_install
     local github_cli_install
+    local zig_install
 
     docker_install=$(generate_docker_install "$install_docker")
     aws_cli_install=$(generate_aws_cli_install "$install_aws_cli")
     aws_sam_cli_install=$(generate_aws_sam_cli_install "$install_aws_sam_cli")
     github_cli_install=$(generate_github_cli_install "$install_github_cli")
+    zig_install=$(generate_zig_install "$install_zig")
 
     # Use awk for better multiline handling
     awk -v docker_inst="$docker_install" \
         -v aws_inst="$aws_cli_install" \
         -v aws_sam_inst="$aws_sam_cli_install" \
-        -v github_inst="$github_cli_install" '
+        -v github_inst="$github_cli_install" \
+        -v zig_inst="$zig_install" '
         /{{DOCKER_INSTALL}}/ { print docker_inst; next }
         /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
         /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
         /{{GITHUB_CLI_INSTALL}}/ { print github_inst; next }
+        /{{ZIG_INSTALL}}/ { print zig_inst; next }
         { print }
     ' "$template_file" > "$output_file"
 }
