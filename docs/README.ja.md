@@ -499,6 +499,9 @@ source ~/.bashrc
 | `gh-config` | `~/.config/gh` | GitHub CLI設定と認証情報 |
 | `cargo` | `~/.cargo` | Rust/Cargoツールとパッケージ |
 | `rustup` | `~/.rustup` | Rustツールチェーン管理 |
+| `deno` | `~/.deno` | Denoランタイムとキャッシュモジュール |
+| `bun` | `~/.bun` | Bunランタイムとパッケージ |
+| `go` | `~/go` | Goワークスペース（GOPATH） |
 | `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）、カスタム設定（`.bashrc_custom`）、bash履歴 |
 
 ### 読み取り専用マウント

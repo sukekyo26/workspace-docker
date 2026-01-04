@@ -32,6 +32,15 @@ services:
       - cargo:/home/${USERNAME}/.cargo
       - rustup:/home/${USERNAME}/.rustup
 
+      # Deno（永続化）
+      - deno:/home/${USERNAME}/.deno
+
+      # Bun（永続化）
+      - bun:/home/${USERNAME}/.bun
+
+      # Go（永続化）
+      - go:/home/${USERNAME}/go
+
       # .local（永続化）- pipx, uv等のユーザーインストールパッケージ
       - local:/home/${USERNAME}/.local
     ports:
@@ -49,5 +58,11 @@ volumes:
     name: "${CONTAINER_SERVICE_NAME}_cargo"
   rustup:
     name: "${CONTAINER_SERVICE_NAME}_rustup"
+  deno:
+    name: "${CONTAINER_SERVICE_NAME}_deno"
+  bun:
+    name: "${CONTAINER_SERVICE_NAME}_bun"
+  go:
+    name: "${CONTAINER_SERVICE_NAME}_go"
   local:
     name: "${CONTAINER_SERVICE_NAME}_local"
