@@ -85,6 +85,8 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
 
 {{GITHUB_CLI_INSTALL}}
 
+{{ZIG_INSTALL}}
+
 # proto (multi-language version manager)
 RUN curl -fsSL https://moonrepo.dev/install/proto.sh | bash -s -- --no-profile --yes && \
     echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \

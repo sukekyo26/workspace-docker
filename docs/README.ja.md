@@ -90,6 +90,7 @@ bash setup-docker.sh
    - **AWS CLI v2**: AWSリソース管理（デフォルト: Yes）
    - **AWS SAM CLI**: サーバーレスLambda関数のローカルでのビルド、テスト、実行（デフォルト: Yes）
    - **GitHub CLI**: リポジトリ管理、プルリクエスト、Issueおよびワークフロー操作のためのCLI（デフォルト: Yes）
+   - **Zig**: cargo-lambdaのクロスコンパイルに必要なZigコンパイラ（デフォルト: Yes）
 
 4. **自動検出される情報**
    - **UID/GID**: 現在のユーザーのUID/GIDを自動検出
@@ -380,6 +381,7 @@ proto pin python 3.13
 - **AWS CLI v2**: AWSリソース管理
 - **AWS SAM CLI**: サーバーレスLambda関数のローカルでのビルド、テスト、実行
 - **GitHub CLI**: リポジトリ管理、プルリクエスト、Issue、ワークフロー操作のためのGitHubコマンドラインインターフェース
+- **Zig**: cargo-lambdaのクロスコンパイルに必要なZigコンパイラ（x86_64とaarch64をサポート）
 
 ### システムパッケージ（常時インストール）
 

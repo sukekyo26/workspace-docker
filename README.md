@@ -90,6 +90,7 @@ Note: Re-login required for group changes to take effect.
    - **AWS CLI v2**: AWS resource management (default: Yes)
    - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (default: Yes)
    - **GitHub CLI**: GitHub command-line interface for repository management and workflows (default: Yes)
+   - **Zig**: Zig compiler for cargo-lambda cross-compilation (default: Yes)
 
 4. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
@@ -383,6 +384,7 @@ proto pin python 3.13
 - **AWS CLI v2**: AWS resource management
 - **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally
 - **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows
+- **Zig**: Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
 
 ### System Packages (Always Installed)
 

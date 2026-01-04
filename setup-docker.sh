@@ -50,6 +50,7 @@ install_docker=true
 install_aws_cli=true
 install_aws_sam_cli=true
 install_github_cli=true
+install_zig=true
 
 # Docker CLI
 while true; do
@@ -95,6 +96,17 @@ while true; do
     esac
 done
 
+# Zig
+while true; do
+    read -rp "Install Zig (required for cargo-lambda)? [Y/n]: " choice
+    choice=${choice:-Y}  # Default to Y if empty
+    case $choice in
+        [Yy]*) install_zig=true; break ;;
+        [Nn]*) install_zig=false; break ;;
+        *) error "Please enter Y or n" ;;
+    esac
+done
+
 # Automatically get UID and GID from current user
 uid=$(id -u)
 gid=$(id -g)
@@ -124,7 +136,8 @@ generate_dockerfile_from_template \
     "$install_docker" \
     "$install_aws_cli" \
     "$install_aws_sam_cli" \
-    "$install_github_cli"
+    "$install_github_cli" \
+    "$install_zig"
 
 echo "Generating .devcontainer/devcontainer.json..."
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
@@ -155,6 +168,7 @@ INSTALL_DOCKER=$install_docker
 INSTALL_AWS_CLI=$install_aws_cli
 INSTALL_AWS_SAM_CLI=$install_aws_sam_cli
 INSTALL_GITHUB_CLI=$install_github_cli
+INSTALL_ZIG=$install_zig
 EOF
 
 # Create symlink to .env for docker compose to use
@@ -178,6 +192,7 @@ echo "  - proto: Yes (always installed)"
 [ "$install_aws_cli" = true ] && echo "  - AWS CLI v2: Yes" || echo "  - AWS CLI v2: No"
 [ "$install_aws_sam_cli" = true ] && echo "  - AWS SAM CLI: Yes" || echo "  - AWS SAM CLI: No"
 [ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
+[ "$install_zig" = true ] && echo "  - Zig: Yes" || echo "  - Zig: No"
 echo ""
 echo "Generated files:"
 echo "  - Dockerfile"
