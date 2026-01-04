@@ -452,6 +452,38 @@ The following packages are always installed to provide a complete development en
 - **Bash Completion** - Command auto-completion
 - **Git-integrated Prompt** - Branch and status display
 - **Persistent History** - Command history persists across sessions
+- **Custom Configuration** - User-specific settings via `~/.local/.bashrc_custom` (persisted across container rebuilds)
+
+#### Using Custom Configuration File
+
+The container supports a persistent custom configuration file at `~/.local/.bashrc_custom`. This file is:
+- **Automatically loaded** by `.bashrc` on shell startup
+- **Persisted across container rebuilds** via the `local` volume
+- **Separate from Dockerfile settings** for better maintainability
+
+**Example usage:**
+
+```bash
+# Add custom aliases
+echo 'alias ll="ls -lah"' >> ~/.local/.bashrc_custom
+echo 'alias gs="git status"' >> ~/.local/.bashrc_custom
+
+# Add environment variables
+echo 'export MY_CUSTOM_VAR=value' >> ~/.local/.bashrc_custom
+
+# Add tool-specific configurations
+# Example: Rust/Cargo environment (if installed via proto)
+echo '[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"' >> ~/.local/.bashrc_custom
+
+# Apply changes
+source ~/.bashrc
+```
+
+**Benefits:**
+- Your custom settings survive container rebuilds
+- Dockerfile manages system-wide defaults
+- Easy to share common settings across environments
+- No conflicts with Dockerfile updates
 
 ## Mounted Directories
 
@@ -469,6 +501,9 @@ The following packages are always installed to provide a complete development en
 | `aws` | `~/.aws` | AWS CLI credentials and configuration |
 | `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
 | `bash-history` | `~/.docker_history` | bash history |
+| `cargo` | `~/.cargo` | Rust/Cargo tools and packages |
+| `rustup` | `~/.rustup` | Rust toolchain management |
+| `local` | `~/.local` | User-installed packages (pipx, uv, etc.) and custom configuration (`.bashrc_custom`) |
 
 ### Read-only Mounts
 

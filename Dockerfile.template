@@ -107,4 +107,10 @@ RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc &
     echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \
     mkdir -p ~/.docker_history && touch ~/.docker_history/.bash_history_docker
 
+# Custom configuration file support (永続化されたカスタム設定を読み込む)
+RUN echo '' >> ~/.bashrc && \
+    echo '# Load custom persistent configuration (user-specific settings)' >> ~/.bashrc && \
+    echo '[ -f "$HOME/.local/.bashrc_custom" ] && . "$HOME/.local/.bashrc_custom"' >> ~/.bashrc && \
+    touch ~/.local/.bashrc_custom
+
 WORKDIR /home/${USERNAME}/workspace

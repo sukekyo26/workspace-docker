@@ -449,6 +449,38 @@ proto pin python 3.13
 - **Bash補完** - コマンドの自動補完
 - **Git統合プロンプト** - ブランチ・状態表示
 - **永続化履歴** - コマンド履歴の永続保存
+- **カスタム設定** - `~/.local/.bashrc_custom` を通じたユーザー固有の設定（コンテナ再ビルド後も保持）
+
+#### カスタム設定ファイルの使用方法
+
+コンテナは `~/.local/.bashrc_custom` に永続的なカスタム設定ファイルをサポートしています。このファイルは：
+- **シェル起動時に `.bashrc` から自動読み込み**
+- **`local` ボリュームを通じてコンテナ再ビルド後も永続化**
+- **Dockerfileの設定と分離**され、保守性が向上
+
+**使用例：**
+
+```bash
+# カスタムエイリアスを追加
+echo 'alias ll="ls -lah"' >> ~/.local/.bashrc_custom
+echo 'alias gs="git status"' >> ~/.local/.bashrc_custom
+
+# 環境変数を追加
+echo 'export MY_CUSTOM_VAR=value' >> ~/.local/.bashrc_custom
+
+# ツール固有の設定を追加
+# 例：Rust/Cargo環境（proto経由でインストールした場合）
+echo '[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"' >> ~/.local/.bashrc_custom
+
+# 変更を適用
+source ~/.bashrc
+```
+
+**メリット：**
+- カスタム設定がコンテナ再ビルド後も保持される
+- Dockerfileはシステム全体のデフォルトを管理
+- 環境間で共通の設定を簡単に共有
+- Dockerfileの更新との競合がない
 
 ## マウントされているフォルダ
 
@@ -466,6 +498,9 @@ proto pin python 3.13
 | `aws` | `~/.aws` | AWS CLI認証情報・設定 |
 | `gh-config` | `~/.config/gh` | GitHub CLI設定と認証情報 |
 | `bash-history` | `~/.docker_history` | bash 履歴 |
+| `cargo` | `~/.cargo` | Rust/Cargoツールとパッケージ |
+| `rustup` | `~/.rustup` | Rustツールチェーン管理 |
+| `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）とカスタム設定（`.bashrc_custom`） |
 
 ### 読み取り専用マウント
 
