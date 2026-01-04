@@ -502,6 +502,9 @@ source ~/.bashrc
 | `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
 | `cargo` | `~/.cargo` | Rust/Cargo tools and packages |
 | `rustup` | `~/.rustup` | Rust toolchain management |
+| `deno` | `~/.deno` | Deno runtime and cached modules |
+| `bun` | `~/.bun` | Bun runtime and packages |
+| `go` | `~/go` | Go workspace (GOPATH) |
 | `local` | `~/.local` | User-installed packages (pipx, uv, etc.), custom configuration (`.bashrc_custom`), and bash history |
 
 ### Read-only Mounts

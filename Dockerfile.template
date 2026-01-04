@@ -98,6 +98,9 @@ RUN mkdir -p ~/.proto \
     ~/.config/gh \
     ~/.cargo \
     ~/.rustup \
+    ~/.deno \
+    ~/.bun \
+    ~/go \
     ~/.local
 
 # Setup persistent bash history
