@@ -96,7 +96,10 @@ ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
 RUN mkdir -p ~/.proto \
     ~/.docker_history \
     ~/.aws \
-    ~/.config/gh
+    ~/.config/gh \
+    ~/.cargo \
+    ~/.rustup \
+    ~/.local
 
 # Setup persistent bash history
 RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \
