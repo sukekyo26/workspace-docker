@@ -724,8 +724,17 @@ if [ -f "Dockerfile" ] && [ -f ".env" ]; then
         "~/.aws"
         # GitHub CLI
         "~/.config/gh"
-        # Bash history
-        "~/.docker_history"
+        # Rust
+        "~/.cargo"
+        "~/.rustup"
+        # Deno
+        "~/.deno"
+        # Bun
+        "~/.bun"
+        # Go
+        "~/go"
+        # .local (includes bash history in ~/.local/state)
+        "~/.local"
     )
 
     volumes_ok=true
@@ -760,7 +769,12 @@ if [ -f "docker-compose.yml" ]; then
         "proto"
         "aws"
         "gh-config"
-        "bash-history"
+        "cargo"
+        "rustup"
+        "deno"
+        "bun"
+        "go"
+        "local"
     )
 
     compose_volumes_ok=true
