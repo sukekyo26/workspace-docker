@@ -94,7 +94,6 @@ ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.proto \
-    ~/.docker_history \
     ~/.aws \
     ~/.config/gh \
     ~/.cargo \
@@ -102,10 +101,10 @@ RUN mkdir -p ~/.proto \
     ~/.local
 
 # Setup persistent bash history
-RUN echo 'export HISTFILE=~/.docker_history/.bash_history_docker' >> ~/.bashrc && \
+RUN echo 'export HISTFILE=~/.local/state/.bash_history_docker' >> ~/.bashrc && \
     echo 'export HISTSIZE=10000' >> ~/.bashrc && \
     echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \
-    mkdir -p ~/.docker_history && touch ~/.docker_history/.bash_history_docker
+    mkdir -p ~/.local/state && touch ~/.local/state/.bash_history_docker
 
 # Custom configuration file support (永続化されたカスタム設定を読み込む)
 RUN echo '' >> ~/.bashrc && \

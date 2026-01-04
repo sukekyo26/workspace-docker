@@ -28,9 +28,6 @@ services:
       # GitHub CLI（永続化）
       - gh-config:/home/${USERNAME}/.config/gh
 
-      # bash履歴（永続化）
-      - bash-history:/home/${USERNAME}/.docker_history
-
       # Rust（永続化）
       - cargo:/home/${USERNAME}/.cargo
       - rustup:/home/${USERNAME}/.rustup
@@ -48,8 +45,6 @@ volumes:
     name: "${CONTAINER_SERVICE_NAME}_aws"
   gh-config:
     name: "${CONTAINER_SERVICE_NAME}_gh_config"
-  bash-history:
-    name: "${CONTAINER_SERVICE_NAME}_bash_history"
   cargo:
     name: "${CONTAINER_SERVICE_NAME}_cargo"
   rustup:
