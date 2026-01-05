@@ -7,6 +7,7 @@ A Docker-based Ubuntu development environment template with proto (multi-languag
 - **Flexible Setup**: Select which tools to install with proto always included
 - **proto**: Unified multi-language version manager for Python, Node.js, Bun, Deno, Go, Rust, and 100+ more tools
 - **Modern Development Tools**: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
+- **Custom CA Certificates**: Automatic installation of custom CA certificates for corporate proxy/VPN environments
 - **Persistent Storage**: proto tools and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
@@ -150,7 +151,58 @@ INSTALL_DOCKER=true
 INSTALL_AWS_CLI=true
 INSTALL_AWS_SAM_CLI=true
 INSTALL_GITHUB_CLI=true
+INSTALL_ZIG=true
 ```
+
+### Custom CA Certificates (for Corporate Proxy/VPN)
+
+If you're working in an environment with SSL/TLS inspection (corporate proxy, VPN), you may need to install custom CA certificates to avoid certificate validation errors with tools like curl, pip, npm, and apt.
+
+#### Setup
+
+1. **Place certificate files** in the `certs/` directory (PEM format with `.crt` extension):
+   ```bash
+   # Copy your corporate/proxy certificates
+   cp /path/to/corporate-proxy-ca.crt ./certs/
+   cp /path/to/internal-ca.crt ./certs/
+   ```
+
+2. **Run setup or switch environment** - certificates are automatically detected:
+   ```bash
+   bash setup-docker.sh
+   # or
+   bash switch-env.sh
+   ```
+
+3. **Rebuild the container**:
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+#### Certificate Requirements
+
+- **Format**: PEM-encoded X.509 certificates
+- **Extension**: `.crt` only
+- **Content**: Must start with `-----BEGIN CERTIFICATE-----` and end with `-----END CERTIFICATE-----`
+- **Multiple certificates**: Supported (all certificates are installed and merged into `/etc/ssl/certs/ca-certificates.crt`)
+
+#### Environment Variables Set
+
+When certificates are installed, the following environment variables are automatically configured:
+
+| Variable | Used By |
+|----------|---------|
+| `SSL_CERT_FILE` | OpenSSL, Python, and many other tools |
+| `CURL_CA_BUNDLE` | curl |
+| `REQUESTS_CA_BUNDLE` | Python requests library |
+| `NODE_EXTRA_CA_CERTS` | Node.js |
+
+All point to `/etc/ssl/certs/ca-certificates.crt` which includes your custom certificates.
+
+#### Security Note
+
+Certificate files (`.crt`, `.pem`) in the `certs/` directory are excluded from git via `.gitignore`. Do not commit certificates to version control.
 
 ### Starting the Development Environment
 
