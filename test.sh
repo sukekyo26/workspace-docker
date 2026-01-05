@@ -87,6 +87,13 @@ else
     template_files_ok=false
 fi
 
+if [ -d "certs" ]; then
+    echo -e "${GREEN}  ✓${NC} certs/ directory"
+else
+    echo -e "${RED}  ✗${NC} certs/ directory"
+    template_files_ok=false
+fi
+
 if [ "$template_files_ok" = true ]; then
     test_result "All template files exist" "pass"
 else
@@ -241,7 +248,7 @@ placeholders_ok=true
 
 # Define expected placeholders for each template
 declare -A expected_placeholders=(
-    ["Dockerfile.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL ZIG_INSTALL"
+    ["Dockerfile.template"]="DOCKER_INSTALL AWS_CLI_INSTALL AWS_SAM_CLI_INSTALL GITHUB_CLI_INSTALL ZIG_INSTALL CUSTOM_CERTIFICATES"
     ["docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
     [".devcontainer/devcontainer.json.template"]="CONTAINER_SERVICE_NAME USERNAME"
     [".devcontainer/docker-compose.yml.template"]="CONTAINER_SERVICE_NAME"
@@ -588,6 +595,76 @@ TESTENV
             fi
 
             rm -rf "$test_dir"
+        fi
+
+        # Test certificate validation functions
+        if type validate_certificate &>/dev/null; then
+            # Create a temporary test directory for certificates
+            test_cert_dir=$(mktemp -d)
+
+            # Create a valid PEM certificate (self-signed for testing)
+            cat > "$test_cert_dir/valid.crt" << 'VALIDCERT'
+-----BEGIN CERTIFICATE-----
+MIIBkTCB+wIJAKHBfpegPWkAMA0GCSqGSIb3DQEBCwUAMBExDzANBgNVBAMMBnRl
+c3RjYTAeFw0yNDAxMDEwMDAwMDBaFw0yNTAxMDEwMDAwMDBaMBExDzANBgNVBAMM
+BnRlc3RjYTBcMA0GCSqGSIb3DQEBAQUAA0sAMEgCQQC7o96FCp11k+BVxIHP8rQf
+FbJRqarXvxYxAEz7EkqGbXVz1hF0kWFdoWBBNPDQCKL1TK7dTlWE8J0TGwL7AgMB
+AAGjUzBRMB0GA1UdDgQWBBQdEhLMpfpZSR7Yy6q0WMd2VGGdqjAfBgNVHSMEGDAW
+gBQdEhLMpfpZSR7Yy6q0WMd2VGGdqjAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3
+DQEBCwUAA0EA
+-----END CERTIFICATE-----
+VALIDCERT
+
+            # Create an invalid certificate (not PEM format)
+            echo "This is not a certificate" > "$test_cert_dir/invalid.crt"
+
+            # Create a file with wrong extension
+            cat > "$test_cert_dir/valid.pem" << 'VALIDPEM'
+-----BEGIN CERTIFICATE-----
+MIIBkTCB+wIJAKHBfpegPWkAMA0GCSqGSIb3DQEBCwUAMBExDzANBgNVBAMMBnRl
+-----END CERTIFICATE-----
+VALIDPEM
+
+            # Test valid certificate
+            if validate_certificate "$test_cert_dir/valid.crt"; then
+                echo -e "  ${GREEN}✓${NC} validate_certificate accepts valid PEM certificate"
+            else
+                echo -e "  ${RED}✗${NC} validate_certificate rejected valid PEM certificate"
+                rm -rf "$test_cert_dir"
+                exit 1
+            fi
+
+            # Test invalid certificate content
+            if ! validate_certificate "$test_cert_dir/invalid.crt"; then
+                echo -e "  ${GREEN}✓${NC} validate_certificate rejects non-PEM content"
+            else
+                echo -e "  ${RED}✗${NC} validate_certificate accepted non-PEM content"
+                rm -rf "$test_cert_dir"
+                exit 1
+            fi
+
+            # Test wrong file extension
+            if ! validate_certificate "$test_cert_dir/valid.pem"; then
+                echo -e "  ${GREEN}✓${NC} validate_certificate rejects non-.crt extension"
+            else
+                echo -e "  ${RED}✗${NC} validate_certificate accepted non-.crt extension"
+                rm -rf "$test_cert_dir"
+                exit 1
+            fi
+
+            rm -rf "$test_cert_dir"
+        fi
+
+        # Test certificate install generation
+        if type generate_certificate_install &>/dev/null; then
+            # Test with no certificates (should return empty)
+            output=$(generate_certificate_install)
+            if [ -z "$output" ]; then
+                echo -e "  ${GREEN}✓${NC} generate_certificate_install returns empty when no certificates"
+            else
+                echo -e "  ${RED}✗${NC} generate_certificate_install should return empty when no certificates"
+                exit 1
+            fi
         fi
     ) && test_result "Generator library functions work correctly" "pass" || test_result "Generator library functions work correctly" "fail"
 else

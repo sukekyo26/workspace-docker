@@ -90,6 +90,7 @@ INSTALL_DOCKER=$(read_env_var "INSTALL_DOCKER" ".env")
 INSTALL_AWS_CLI=$(read_env_var "INSTALL_AWS_CLI" ".env")
 INSTALL_AWS_SAM_CLI=$(read_env_var "INSTALL_AWS_SAM_CLI" ".env")
 INSTALL_GITHUB_CLI=$(read_env_var "INSTALL_GITHUB_CLI" ".env")
+INSTALL_ZIG=$(read_env_var "INSTALL_ZIG" ".env")
 
 # Validate extracted variables
 if [ -z "$CONTAINER_SERVICE_NAME" ]; then
@@ -105,6 +106,12 @@ fi
 [ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=true
 [ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=true
 [ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=true
+[ -z "$INSTALL_ZIG" ] && INSTALL_ZIG=true
+
+# Check for custom CA certificates in certs/ directory
+if has_valid_certificates; then
+    info "Custom CA certificates detected in certs/ directory"
+fi
 
 # Regenerate docker-compose.yml
 echo "Regenerating docker-compose.yml..."
@@ -119,7 +126,8 @@ generate_dockerfile_from_template \
     "$INSTALL_DOCKER" \
     "$INSTALL_AWS_CLI" \
     "$INSTALL_AWS_SAM_CLI" \
-    "$INSTALL_GITHUB_CLI"
+    "$INSTALL_GITHUB_CLI" \
+    "$INSTALL_ZIG"
 
 # Regenerate .devcontainer files
 echo "Regenerating .devcontainer/devcontainer.json..."

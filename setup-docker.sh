@@ -130,6 +130,17 @@ sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
     docker-compose.yml.template > docker-compose.yml
 
 echo "Generating Dockerfile..."
+
+# Check for custom CA certificates in certs/ directory
+if has_valid_certificates; then
+    subsection_header "Custom CA Certificates Detected"
+    echo "The following certificates will be installed from certs/:"
+    while IFS= read -r cert; do
+        info "  $cert"
+    done <<< "$(list_valid_certificates)"
+    echo ""
+fi
+
 generate_dockerfile_from_template \
     "Dockerfile.template" \
     "Dockerfile" \
@@ -193,6 +204,7 @@ echo "  - proto: Yes (always installed)"
 [ "$install_aws_sam_cli" = true ] && echo "  - AWS SAM CLI: Yes" || echo "  - AWS SAM CLI: No"
 [ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
 [ "$install_zig" = true ] && echo "  - Zig: Yes" || echo "  - Zig: No"
+has_valid_certificates && echo "  - Custom CA Certificates: Yes (from certs/)"
 echo ""
 echo "Generated files:"
 echo "  - Dockerfile"
