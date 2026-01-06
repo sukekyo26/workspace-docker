@@ -18,9 +18,10 @@ services:
       # proto（永続化）
       - proto:/home/${USERNAME}/.proto
 
-      # 個人設定（読み取り専用）
-      - ~/.gitconfig:/home/${USERNAME}/.gitconfig:ro
-      - ~/.ssh:/home/${USERNAME}/.ssh:ro
+      # 個人設定（ホストと同期）
+      - ~/.gitconfig:/home/${USERNAME}/.gitconfig
+      - ~/.ssh:/home/${USERNAME}/.ssh
+      - ~/.git-credentials:/home/${USERNAME}/.git-credentials
 
       # AWS（永続化）
       - aws:/home/${USERNAME}/.aws
