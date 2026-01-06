@@ -561,14 +561,17 @@ source ~/.bashrc
 | `go` | `~/go` | Go workspace (GOPATH) |
 | `local` | `~/.local` | User-installed packages (pipx, uv, etc.), custom configuration (`.bashrc_custom`), and bash history |
 
-### Read-only Mounts
+### Host Synchronized Mounts
 
 | Host | Container | Purpose |
 |------|-----------|---------|
 | `~/.gitconfig` | `~/.gitconfig` | Git configuration |
 | `~/.ssh` | `~/.ssh` | SSH keys (for Git authentication, etc.) |
+| `~/.git-credentials` | `~/.git-credentials` | Git credentials for HTTPS authentication |
 
-> **Customization**: To mount specific SSH keys only, specify them individually in `docker-compose.yml` (e.g., `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519:ro`)
+> **Note**: These files are synchronized with the host, allowing changes made inside the container to persist on the host and vice versa.
+>
+> **Customization**: To mount specific SSH keys only, specify them individually in `docker-compose.yml` (e.g., `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519`)
 
 ### Dev Container Specific
 
@@ -581,10 +584,10 @@ source ~/.bashrc
 
 ### Security and Personal Settings
 
-- **Personal Settings**: `~/.gitconfig`, `~/.ssh` are mounted read-only
+- **Personal Settings**: `~/.gitconfig`, `~/.ssh`, `~/.git-credentials` are synchronized with the host for development convenience
 - **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
 
-> **Warning**: The entire `~/.ssh` directory is accessible from within the container. While read-only and cannot be modified, container processes can read the key files. Exercise caution when running untrusted code.
+> **Warning**: The entire `~/.ssh` directory and `.git-credentials` file are accessible from within the container. Container processes can both read and modify these files. Exercise caution when running untrusted code.
 
 ### File Management
 
