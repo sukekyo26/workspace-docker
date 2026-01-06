@@ -46,12 +46,12 @@ Container: /home/<username>/workspace/
 **Optional:**
 - VS Code + Dev Containers extension
 
-The following host configuration files are mounted **read-only** inside the container:
+The following host configuration files are mounted inside the container:
 
-- **`~/.gitconfig`** - Git configuration (required)
-- `~/.ssh/` - SSH keys (optional)
+- **`~/.gitconfig`** - Git configuration (synchronized with host)
+- `~/.ssh/` - SSH keys (synchronized with host, optional)
 
-> **Important**: If `~/.gitconfig` doesn't exist, the setup script will fail. At minimum, configure Git with:
+> **Note**: The setup script automatically creates empty `~/.gitconfig` and `~/.git-credentials` files if they don't exist. This prevents Docker from creating them as directories during volume mount. You can configure Git later with:
 > ```bash
 > git config --global user.name "Your Name"
 > git config --global user.email "your.email@example.com"
