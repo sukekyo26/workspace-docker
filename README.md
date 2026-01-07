@@ -473,6 +473,7 @@ The following packages are always installed to provide a complete development en
 - **sudo** - Execute commands as another user
 - **tree** - Directory structure visualization
 - **jq** - JSON processor
+- **bc** - Arbitrary precision calculator for shell scripts
 - **less** - File pager
 - **bash-completion** - Command auto-completion
 - **procps** - Process monitoring utilities (ps, top, etc.)

@@ -25,6 +25,7 @@ RUN apt-get update && \
     xz-utils \
     tree \
     jq \
+    bc \
     less \
     rsync \
     procps \
