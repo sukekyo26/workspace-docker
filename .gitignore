@@ -13,3 +13,6 @@ multi-project.code-workspace
 certs/*.crt
 certs/*.pem
 !certs/.gitkeep
+
+# Custom configuration (user-specific settings)
+config/.bashrc_custom

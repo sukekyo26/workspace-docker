@@ -504,37 +504,52 @@ proto pin python 3.13
 - **Bash補完** - コマンドの自動補完
 - **Git統合プロンプト** - ブランチ・状態表示
 - **永続化履歴** - コマンド履歴の永続保存
-- **カスタム設定** - `~/.local/.bashrc_custom` を通じたユーザー固有の設定（コンテナ再ビルド後も保持）
+- **カスタム設定** - `workspace-docker/config/.bashrc_custom` を通じたユーザー固有の設定（ホストから直接編集可能）
 
 #### カスタム設定ファイルの使用方法
 
-コンテナは `~/.local/.bashrc_custom` に永続的なカスタム設定ファイルをサポートしています。このファイルは：
+コンテナは `workspace-docker/config/.bashrc_custom` にカスタム設定ファイルをサポートしています。このファイルは：
 - **シェル起動時に `.bashrc` から自動読み込み**
-- **`local` ボリュームを通じてコンテナ再ビルド後も永続化**
+- **ホストから直接編集可能**（コンテナに入る必要がない）
+- **ワークスペースの一部**で管理が簡単、バージョン管理も可能
 - **Dockerfileの設定と分離**され、保守性が向上
 
-**使用例：**
+**セットアップ：**
 
 ```bash
-# カスタムエイリアスを追加
-echo 'alias ll="ls -lah"' >> ~/.local/.bashrc_custom
-echo 'alias gs="git status"' >> ~/.local/.bashrc_custom
+# サンプルファイルをコピー（ホストから）
+cp config/.bashrc_custom.example config/.bashrc_custom
 
-# 環境変数を追加
-echo 'export MY_CUSTOM_VAR=value' >> ~/.local/.bashrc_custom
+# ホストから直接編集（お気に入りのエディタを使用）
+vim config/.bashrc_custom  # または code、nano など
+```
 
-# ツール固有の設定を追加
+**設定例：**
+
+```bash
+# カスタムエイリアス
+alias ll="ls -lah"
+alias gs="git status"
+
+# 環境変数
+export MY_CUSTOM_VAR=value
+
+# ツール固有の設定
 # 例：Rust/Cargo環境（proto経由でインストールした場合）
-echo '[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"' >> ~/.local/.bashrc_custom
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+```
 
-# 変更を適用
+**変更を適用：**
+```bash
+# コンテナ内から
 source ~/.bashrc
 ```
 
 **メリット：**
-- カスタム設定がコンテナ再ビルド後も保持される
-- Dockerfileはシステム全体のデフォルトを管理
-- 環境間で共通の設定を簡単に共有
+- コンテナに入らずホストから編集可能
+- 見つけやすく管理しやすい（workspace-docker/config/内）
+- バージョン管理可能（必要に応じてgitに追加）
+- コンテナ再起動時に設定が自動適用
 - Dockerfileの更新との競合がない
 
 ## マウントされているフォルダ
@@ -557,7 +572,7 @@ source ~/.bashrc
 | `deno` | `~/.deno` | Denoランタイムとキャッシュモジュール |
 | `bun` | `~/.bun` | Bunランタイムとパッケージ |
 | `go` | `~/go` | Goワークスペース（GOPATH） |
-| `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）、カスタム設定（`.bashrc_custom`）、bash履歴 |
+| `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）、bash履歴 |
 
 ### ホスト同期マウント
 
