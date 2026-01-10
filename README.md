@@ -507,37 +507,52 @@ The following packages are always installed to provide a complete development en
 - **Bash Completion** - Command auto-completion
 - **Git-integrated Prompt** - Branch and status display
 - **Persistent History** - Command history persists across sessions
-- **Custom Configuration** - User-specific settings via `~/.local/.bashrc_custom` (persisted across container rebuilds)
+- **Custom Configuration** - User-specific settings via `workspace-docker/config/.bashrc_custom` (editable from host)
 
 #### Using Custom Configuration File
 
-The container supports a persistent custom configuration file at `~/.local/.bashrc_custom`. This file is:
+The container supports a custom configuration file at `workspace-docker/config/.bashrc_custom`. This file is:
 - **Automatically loaded** by `.bashrc` on shell startup
-- **Persisted across container rebuilds** via the `local` volume
+- **Editable directly from host** (no need to enter container)
+- **Part of workspace** for easy management and version control
 - **Separate from Dockerfile settings** for better maintainability
 
-**Example usage:**
+**Setup:**
 
 ```bash
-# Add custom aliases
-echo 'alias ll="ls -lah"' >> ~/.local/.bashrc_custom
-echo 'alias gs="git status"' >> ~/.local/.bashrc_custom
+# Copy example file (from host)
+cp config/.bashrc_custom.example config/.bashrc_custom
 
-# Add environment variables
-echo 'export MY_CUSTOM_VAR=value' >> ~/.local/.bashrc_custom
+# Edit directly from host (using your favorite editor)
+vim config/.bashrc_custom  # or code, nano, etc.
+```
 
-# Add tool-specific configurations
+**Example content:**
+
+```bash
+# Custom aliases
+alias ll="ls -lah"
+alias gs="git status"
+
+# Environment variables
+export MY_CUSTOM_VAR=value
+
+# Tool-specific configurations
 # Example: Rust/Cargo environment (if installed via proto)
-echo '[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"' >> ~/.local/.bashrc_custom
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+```
 
-# Apply changes
+**Apply changes:**
+```bash
+# From within container
 source ~/.bashrc
 ```
 
 **Benefits:**
-- Your custom settings survive container rebuilds
-- Dockerfile manages system-wide defaults
-- Easy to share common settings across environments
+- Edit from host without entering container
+- Easy to find and manage (in workspace-docker/config/)
+- Can be version controlled (add to git if desired)
+- Settings apply automatically on container restart
 - No conflicts with Dockerfile updates
 
 ## Mounted Directories
@@ -560,7 +575,7 @@ source ~/.bashrc
 | `deno` | `~/.deno` | Deno runtime and cached modules |
 | `bun` | `~/.bun` | Bun runtime and packages |
 | `go` | `~/go` | Go workspace (GOPATH) |
-| `local` | `~/.local` | User-installed packages (pipx, uv, etc.), custom configuration (`.bashrc_custom`), and bash history |
+| `local` | `~/.local` | User-installed packages (pipx, uv, etc.) and bash history |
 
 ### Host Synchronized Mounts
 
