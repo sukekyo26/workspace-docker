@@ -39,23 +39,14 @@ Container: /home/<username>/workspace/
 ### Prerequisites
 
 **Required:**
-- Docker Engine installed
-- `~/.gitconfig` file (see below)
-- Docker (required for AWS SAM CLI `sam local` to run functions and API locally)
+- Docker installed on host machine
 
 **Optional:**
 - VS Code + Dev Containers extension
 
 The following host configuration files are mounted inside the container:
 
-- **`~/.gitconfig`** - Git configuration (synchronized with host)
-- `~/.ssh/` - SSH keys (synchronized with host, optional)
-
-> **Note**: The setup script automatically creates empty `~/.gitconfig` and `~/.git-credentials` files if they don't exist. This prevents Docker from creating them as directories during volume mount. You can configure Git later with:
-> ```bash
-> git config --global user.name "Your Name"
-> git config --global user.email "your.email@example.com"
-> ```
+- `~/.ssh/` - SSH keys (synchronized with host)
 
 #### Installing Docker (Ubuntu)
 
