@@ -19,9 +19,7 @@ services:
       - proto:/home/${USERNAME}/.proto
 
       # 個人設定（ホストと同期）
-      - ~/.gitconfig:/home/${USERNAME}/.gitconfig
       - ~/.ssh:/home/${USERNAME}/.ssh
-      - ~/.git-credentials:/home/${USERNAME}/.git-credentials
 
       # AWS（永続化）
       - aws:/home/${USERNAME}/.aws

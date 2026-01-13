@@ -17,22 +17,6 @@ source "$SCRIPT_DIR/lib/errors.sh"
 
 section_header "Generate Dockerfile for Ubuntu on Docker"
 
-# Create Git configuration files if they don't exist to prevent Docker from creating them as directories
-# Note: This only works when running on the host. If running inside a container, files may already be mounted.
-if [ ! -e "$HOME/.gitconfig" ]; then
-    touch "$HOME/.gitconfig" 2>/dev/null && chmod 644 "$HOME/.gitconfig" 2>/dev/null || true
-    info "Created empty ~/.gitconfig file (configure with: git config --global user.name/user.email)"
-elif [ -d "$HOME/.gitconfig" ]; then
-    error "\$HOME/.gitconfig exists as a directory (likely created by Docker). This will not affect the build process."
-fi
-
-if [ ! -e "$HOME/.git-credentials" ]; then
-    touch "$HOME/.git-credentials" 2>/dev/null && chmod 600 "$HOME/.git-credentials" 2>/dev/null || true
-    info "Created empty ~/.git-credentials file"
-elif [ -d "$HOME/.git-credentials" ]; then
-    error "\$HOME/.git-credentials exists as a directory (likely created by Docker). This will not affect the build process."
-fi
-
 # Set container service name
 while true; do
     read -rp "Enter container service name: " container_service_name
