@@ -78,19 +78,27 @@ validate_symlink() {
 detect_docker_gid() {
     local docker_gid=""
 
-    # Method 1: Check Docker socket directly
+    # Method 1: Check Docker socket directly (support both GNU and BSD stat)
     if [[ -S /var/run/docker.sock ]]; then
-        docker_gid=$(stat -c '%g' /var/run/docker.sock 2>/dev/null)
+        if stat --version >/dev/null 2>&1; then
+            docker_gid=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || true)
+        else
+            docker_gid=$(stat -f '%g' /var/run/docker.sock 2>/dev/null || true)
+        fi
         if [[ -n "$docker_gid" ]]; then
             echo "$docker_gid"
             return 0
         fi
     fi
 
-    # Method 2: Check rootless Docker socket
+    # Method 2: Check rootless Docker socket (support both GNU and BSD stat)
     local rootless_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/docker.sock"
     if [[ -S "$rootless_socket" ]]; then
-        docker_gid=$(stat -c '%g' "$rootless_socket" 2>/dev/null)
+        if stat --version >/dev/null 2>&1; then
+            docker_gid=$(stat -c '%g' "$rootless_socket" 2>/dev/null || true)
+        else
+            docker_gid=$(stat -f '%g' "$rootless_socket" 2>/dev/null || true)
+        fi
         if [[ -n "$docker_gid" ]]; then
             echo "$docker_gid"
             return 0
@@ -171,6 +179,11 @@ list_valid_certificates() {
     shopt -s nullglob
     local crt_files=("$certs_dir"/*.crt)
     shopt -u nullglob
+
+    # If no .crt files were found, crt_files may be empty; handle gracefully
+    if [[ ${#crt_files[@]:-0} -eq 0 ]]; then
+        return 0
+    fi
 
     for crt_file in "${crt_files[@]}"; do
         if validate_certificate "$crt_file"; then
@@ -374,19 +387,23 @@ generate_dockerfile_from_template() {
     zig_install=$(generate_zig_install "$install_zig")
     certificate_install=$(generate_certificate_install)
 
-    # Use awk for better multiline handling
-    awk -v docker_inst="$docker_install" \
-        -v aws_inst="$aws_cli_install" \
-        -v aws_sam_inst="$aws_sam_cli_install" \
-        -v github_inst="$github_cli_install" \
-        -v zig_inst="$zig_install" \
-        -v cert_inst="$certificate_install" '
-        /{{DOCKER_INSTALL}}/ { print docker_inst; next }
-        /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
-        /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
-        /{{GITHUB_CLI_INSTALL}}/ { print github_inst; next }
-        /{{ZIG_INSTALL}}/ { print zig_inst; next }
-        /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
+    # Use awk for template substitution. Pass large/multiline vars via environment
+    export DOCKER_INST="$docker_install"
+    export AWS_INST="$aws_cli_install"
+    export AWS_SAM_INST="$aws_sam_cli_install"
+    export GITHUB_INST="$github_cli_install"
+    export ZIG_INST="$zig_install"
+    export CERT_INST="$certificate_install"
+
+    awk '
+        /{{DOCKER_INSTALL}}/ { print ENVIRON["DOCKER_INST"]; next }
+        /{{AWS_CLI_INSTALL}}/ { print ENVIRON["AWS_INST"]; next }
+        /{{AWS_SAM_CLI_INSTALL}}/ { print ENVIRON["AWS_SAM_INST"]; next }
+        /{{GITHUB_CLI_INSTALL}}/ { print ENVIRON["GITHUB_INST"]; next }
+        /{{ZIG_INSTALL}}/ { print ENVIRON["ZIG_INST"]; next }
+        /{{CUSTOM_CERTIFICATES}}/ { print ENVIRON["CERT_INST"]; next }
         { print }
     ' "$template_file" > "$output_file"
+
+    unset DOCKER_INST AWS_INST AWS_SAM_INST GITHUB_INST ZIG_INST CERT_INST
 }

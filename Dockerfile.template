@@ -53,7 +53,7 @@ RUN apt-get update && \
 # 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
 RUN userdel -r ubuntu 2>/dev/null || true && \
     groupdel ubuntu 2>/dev/null || true && \
-    groupadd -g ${GID} ${USERNAME} && \
+    (getent group ${GID} && echo "Group ${GID} already exists, using it" || groupadd -g ${GID} ${USERNAME}) && \
     useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USERNAME} && \
     usermod -aG sudo ${USERNAME} && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
