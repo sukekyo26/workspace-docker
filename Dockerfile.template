@@ -30,6 +30,9 @@ RUN apt-get update && \
     rsync \
     procps \
     iproute2 \
+    dnsutils \
+    iputils-ping \
+    net-tools \
     shellcheck \
     build-essential \
     libssl-dev \

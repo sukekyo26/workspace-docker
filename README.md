@@ -459,6 +459,9 @@ The following packages are always installed to provide a complete development en
 - **curl** - Command-line HTTP client
 - **wget** - Network downloader
 - **rsync** - Fast file synchronization and transfer
+- **dnsutils** - DNS diagnostic tools (dig, nslookup)
+- **iputils-ping** - Network connectivity testing (ping)
+- **net-tools** - Network configuration utilities (ifconfig, netstat, route)
 
 #### System Utilities
 - **sudo** - Execute commands as another user

@@ -456,6 +456,9 @@ proto pin python 3.13
 - **curl** - コマンドラインHTTPクライアント
 - **wget** - ネットワークダウンローダー
 - **rsync** - 高速ファイル同期・転送
+- **dnsutils** - DNS診断ツール (dig, nslookup)
+- **iputils-ping** - ネットワーク疎通確認 (ping)
+- **net-tools** - ネットワーク設定ユーティリティ (ifconfig, netstat, route)
 
 #### システムユーティリティ
 - **sudo** - 別ユーザーとしてコマンド実行
