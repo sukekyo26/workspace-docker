@@ -7,6 +7,35 @@
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-01-19
+
+### 追加
+- certs/ディレクトリからの自動CA証明書インストール機能（環境変数サポート付き）
+- cargo-lambdaクロスコンパイル用のZigツールチェーン（オプションインストール）
+- Deno（~/.deno）、Bun（~/.bun）、Go（~/go）ワークスペース用の永続ボリューム
+- CargoとRustupの永続ボリューム（~/.cargo、~/.rustup）を含むRustツールチェーンサポート
+- workspace-docker/config/.bashrc_custom経由のカスタムbash設定サポート
+- システムパッケージにネットワーク診断ユーティリティ（ping、traceroute、dnsutils）を追加
+- システムユーティリティにbc（任意精度計算機）パッケージを追加
+- 言語ランタイム用の新しい永続ボリュームのテスト検証
+- CA証明書ディレクトリ構造用のcerts/.gitkeep
+- カスタムbash設定のテンプレートとしてconfig/.bashrc_custom.example
+
+### 変更
+- bashヒストリーを.docker_historyからXDG準拠の~/.local/state/.bash_history_dockerに移動
+- カスタムbash設定を~/.bashrc_customからworkspace-docker/config/に移動し、ホスト側での編集を容易化
+- devcontainer.jsonのVS Code拡張機能推奨を更新
+- setup-docker.shに自動CA証明書設定プロンプトを追加して強化
+- switch-env.shをCA証明書インストールスクリプトの再生成に対応
+- test.shをCA証明書セットアップと永続ボリュームの検証に改善
+
+### 削除
+- ~/.gitconfigマウント（Dev Containerが自動的に~/.gitconfigをコピーするため）
+- ~/.git-credentialsマウント（Dev Containerの自動処理により不要になったため）
+
+### 修正
+- setup-docker.shのチルダ展開に関するShellCheck SC2088警告を修正
+
 ## [3.0.0] - 2026-01-01
 
 ### 変更

@@ -7,6 +7,7 @@ A Docker-based Ubuntu development environment template with proto (multi-languag
 - **Flexible Setup**: Select which tools to install with proto always included
 - **proto**: Unified multi-language version manager for Python, Node.js, Bun, Deno, Go, Rust, and 100+ more tools
 - **Modern Development Tools**: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
+- **Custom CA Certificates**: Automatic installation of custom CA certificates for corporate proxy/VPN environments
 - **Persistent Storage**: proto tools and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
@@ -38,23 +39,14 @@ Container: /home/<username>/workspace/
 ### Prerequisites
 
 **Required:**
-- Docker Engine installed
-- `~/.gitconfig` file (see below)
-- Docker (required for AWS SAM CLI `sam local` to run functions and API locally)
+- Docker installed on host machine
 
 **Optional:**
 - VS Code + Dev Containers extension
 
-The following host configuration files are mounted **read-only** inside the container:
+The following host configuration files are mounted inside the container:
 
-- **`~/.gitconfig`** - Git configuration (required)
-- `~/.ssh/` - SSH keys (optional)
-
-> **Important**: If `~/.gitconfig` doesn't exist, the setup script will fail. At minimum, configure Git with:
-> ```bash
-> git config --global user.name "Your Name"
-> git config --global user.email "your.email@example.com"
-> ```
+- `~/.ssh/` - SSH keys (synchronized with host)
 
 #### Installing Docker (Ubuntu)
 
@@ -90,6 +82,7 @@ Note: Re-login required for group changes to take effect.
    - **AWS CLI v2**: AWS resource management (default: Yes)
    - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (default: Yes)
    - **GitHub CLI**: GitHub command-line interface for repository management and workflows (default: Yes)
+   - **Zig**: Zig compiler for cargo-lambda cross-compilation (default: Yes)
 
 4. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
@@ -149,7 +142,58 @@ INSTALL_DOCKER=true
 INSTALL_AWS_CLI=true
 INSTALL_AWS_SAM_CLI=true
 INSTALL_GITHUB_CLI=true
+INSTALL_ZIG=true
 ```
+
+### Custom CA Certificates (for Corporate Proxy/VPN)
+
+If you're working in an environment with SSL/TLS inspection (corporate proxy, VPN), you may need to install custom CA certificates to avoid certificate validation errors with tools like curl, pip, npm, and apt.
+
+#### Setup
+
+1. **Place certificate files** in the `certs/` directory (PEM format with `.crt` extension):
+   ```bash
+   # Copy your corporate/proxy certificates
+   cp /path/to/corporate-proxy-ca.crt ./certs/
+   cp /path/to/internal-ca.crt ./certs/
+   ```
+
+2. **Run setup or switch environment** - certificates are automatically detected:
+   ```bash
+   bash setup-docker.sh
+   # or
+   bash switch-env.sh
+   ```
+
+3. **Rebuild the container**:
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+#### Certificate Requirements
+
+- **Format**: PEM-encoded X.509 certificates
+- **Extension**: `.crt` only
+- **Content**: Must start with `-----BEGIN CERTIFICATE-----` and end with `-----END CERTIFICATE-----`
+- **Multiple certificates**: Supported (all certificates are installed and merged into `/etc/ssl/certs/ca-certificates.crt`)
+
+#### Environment Variables Set
+
+When certificates are installed, the following environment variables are automatically configured:
+
+| Variable | Used By |
+|----------|---------|
+| `SSL_CERT_FILE` | OpenSSL, Python, and many other tools |
+| `CURL_CA_BUNDLE` | curl |
+| `REQUESTS_CA_BUNDLE` | Python requests library |
+| `NODE_EXTRA_CA_CERTS` | Node.js |
+
+All point to `/etc/ssl/certs/ca-certificates.crt` which includes your custom certificates.
+
+#### Security Note
+
+Certificate files (`.crt`, `.pem`) in the `certs/` directory are excluded from git via `.gitignore`. Do not commit certificates to version control.
 
 ### Starting the Development Environment
 
@@ -383,6 +427,7 @@ proto pin python 3.13
 - **AWS CLI v2**: AWS resource management
 - **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally
 - **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows
+- **Zig**: Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
 
 ### System Packages (Always Installed)
 
@@ -414,11 +459,15 @@ The following packages are always installed to provide a complete development en
 - **curl** - Command-line HTTP client
 - **wget** - Network downloader
 - **rsync** - Fast file synchronization and transfer
+- **dnsutils** - DNS diagnostic tools (dig, nslookup)
+- **iputils-ping** - Network connectivity testing (ping)
+- **net-tools** - Network configuration utilities (ifconfig, netstat, route)
 
 #### System Utilities
 - **sudo** - Execute commands as another user
 - **tree** - Directory structure visualization
 - **jq** - JSON processor
+- **bc** - Arbitrary precision calculator for shell scripts
 - **less** - File pager
 - **bash-completion** - Command auto-completion
 - **procps** - Process monitoring utilities (ps, top, etc.)
@@ -452,6 +501,53 @@ The following packages are always installed to provide a complete development en
 - **Bash Completion** - Command auto-completion
 - **Git-integrated Prompt** - Branch and status display
 - **Persistent History** - Command history persists across sessions
+- **Custom Configuration** - User-specific settings via `workspace-docker/config/.bashrc_custom` (editable from host)
+
+#### Using Custom Configuration File
+
+The container supports a custom configuration file at `workspace-docker/config/.bashrc_custom`. This file is:
+- **Automatically loaded** by `.bashrc` on shell startup
+- **Editable directly from host** (no need to enter container)
+- **Part of workspace** for easy management and version control
+- **Separate from Dockerfile settings** for better maintainability
+
+**Setup:**
+
+```bash
+# Copy example file (from host)
+cp config/.bashrc_custom.example config/.bashrc_custom
+
+# Edit directly from host (using your favorite editor)
+vim config/.bashrc_custom  # or code, nano, etc.
+```
+
+**Example content:**
+
+```bash
+# Custom aliases
+alias ll="ls -lah"
+alias gs="git status"
+
+# Environment variables
+export MY_CUSTOM_VAR=value
+
+# Tool-specific configurations
+# Example: Rust/Cargo environment (if installed via proto)
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+```
+
+**Apply changes:**
+```bash
+# From within container
+source ~/.bashrc
+```
+
+**Benefits:**
+- Edit from host without entering container
+- Easy to find and manage (in workspace-docker/config/)
+- Can be version controlled (add to git if desired)
+- Settings apply automatically on container restart
+- No conflicts with Dockerfile updates
 
 ## Mounted Directories
 
@@ -468,16 +564,22 @@ The following packages are always installed to provide a complete development en
 | `proto` | `~/.proto` | proto installed tools and versions |
 | `aws` | `~/.aws` | AWS CLI credentials and configuration |
 | `gh-config` | `~/.config/gh` | GitHub CLI configuration and credentials |
-| `bash-history` | `~/.docker_history` | bash history |
+| `cargo` | `~/.cargo` | Rust/Cargo tools and packages |
+| `rustup` | `~/.rustup` | Rust toolchain management |
+| `deno` | `~/.deno` | Deno runtime and cached modules |
+| `bun` | `~/.bun` | Bun runtime and packages |
+| `go` | `~/go` | Go workspace (GOPATH) |
+| `local` | `~/.local` | User-installed packages (pipx, uv, etc.) and bash history |
 
-### Read-only Mounts
+### Host Synchronized Mounts
 
 | Host | Container | Purpose |
 |------|-----------|---------|
-| `~/.gitconfig` | `~/.gitconfig` | Git configuration |
 | `~/.ssh` | `~/.ssh` | SSH keys (for Git authentication, etc.) |
 
-> **Customization**: To mount specific SSH keys only, specify them individually in `docker-compose.yml` (e.g., `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519:ro`)
+> **Note**: These files are synchronized with the host, allowing changes made inside the container to persist on the host and vice versa.
+>
+> **Customization**: To mount specific SSH keys only, specify them individually in `docker-compose.yml` (e.g., `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519`)
 
 ### Dev Container Specific
 
@@ -490,10 +592,10 @@ The following packages are always installed to provide a complete development en
 
 ### Security and Personal Settings
 
-- **Personal Settings**: `~/.gitconfig`, `~/.ssh` are mounted read-only
+- **Personal Settings**: `~/.ssh` is synchronized with the host for development convenience
 - **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
 
-> **Warning**: The entire `~/.ssh` directory is accessible from within the container. While read-only and cannot be modified, container processes can read the key files. Exercise caution when running untrusted code.
+> **Warning**: The entire `~/.ssh` directory is accessible from within the container. Container processes can both read and modify these files. Exercise caution when running untrusted code.
 
 ### File Management
 

@@ -1,0 +1,11 @@
+# Custom bash configuration for workspace-docker
+# This file is loaded automatically when you start a shell in the container
+# Add your custom aliases, functions, and environment variables here
+#
+# Examples:
+# alias ll="ls -lah"
+# alias gs="git status"
+# export MY_CUSTOM_VAR=value
+#
+# Tool-specific configurations:
+# [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"

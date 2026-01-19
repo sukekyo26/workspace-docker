@@ -115,8 +115,133 @@ detect_docker_gid() {
 }
 
 # ============================================================
+# Certificate Functions
+# ============================================================
+
+# Get the root directory of the workspace-docker project
+# Usage: get_project_root
+# Returns: absolute path to workspace-docker root
+get_project_root() {
+    # LIB_DIR is set at the top of this file
+    echo "$(cd "$LIB_DIR/.." && pwd)"
+}
+
+# Validate a certificate file format
+# Usage: validate_certificate "path/to/cert.crt"
+# Returns: 0 if valid PEM certificate, 1 if invalid
+validate_certificate() {
+    local cert_file="$1"
+
+    # Check file exists
+    if [[ ! -f "$cert_file" ]]; then
+        return 1
+    fi
+
+    # Check file extension
+    if [[ ! "$cert_file" =~ \.crt$ ]]; then
+        return 1
+    fi
+
+    # Check PEM format (starts with -----BEGIN CERTIFICATE-----)
+    if ! head -1 "$cert_file" | grep -q "^-----BEGIN CERTIFICATE-----"; then
+        return 1
+    fi
+
+    # Check PEM format (contains -----END CERTIFICATE-----)
+    if ! grep -q "^-----END CERTIFICATE-----" "$cert_file"; then
+        return 1
+    fi
+
+    return 0
+}
+
+# List valid certificate files in certs directory
+# Usage: list_valid_certificates
+# Returns: newline-separated list of valid certificate filenames (not paths)
+list_valid_certificates() {
+    local project_root
+    project_root=$(get_project_root)
+    local certs_dir="$project_root/certs"
+
+    if [[ ! -d "$certs_dir" ]]; then
+        return 0
+    fi
+
+    # Find all .crt files and validate them
+    shopt -s nullglob
+    local crt_files=("$certs_dir"/*.crt)
+    shopt -u nullglob
+
+    for crt_file in "${crt_files[@]}"; do
+        if validate_certificate "$crt_file"; then
+            basename "$crt_file"
+        fi
+    done
+}
+
+# Check if valid certificates exist in certs directory
+# Usage: has_valid_certificates
+# Returns: 0 if at least one valid certificate exists, 1 otherwise
+has_valid_certificates() {
+    local certs
+    certs=$(list_valid_certificates)
+    [[ -n "$certs" ]]
+}
+
+# ============================================================
 # Dockerfile Generator Functions
 # ============================================================
+
+# Function to generate custom certificate installation section
+# This function generates Dockerfile commands to install custom CA certificates
+# Automatically detects certificates in certs/ directory
+generate_certificate_install() {
+    local certs
+    certs=$(list_valid_certificates)
+
+    if [[ -z "$certs" ]]; then
+        echo ""
+        return
+    fi
+
+    # Build the COPY and installation commands
+    local copy_commands=""
+    local cp_commands=""
+    local cert_count=0
+
+    while IFS= read -r cert_name; do
+        if [[ -n "$cert_name" ]]; then
+            copy_commands="${copy_commands}COPY certs/${cert_name} /tmp/certs/${cert_name}
+"
+            if [[ $cert_count -gt 0 ]]; then
+                cp_commands="${cp_commands} && \\
+"
+            fi
+            cp_commands="${cp_commands}    cp /tmp/certs/${cert_name} /usr/local/share/ca-certificates/${cert_name}"
+            ((cert_count++))
+        fi
+    done <<< "$certs"
+
+    cat << EOF
+# Install custom CA certificates for corporate proxy/VPN environments
+USER root
+${copy_commands}RUN mkdir -p /usr/local/share/ca-certificates && \\
+${cp_commands} && \\
+    update-ca-certificates && \\
+    rm -rf /tmp/certs && \\
+    echo 'export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt' >> /home/\${USERNAME}/.bashrc && \\
+    echo 'export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt' >> /home/\${USERNAME}/.bashrc && \\
+    echo 'export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt' >> /home/\${USERNAME}/.bashrc && \\
+    echo 'export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt' >> /home/\${USERNAME}/.bashrc
+USER \${USERNAME}
+
+# Set certificate environment variables for various tools
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+EOF
+}
 
 # Function to generate Docker CLI installation section
 generate_docker_install() {
@@ -200,6 +325,31 @@ EOF
     fi
 }
 
+# Function to generate Zig installation section
+generate_zig_install() {
+    if [ "$1" = true ]; then
+        cat << EOF
+# Install Zig (required for cargo-lambda cross-compilation)
+USER root
+RUN ARCH="\$(dpkg --print-architecture)" && \\
+    case "\$ARCH" in \\
+        amd64) DOWNLOAD_ARCH="x86_64" ;; \\
+        arm64) DOWNLOAD_ARCH="aarch64" ;; \\
+        *) DOWNLOAD_ARCH="x86_64" ;; \\
+    esac && \\
+    echo "Detected architecture: \$ARCH -> \$DOWNLOAD_ARCH" && \\
+    curl -fsSL "https://ziglang.org/builds/zig-\${DOWNLOAD_ARCH}-linux-${ZIG_VERSION}.tar.xz" -o /tmp/zig.tar.xz && \\
+    mkdir -p /usr/local/zig && \\
+    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \\
+    ln -s /usr/local/zig/zig /usr/local/bin/zig && \\
+    rm /tmp/zig.tar.xz
+USER \${USERNAME}
+EOF
+    else
+        echo ""
+    fi
+}
+
 # Function to generate Dockerfile from custom template
 generate_dockerfile_from_template() {
     local template_file="$1"
@@ -208,26 +358,35 @@ generate_dockerfile_from_template() {
     local install_aws_cli="$4"
     local install_aws_sam_cli="$5"
     local install_github_cli="$6"
+    local install_zig="$7"
 
     local docker_install
     local aws_cli_install
     local aws_sam_cli_install
     local github_cli_install
+    local zig_install
+    local certificate_install
 
     docker_install=$(generate_docker_install "$install_docker")
     aws_cli_install=$(generate_aws_cli_install "$install_aws_cli")
     aws_sam_cli_install=$(generate_aws_sam_cli_install "$install_aws_sam_cli")
     github_cli_install=$(generate_github_cli_install "$install_github_cli")
+    zig_install=$(generate_zig_install "$install_zig")
+    certificate_install=$(generate_certificate_install)
 
     # Use awk for better multiline handling
     awk -v docker_inst="$docker_install" \
         -v aws_inst="$aws_cli_install" \
         -v aws_sam_inst="$aws_sam_cli_install" \
-        -v github_inst="$github_cli_install" '
+        -v github_inst="$github_cli_install" \
+        -v zig_inst="$zig_install" \
+        -v cert_inst="$certificate_install" '
         /{{DOCKER_INSTALL}}/ { print docker_inst; next }
         /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
         /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
         /{{GITHUB_CLI_INSTALL}}/ { print github_inst; next }
+        /{{ZIG_INSTALL}}/ { print zig_inst; next }
+        /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
         { print }
     ' "$template_file" > "$output_file"
 }

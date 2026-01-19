@@ -18,9 +18,8 @@ services:
       # proto（永続化）
       - proto:/home/${USERNAME}/.proto
 
-      # 個人設定（読み取り専用）
-      - ~/.gitconfig:/home/${USERNAME}/.gitconfig:ro
-      - ~/.ssh:/home/${USERNAME}/.ssh:ro
+      # 個人設定（ホストと同期）
+      - ~/.ssh:/home/${USERNAME}/.ssh
 
       # AWS（永続化）
       - aws:/home/${USERNAME}/.aws
@@ -28,8 +27,21 @@ services:
       # GitHub CLI（永続化）
       - gh-config:/home/${USERNAME}/.config/gh
 
-      # bash履歴（永続化）
-      - bash-history:/home/${USERNAME}/.docker_history
+      # Rust（永続化）
+      - cargo:/home/${USERNAME}/.cargo
+      - rustup:/home/${USERNAME}/.rustup
+
+      # Deno（永続化）
+      - deno:/home/${USERNAME}/.deno
+
+      # Bun（永続化）
+      - bun:/home/${USERNAME}/.bun
+
+      # Go（永続化）
+      - go:/home/${USERNAME}/go
+
+      # .local（永続化）- pipx, uv等のユーザーインストールパッケージ
+      - local:/home/${USERNAME}/.local
     ports:
       - "3000:3000"
     tty: true
@@ -41,5 +53,15 @@ volumes:
     name: "${CONTAINER_SERVICE_NAME}_aws"
   gh-config:
     name: "${CONTAINER_SERVICE_NAME}_gh_config"
-  bash-history:
-    name: "${CONTAINER_SERVICE_NAME}_bash_history"
+  cargo:
+    name: "${CONTAINER_SERVICE_NAME}_cargo"
+  rustup:
+    name: "${CONTAINER_SERVICE_NAME}_rustup"
+  deno:
+    name: "${CONTAINER_SERVICE_NAME}_deno"
+  bun:
+    name: "${CONTAINER_SERVICE_NAME}_bun"
+  go:
+    name: "${CONTAINER_SERVICE_NAME}_go"
+  local:
+    name: "${CONTAINER_SERVICE_NAME}_local"

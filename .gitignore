@@ -8,3 +8,11 @@ multi-project.code-workspace
 # Environment files
 .env
 .envs/
+
+# Custom CA certificates (security: don't commit certificates)
+certs/*.crt
+certs/*.pem
+!certs/.gitkeep
+
+# Custom configuration (user-specific settings)
+config/.bashrc_custom
