@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Automatic CA certificate installation from certs/ directory with environment variable support
 - Zig toolchain for cargo-lambda cross-compilation (optional installation)
-- Persistent volumes for Deno (~/.deno), Bun (~/.bun), and Go (~/.go) workspaces
+- Persistent volumes for Deno (~/.deno), Bun (~/.bun), and Go (~/go) workspaces
 - Rust toolchain support with Cargo and Rustup persistent volumes (~/.cargo, ~/.rustup)
 - Custom bash configuration support via workspace-docker/config/.bashrc_custom
 - Network diagnostic utilities (ping, traceroute, dnsutils) to system packages
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - config/.bashrc_custom.example as a template for custom bash configuration
 
 ### Changed
-- Moved bash history from .docker_history to XDG-compliant ~/.local/state/bash/history
+- Moved bash history from .docker_history to XDG-compliant ~/.local/state/.bash_history_docker
 - Moved custom bash configuration from ~/.bashrc_custom to workspace-docker/config/ for easier host editing
 - Updated VS Code extensions recommendations in devcontainer.json
 - Enhanced setup-docker.sh with automatic CA certificate configuration prompts
