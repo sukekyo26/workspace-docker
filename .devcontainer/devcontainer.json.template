@@ -46,7 +46,7 @@
 				"github.copilot-chat",
 				"github.vscode-github-actions",
 				"oderwat.indent-rainbow",
-				"shardulm94.trailing-spaces",
+				"shardulm94.trailing-spaces"
 			]
 		}
 	}
