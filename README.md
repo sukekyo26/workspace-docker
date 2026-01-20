@@ -473,6 +473,7 @@ The following packages are always installed to provide a complete development en
 - **procps** - Process monitoring utilities (ps, top, etc.)
 - **iproute2** - Advanced networking utilities (ip command)
 - **lsb-release** - Linux Standard Base version reporting utility
+- **uuid-runtime** - UUID generation utility (uuidgen command)
 
 #### Development Libraries
 - **libssl-dev** - SSL/TLS development libraries

@@ -470,6 +470,7 @@ proto pin python 3.13
 - **procps** - プロセス監視ユーティリティ（ps, topなど）
 - **iproute2** - 高度なネットワークユーティリティ（ipコマンド）
 - **lsb-release** - Linux Standard Baseバージョン報告ユーティリティ
+- **uuid-runtime** - UUID生成ユーティリティ（uuidgenコマンド）
 
 #### 開発ライブラリ
 - **libssl-dev** - SSL/TLS開発ライブラリ
