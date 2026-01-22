@@ -1,12 +1,12 @@
 # workspace-docker
 
-Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。proto（多言語バージョンマネージャー）とモダンな開発ツールがプリインストールされています。
+Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。proto（多言語バージョンマネージャー）とAWS開発対応ツールがプリインストールされています。
 
 ## 主な特徴
 
 - **柔軟なセットアップ**: protoは常にインストールされ、他のツールは選択可能
 - **proto**: Python、Node.js、Bun、Deno、Go、Rust、および100以上のツールに対応した統合的な多言語バージョンマネージャー
-- **モダンな開発ツール**: Docker CLI、AWS CLI v2、AWS SAM CLI、GitHub CLI
+- **AWS開発対応ツール**: Docker CLI、AWS CLI v2、AWS SAM CLI、GitHub CLI
 - **カスタムCA証明書**: 企業プロキシ/VPN環境向けのカスタムCA証明書の自動インストール
 - **永続化対応**: protoツールや設定が永続化され、コンテナ再作成後も保持
 - **ワークスペース統合**: 複数プロジェクトを一つの開発環境で管理

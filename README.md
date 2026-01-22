@@ -1,12 +1,12 @@
 # workspace-docker
 
-A Docker-based Ubuntu development environment template with proto (multi-language version manager) and modern development tools.
+A Docker-based Ubuntu development environment template with proto (multi-language version manager) and AWS-ready development tools.
 
 ## Features
 
 - **Flexible Setup**: Select which tools to install with proto always included
 - **proto**: Unified multi-language version manager for Python, Node.js, Bun, Deno, Go, Rust, and 100+ more tools
-- **Modern Development Tools**: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
+- **AWS-Ready Development Tools**: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
 - **Custom CA Certificates**: Automatic installation of custom CA certificates for corporate proxy/VPN environments
 - **Persistent Storage**: proto tools and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
