@@ -440,6 +440,12 @@ proto pin python 3.13
 - **make** - ビルド自動化ツール
 - **build-essential** - C/C++コンパイラとビルドツール（gcc, g++, make, libc-dev）
 - **shellcheck** - シェルスクリプト静的解析ツール
+- **python3** - Python 3インタープリター（AIコーディングエージェントや汎用スクリプト用のシステムPython）
+- **python3-pip** - Pythonパッケージインストーラ
+- **python3-venv** - Python仮想環境サポート
+- **file** - ファイル種別識別ユーティリティ
+- **patch** - diff/patchファイル適用ツール
+- **gettext-base** - テキスト処理ユーティリティ（envsubst）
 
 #### エディタ
 - **vim** - 強力なテキストエディタ

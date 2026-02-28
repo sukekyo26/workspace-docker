@@ -443,6 +443,12 @@ The following packages are always installed to provide a complete development en
 - **make** - Build automation tool
 - **build-essential** - C/C++ compilers and build tools (gcc, g++, make, libc-dev)
 - **shellcheck** - Shell script static analysis tool
+- **python3** - Python 3 interpreter (system Python for AI coding agents and general scripting)
+- **python3-pip** - Python package installer
+- **python3-venv** - Python virtual environment support
+- **file** - File type identification utility
+- **patch** - Apply diff/patch files
+- **gettext-base** - Text processing utilities (envsubst)
 
 #### Editors
 - **vim** - Powerful text editor
