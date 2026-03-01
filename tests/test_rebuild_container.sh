@@ -96,7 +96,7 @@ test_image_info() {
 test_completion_message() {
     section "Completion message"
 
-    assert_file_contains "shows Reopen in Container guidance" "$SCRIPT" 'Reopen in Container'
+    assert_file_contains "shows reopen guidance" "$SCRIPT" 'コンテナで再度開く'
 }
 
 # ============================================================

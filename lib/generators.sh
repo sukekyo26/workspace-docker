@@ -104,13 +104,6 @@ detect_docker_gid() {
         return 0
     fi
 
-    # Method 4: Fallback to common default
-    # Docker typically uses GID 999 or 998
-    if getent group 999 >/dev/null 2>&1; then
-        echo "999"
-        return 0
-    fi
-
     return 1
 }
 
