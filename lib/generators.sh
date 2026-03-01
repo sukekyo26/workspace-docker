@@ -310,11 +310,22 @@ generate_dockerfile_from_template() {
     local certificate_install
     certificate_install=$(generate_certificate_install)
 
+    # Build apt extra packages lines
+    local apt_extra=""
+    if [[ ${#WS_APT_EXTRA[@]} -gt 0 && -n "${WS_APT_EXTRA[0]}" ]]; then
+        for pkg in "${WS_APT_EXTRA[@]}"; do
+            apt_extra="${apt_extra}    ${pkg} \\\\
+"
+        done
+    fi
+
     # Use awk for multiline placeholder replacement
     awk -v plugin_inst="$plugin_installs" \
-        -v cert_inst="$certificate_install" '
+        -v cert_inst="$certificate_install" \
+        -v apt_extra="$apt_extra" '
         /{{PLUGIN_INSTALLS}}/ { print plugin_inst; next }
         /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
+        /{{APT_EXTRA_PACKAGES}}/ { if (apt_extra != "") printf "%s", apt_extra; next }
         { print }
     ' "$template_file" > "$output_file"
 }
