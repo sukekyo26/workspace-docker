@@ -136,14 +136,18 @@ generate_dockerfile_from_template \
 
 # Regenerate .devcontainer files
 echo "Regenerating .devcontainer/devcontainer.json..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
-    -e "s/{{USERNAME}}/$USERNAME_ENV/g" \
-    -e "s/{{FORWARD_PORT}}/$FORWARD_PORT/g" \
-    .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
+generate_devcontainer_json_from_template \
+    ".devcontainer/devcontainer.json.template" \
+    ".devcontainer/devcontainer.json" \
+    "$CONTAINER_SERVICE_NAME" \
+    "$USERNAME_ENV" \
+    "$FORWARD_PORT"
 
 echo "Regenerating .devcontainer/docker-compose.yml..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
-    .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
+generate_devcontainer_compose_from_template \
+    ".devcontainer/docker-compose.yml.template" \
+    ".devcontainer/docker-compose.yml" \
+    "$CONTAINER_SERVICE_NAME"
 
 echo -e "${GREEN}=== Environment Switched ===${NC}"
 if [ -n "$current_env" ]; then

@@ -162,15 +162,18 @@ generate_dockerfile_from_template \
     "$install_zig"
 
 echo "Generating .devcontainer/devcontainer.json..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    -e "s/{{USERNAME}}/$username/g" \
-    -e "s/{{FORWARD_PORT}}/$forward_port/g" \
-    .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
+generate_devcontainer_json_from_template \
+    ".devcontainer/devcontainer.json.template" \
+    ".devcontainer/devcontainer.json" \
+    "$container_service_name" \
+    "$username" \
+    "$forward_port"
 
 echo "Generating .devcontainer/docker-compose.yml..."
-# Service name must be static, but other values can use .env
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
+generate_devcontainer_compose_from_template \
+    ".devcontainer/docker-compose.yml.template" \
+    ".devcontainer/docker-compose.yml" \
+    "$container_service_name"
 
 # Create .envs directory if it doesn't exist
 mkdir -p .envs

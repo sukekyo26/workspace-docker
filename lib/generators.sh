@@ -164,6 +164,40 @@ generate_compose_from_template() {
     ' "$template_file" > "$output_file"
 }
 
+# Generate devcontainer.json from template
+# Usage: generate_devcontainer_json_from_template "template" "output" "service_name" "username" "forward_port"
+generate_devcontainer_json_from_template() {
+    local template_file="$1"
+    local output_file="$2"
+    local service_name="$3"
+    local username="$4"
+    local forward_port="$5"
+
+    awk -v service_name="$service_name" \
+        -v username="$username" \
+        -v forward_port="$forward_port" '
+        {
+            gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name)
+            gsub(/{{USERNAME}}/, username)
+            gsub(/{{FORWARD_PORT}}/, forward_port)
+            print
+        }
+    ' "$template_file" > "$output_file"
+}
+
+# Generate .devcontainer/docker-compose.yml from template
+# Usage: generate_devcontainer_compose_from_template "template" "output" "service_name"
+generate_devcontainer_compose_from_template() {
+    local template_file="$1"
+    local output_file="$2"
+    local service_name="$3"
+
+    awk -v service_name="$service_name" '
+        /{{CONTAINER_SERVICE_NAME}}/ { gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name); print; next }
+        { print }
+    ' "$template_file" > "$output_file"
+}
+
 # ============================================================
 # Certificate Functions
 # ============================================================

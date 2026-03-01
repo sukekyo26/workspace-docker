@@ -161,10 +161,14 @@ test_devcontainer_json_generation() {
     local service_name="test-service"
     local username="testuser"
 
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
-        -e "s/{{USERNAME}}/$username/g" \
-        -e "s/{{FORWARD_PORT}}/3000/g" \
-        "$WORK_DIR/.devcontainer/devcontainer.json.template" > "$WORK_DIR/.devcontainer/devcontainer.json"
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_devcontainer_json_from_template \
+            ".devcontainer/devcontainer.json.template" \
+            ".devcontainer/devcontainer.json" \
+            "$service_name" "$username" "3000"
+    )
 
     assert_file_exists "devcontainer.json generated" "$WORK_DIR/.devcontainer/devcontainer.json"
     assert_file_not_contains "no unreplaced {{...}}" "$WORK_DIR/.devcontainer/devcontainer.json" '{{.*}}'
@@ -183,8 +187,14 @@ test_devcontainer_compose_generation() {
     setup_workspace
     local service_name="test-service"
 
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
-        "$WORK_DIR/.devcontainer/docker-compose.yml.template" > "$WORK_DIR/.devcontainer/docker-compose.yml"
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_devcontainer_compose_from_template \
+            ".devcontainer/docker-compose.yml.template" \
+            ".devcontainer/docker-compose.yml" \
+            "$service_name"
+    )
 
     assert_file_exists ".devcontainer/docker-compose.yml generated" "$WORK_DIR/.devcontainer/docker-compose.yml"
     assert_file_not_contains "no unreplaced {{...}}" "$WORK_DIR/.devcontainer/docker-compose.yml" '{{.*}}'
@@ -298,14 +308,16 @@ test_e2e_pipeline() {
             "true" "false" "false" "true" "false"
 
         # 3. Generate devcontainer.json
-        sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
-            -e "s/{{USERNAME}}/$username/g" \
-            -e "s/{{FORWARD_PORT}}/3000/g" \
-            .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
+        generate_devcontainer_json_from_template \
+            ".devcontainer/devcontainer.json.template" \
+            ".devcontainer/devcontainer.json" \
+            "$service_name" "$username" "3000"
 
         # 4. Generate .devcontainer/docker-compose.yml
-        sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
-            .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
+        generate_devcontainer_compose_from_template \
+            ".devcontainer/docker-compose.yml.template" \
+            ".devcontainer/docker-compose.yml" \
+            "$service_name"
 
         # 5. Generate .env
         mkdir -p .envs
