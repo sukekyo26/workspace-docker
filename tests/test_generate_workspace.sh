@@ -132,11 +132,11 @@ test_toggle_logic() {
     local cursor=1
 
     # Toggle on
-    if [[ "${sel[$cursor]}" == "1" ]]; then sel[$cursor]="0"; else sel[$cursor]="1"; fi
+    if [[ "${sel[cursor]}" == "1" ]]; then sel[cursor]="0"; else sel[cursor]="1"; fi
     assert_eq "toggle cursor=1 ON" "1" "${sel[1]}"
 
     # Toggle off
-    if [[ "${sel[$cursor]}" == "1" ]]; then sel[$cursor]="0"; else sel[$cursor]="1"; fi
+    if [[ "${sel[cursor]}" == "1" ]]; then sel[cursor]="0"; else sel[cursor]="1"; fi
     assert_eq "toggle cursor=1 OFF" "0" "${sel[1]}"
 
     # Select-all detection

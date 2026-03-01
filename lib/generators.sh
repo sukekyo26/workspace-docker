@@ -175,7 +175,7 @@ generate_devcontainer_compose_from_template() {
 # Returns: absolute path to workspace-docker root
 get_project_root() {
     # LIB_DIR is set at the top of this file
-    echo "$(cd "$LIB_DIR/.." && pwd)"
+    (cd "$LIB_DIR/.." && pwd)
 }
 
 # Validate a certificate file format

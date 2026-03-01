@@ -170,7 +170,7 @@ select_multi() {
         local pi
         for pi in "${pre_idx[@]}"; do
             if [[ "$pi" =~ ^[0-9]+$ && "$pi" -lt "$count" ]]; then
-                sel[$pi]="1"
+                sel[pi]="1"
             fi
         done
     fi
@@ -213,10 +213,10 @@ select_multi() {
                 ;;
             ENTER)
                 # カーソル位置をトグル
-                if [[ "${sel[$cursor]}" == "1" ]]; then
-                    sel[$cursor]="0"
+                if [[ "${sel[cursor]}" == "1" ]]; then
+                    sel[cursor]="0"
                 else
-                    sel[$cursor]="1"
+                    sel[cursor]="1"
                 fi
                 ;;
             TOGGLE_ALL)
@@ -228,7 +228,7 @@ select_multi() {
                 local nv="1"
                 [[ "$all_on" == true ]] && nv="0"
                 for ((i = 0; i < count; i++)); do
-                    sel[$i]="$nv"
+                    sel[i]="$nv"
                 done
                 ;;
             DONE)

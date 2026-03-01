@@ -137,6 +137,7 @@ TOML
     assert_eq "PLUGIN_DEFAULT" "true" "$PLUGIN_DEFAULT"
     assert_true "PLUGIN_DOCKERFILE contains RUN" echo "$PLUGIN_DOCKERFILE" | grep -q "RUN"
     assert_eq "PLUGIN_VOLUME_NAMES[0]" "test-data" "${PLUGIN_VOLUME_NAMES[0]}"
+    # shellcheck disable=SC2016
     assert_eq "PLUGIN_VOLUME_PATHS[0]" '/home/${USERNAME}/.test' "${PLUGIN_VOLUME_PATHS[0]}"
     assert_eq "PLUGIN_VERSION_PIN" "1.2.3" "$PLUGIN_VERSION_PIN"
 

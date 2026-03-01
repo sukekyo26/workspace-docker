@@ -100,6 +100,7 @@ test_env_generation() {
 test_workspace_toml_generation() {
     section "workspace.toml generation"
 
+    # shellcheck disable=SC2016
     assert_file_contains "generates workspace.toml" "$SCRIPT" 'cat > "$WORKSPACE_TOML"'
     assert_file_contains "contains service_name field" "$SCRIPT" 'service_name'
     assert_file_contains "contains username field" "$SCRIPT" 'username'

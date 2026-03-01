@@ -2,6 +2,7 @@
 # ============================================================
 # tests/test_integration.sh
 # Integration tests: actually generate files and verify output
+# shellcheck disable=SC2031  # Variables defined before subshells are intentionally used after them
 # ============================================================
 
 set -uo pipefail
