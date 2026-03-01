@@ -12,8 +12,9 @@ FAIL=0
 SKIP=0
 ERRORS=()
 
-# Project root (parent of tests/)
+# Project root (parent of tests/) — exported for use by sourcing test scripts
 PROJECT_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+export PROJECT_ROOT
 
 # ===== Assert Functions =====
 

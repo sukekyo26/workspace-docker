@@ -10,9 +10,6 @@ set -uo pipefail
 TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PROJECT_ROOT="$(dirname "$TESTS_DIR")"
 
-TOTAL_PASS=0
-TOTAL_FAIL=0
-TOTAL_SKIP=0
 SUITE_RESULTS=()
 
 echo ""
