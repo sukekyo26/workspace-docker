@@ -70,46 +70,6 @@ validate_boolean() {
     return 0
 }
 
-# Validate package manager choice
-# Usage: validate_package_manager "manager" "type"
-# type can be "python" or "nodejs"
-# Returns: 0 if valid, 1 if invalid
-validate_package_manager() {
-    local manager="$1"
-    local type="$2"
-
-    case "$type" in
-        python)
-            case "$manager" in
-                none|uv|poetry|pyenv-poetry)
-                    return 0
-                    ;;
-                *)
-                    echo "ERROR: Invalid Python package manager: $manager" >&2
-                    echo "Valid options: none, uv, poetry, pyenv-poetry" >&2
-                    return 1
-                    ;;
-            esac
-            ;;
-        nodejs)
-            case "$manager" in
-                none|volta|nvm|fnm|mise)
-                    return 0
-                    ;;
-                *)
-                    echo "ERROR: Invalid Node.js package manager: $manager" >&2
-                    echo "Valid options: none, volta, nvm, fnm, mise" >&2
-                    return 1
-                    ;;
-            esac
-            ;;
-        *)
-            echo "ERROR: Invalid package manager type: $type" >&2
-            return 1
-            ;;
-    esac
-}
-
 # Validate file exists
 # Usage: validate_file_exists "filepath" "description"
 # Returns: 0 if exists, 1 if not
