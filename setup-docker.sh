@@ -42,10 +42,10 @@ echo ""
 
 # Initialize software installation flags
 install_docker=true
-install_aws_cli=true
-install_aws_sam_cli=true
-install_github_cli=true
-install_zig=true
+install_aws_cli=false
+install_aws_sam_cli=false
+install_github_cli=false
+install_zig=false
 
 # Docker CLI
 while true; do
@@ -60,8 +60,8 @@ done
 
 # AWS CLI v2
 while true; do
-    read -rp "Install AWS CLI v2? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
+    read -rp "Install AWS CLI v2? [y/N]: " choice
+    choice=${choice:-N}  # Default to N if empty
     case $choice in
         [Yy]*) install_aws_cli=true; break ;;
         [Nn]*) install_aws_cli=false; break ;;
@@ -71,8 +71,8 @@ done
 
 # AWS SAM CLI
 while true; do
-    read -rp "Install AWS SAM CLI? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
+    read -rp "Install AWS SAM CLI? [y/N]: " choice
+    choice=${choice:-N}  # Default to N if empty
     case $choice in
         [Yy]*) install_aws_sam_cli=true; break ;;
         [Nn]*) install_aws_sam_cli=false; break ;;
@@ -82,8 +82,8 @@ done
 
 # GitHub CLI
 while true; do
-    read -rp "Install GitHub CLI? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
+    read -rp "Install GitHub CLI? [y/N]: " choice
+    choice=${choice:-N}  # Default to N if empty
     case $choice in
         [Yy]*) install_github_cli=true; break ;;
         [Nn]*) install_github_cli=false; break ;;
@@ -93,8 +93,8 @@ done
 
 # Zig
 while true; do
-    read -rp "Install Zig (required for cargo-lambda)? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
+    read -rp "Install Zig (required for cargo-lambda)? [y/N]: " choice
+    choice=${choice:-N}  # Default to N if empty
     case $choice in
         [Yy]*) install_zig=true; break ;;
         [Nn]*) install_zig=false; break ;;

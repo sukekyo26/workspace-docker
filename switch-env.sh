@@ -100,13 +100,12 @@ if [ -z "$USERNAME_ENV" ]; then
     die "USERNAME is missing from .envs/$container_service_name.env"
 fi
 
-# Default to true if variables are empty (for backward compatibility with older .env files)
-# Note: In newly generated .env files, these should be explicitly set to 'true' or 'false'
-[ -z "$INSTALL_DOCKER" ] && INSTALL_DOCKER=true
-[ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=true
-[ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=true
-[ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=true
-[ -z "$INSTALL_ZIG" ] && INSTALL_ZIG=true
+# Default to false if variables are empty
+[ -z "$INSTALL_DOCKER" ] && INSTALL_DOCKER=false
+[ -z "$INSTALL_AWS_CLI" ] && INSTALL_AWS_CLI=false
+[ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=false
+[ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=false
+[ -z "$INSTALL_ZIG" ] && INSTALL_ZIG=false
 
 # Check for custom CA certificates in certs/ directory
 if has_valid_certificates; then
