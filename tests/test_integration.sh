@@ -154,6 +154,7 @@ test_devcontainer_json_generation() {
 
     sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
         -e "s/{{USERNAME}}/$username/g" \
+        -e "s/{{FORWARD_PORT}}/3000/g" \
         "$WORK_DIR/.devcontainer/devcontainer.json.template" > "$WORK_DIR/.devcontainer/devcontainer.json"
 
     assert_file_exists "devcontainer.json generated" "$WORK_DIR/.devcontainer/devcontainer.json"
@@ -287,6 +288,7 @@ test_e2e_pipeline() {
         # 3. Generate devcontainer.json
         sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
             -e "s/{{USERNAME}}/$username/g" \
+            -e "s/{{FORWARD_PORT}}/3000/g" \
             .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
 
         # 4. Generate .devcontainer/docker-compose.yml

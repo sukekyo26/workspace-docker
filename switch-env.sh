@@ -91,6 +91,7 @@ INSTALL_AWS_CLI=$(read_env_var "INSTALL_AWS_CLI" ".env")
 INSTALL_AWS_SAM_CLI=$(read_env_var "INSTALL_AWS_SAM_CLI" ".env")
 INSTALL_GITHUB_CLI=$(read_env_var "INSTALL_GITHUB_CLI" ".env")
 INSTALL_ZIG=$(read_env_var "INSTALL_ZIG" ".env")
+FORWARD_PORT=$(read_env_var "FORWARD_PORT" ".env")
 
 # Validate extracted variables
 if [ -z "$CONTAINER_SERVICE_NAME" ]; then
@@ -106,6 +107,7 @@ fi
 [ -z "$INSTALL_AWS_SAM_CLI" ] && INSTALL_AWS_SAM_CLI=false
 [ -z "$INSTALL_GITHUB_CLI" ] && INSTALL_GITHUB_CLI=false
 [ -z "$INSTALL_ZIG" ] && INSTALL_ZIG=false
+[ -z "$FORWARD_PORT" ] && FORWARD_PORT=3000
 
 # Check for custom CA certificates in certs/ directory
 if has_valid_certificates; then
@@ -132,6 +134,7 @@ generate_dockerfile_from_template \
 echo "Regenerating .devcontainer/devcontainer.json..."
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
     -e "s/{{USERNAME}}/$USERNAME_ENV/g" \
+    -e "s/{{FORWARD_PORT}}/$FORWARD_PORT/g" \
     .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
 
 echo "Regenerating .devcontainer/docker-compose.yml..."

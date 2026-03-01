@@ -43,7 +43,7 @@ services:
       # .local（永続化）- pipx, uv等のユーザーインストールパッケージ
       - local:/home/${USERNAME}/.local
     ports:
-      - "3000:3000"
+      - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
     tty: true
 
 volumes:

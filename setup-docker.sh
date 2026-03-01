@@ -102,6 +102,18 @@ while true; do
     esac
 done
 
+# Port forwarding
+subsection_header "Port Configuration"
+while true; do
+    read -rp "Forward port [3000]: " forward_port
+    forward_port=${forward_port:-3000}
+    if [[ "$forward_port" =~ ^[0-9]+$ ]] && [ "$forward_port" -ge 1 ] && [ "$forward_port" -le 65535 ]; then
+        break
+    else
+        error "Please enter a valid port number (1-65535)"
+    fi
+done
+
 # Automatically get UID and GID from current user
 uid=$(id -u)
 gid=$(id -g)
@@ -148,6 +160,7 @@ generate_dockerfile_from_template \
 echo "Generating .devcontainer/devcontainer.json..."
 sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
     -e "s/{{USERNAME}}/$username/g" \
+    -e "s/{{FORWARD_PORT}}/$forward_port/g" \
     .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
 
 echo "Generating .devcontainer/docker-compose.yml..."
@@ -175,6 +188,7 @@ INSTALL_AWS_CLI=$install_aws_cli
 INSTALL_AWS_SAM_CLI=$install_aws_sam_cli
 INSTALL_GITHUB_CLI=$install_github_cli
 INSTALL_ZIG=$install_zig
+FORWARD_PORT=$forward_port
 EOF
 
 # Create symlink to .env for docker compose to use
@@ -200,6 +214,8 @@ echo "  - proto: Yes (always installed)"
 [ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
 [ "$install_zig" = true ] && echo "  - Zig: Yes" || echo "  - Zig: No"
 has_valid_certificates && echo "  - Custom CA Certificates: Yes (from certs/)"
+echo ""
+echo "Port forwarding: $forward_port"
 echo ""
 echo "Generated files:"
 echo "  - Dockerfile"
