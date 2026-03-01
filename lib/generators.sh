@@ -1,13 +1,13 @@
 #!/bin/bash
 # Common generator functions for Dockerfile sections
-# This library is shared between setup-docker.sh and switch-env.sh
+# This library is shared between setup-docker.sh and rebuild-container.sh
 
 # Get the directory where this script is located
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load version configuration
-# shellcheck source=versions.conf
-source "$LIB_DIR/versions.conf"
+# Load plugin system
+# shellcheck source=plugin.sh
+source "$LIB_DIR/plugin.sh"
 
 # ============================================================
 # Utility Functions
@@ -111,48 +111,16 @@ detect_docker_gid() {
 # Docker Compose Volume Functions
 # ============================================================
 
-# Generate optional volume mounts and definitions based on tool flags
-# Usage: generate_optional_volumes "install_aws_cli" "install_github_cli"
-# Returns: two variables via global: _OPTIONAL_VOLUME_MOUNTS, _OPTIONAL_VOLUME_DEFINITIONS
-generate_optional_volumes() {
-    local install_aws_cli="$1"
-    local install_github_cli="$2"
-
-    local mounts=""
-    local definitions=""
-
-    if [ "$install_aws_cli" = true ] || [ "$install_aws_cli" = "true" ]; then
-        mounts="${mounts}
-      # AWS（永続化）
-      - aws:/home/\${USERNAME}/.aws"
-        definitions="${definitions}  aws:
-    name: \"\${CONTAINER_SERVICE_NAME}_aws\"
-"
-    fi
-
-    if [ "$install_github_cli" = true ] || [ "$install_github_cli" = "true" ]; then
-        mounts="${mounts}
-      # GitHub CLI（永続化）
-      - gh-config:/home/\${USERNAME}/.config/gh"
-        definitions="${definitions}  gh-config:
-    name: \"\${CONTAINER_SERVICE_NAME}_gh_config\"
-"
-    fi
-
-    _OPTIONAL_VOLUME_MOUNTS="$mounts"
-    _OPTIONAL_VOLUME_DEFINITIONS="$definitions"
-}
-
-# Generate docker-compose.yml from template with conditional volumes
-# Usage: generate_compose_from_template "template" "output" "service_name" "install_aws_cli" "install_github_cli"
+# Generate docker-compose.yml from template with plugin-based volumes
+# Usage: generate_compose_from_template "template" "output" "service_name" "workspace_toml"
 generate_compose_from_template() {
     local template_file="$1"
     local output_file="$2"
     local service_name="$3"
-    local install_aws_cli="$4"
-    local install_github_cli="$5"
+    local workspace_toml="$4"
 
-    generate_optional_volumes "$install_aws_cli" "$install_github_cli"
+    load_workspace_config "$workspace_toml"
+    generate_plugin_volumes "${WS_PLUGINS[@]}"
 
     awk -v service_name="$service_name" \
         -v vol_mounts="$_OPTIONAL_VOLUME_MOUNTS" \
@@ -327,151 +295,25 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 EOF
 }
 
-# Function to generate Docker CLI installation section
-generate_docker_install() {
-    if [ "$1" = true ]; then
-        cat << 'EOF'
-# Install Docker CLI (client only, to use host Docker daemon via socket mount)
-USER root
-RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-    > /etc/apt/sources.list.d/docker.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    groupadd -f docker && \
-    usermod -aG docker ${USERNAME}
-
-USER ${USERNAME}
-EOF
-    else
-        echo ""
-    fi
-}
-
-# Function to generate AWS CLI installation section
-generate_aws_cli_install() {
-    if [ "$1" = true ]; then
-        cat << 'EOF'
-# Install AWS CLI v2
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    sudo ./aws/install && \
-    rm -rf aws awscliv2.zip && \
-    mkdir -p ~/.aws
-EOF
-    else
-        echo ""
-    fi
-}
-
-# Function to generate AWS SAM CLI installation section
-generate_aws_sam_cli_install() {
-    if [ "$1" = true ]; then
-        cat << 'EOF'
-# Install AWS SAM CLI
-RUN ARCH="$(dpkg --print-architecture)" && \
-    case "$ARCH" in \
-        amd64) DOWNLOAD_ARCH="x86_64" ;; \
-        arm64) DOWNLOAD_ARCH="aarch64" ;; \
-        *) DOWNLOAD_ARCH="x86_64" ;; \
-    esac && \
-    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -L "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
-    unzip aws-sam-cli.zip -d sam-installation && \
-    sudo ./sam-installation/install && \
-    rm -rf sam-installation aws-sam-cli.zip
-EOF
-    else
-        echo ""
-    fi
-}
-
-# Function to generate GitHub CLI installation section
-generate_github_cli_install() {
-    if [ "$1" = true ]; then
-        cat << 'EOF'
-# Install GitHub CLI
-USER root
-RUN mkdir -p -m 755 /etc/apt/keyrings && \
-    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
-    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends gh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-USER ${USERNAME}
-RUN mkdir -p ~/.config/gh
-EOF
-    else
-        echo ""
-    fi
-}
-
-# Function to generate Zig installation section
-generate_zig_install() {
-    if [ "$1" = true ]; then
-        cat << EOF
-# Install Zig (required for cargo-lambda cross-compilation)
-USER root
-RUN ARCH="\$(dpkg --print-architecture)" && \\
-    case "\$ARCH" in \\
-        amd64) DOWNLOAD_ARCH="x86_64" ;; \\
-        arm64) DOWNLOAD_ARCH="aarch64" ;; \\
-        *) DOWNLOAD_ARCH="x86_64" ;; \\
-    esac && \\
-    echo "Detected architecture: \$ARCH -> \$DOWNLOAD_ARCH" && \\
-    curl -fsSL "https://ziglang.org/builds/zig-\${DOWNLOAD_ARCH}-linux-${ZIG_VERSION}.tar.xz" -o /tmp/zig.tar.xz && \\
-    mkdir -p /usr/local/zig && \\
-    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \\
-    ln -s /usr/local/zig/zig /usr/local/bin/zig && \\
-    rm /tmp/zig.tar.xz
-USER \${USERNAME}
-EOF
-    else
-        echo ""
-    fi
-}
-
-# Function to generate Dockerfile from custom template
+# Function to generate Dockerfile from template using plugin system
+# Usage: generate_dockerfile_from_template "template" "output" "workspace_toml"
 generate_dockerfile_from_template() {
     local template_file="$1"
     local output_file="$2"
-    local install_docker="$3"
-    local install_aws_cli="$4"
-    local install_aws_sam_cli="$5"
-    local install_github_cli="$6"
-    local install_zig="$7"
+    local workspace_toml="$3"
 
-    local docker_install
-    local aws_cli_install
-    local aws_sam_cli_install
-    local github_cli_install
-    local zig_install
+    load_workspace_config "$workspace_toml"
+
+    local plugin_installs
+    plugin_installs=$(generate_plugin_installs "${WS_PLUGINS[@]}")
+
     local certificate_install
-
-    docker_install=$(generate_docker_install "$install_docker")
-    aws_cli_install=$(generate_aws_cli_install "$install_aws_cli")
-    aws_sam_cli_install=$(generate_aws_sam_cli_install "$install_aws_sam_cli")
-    github_cli_install=$(generate_github_cli_install "$install_github_cli")
-    zig_install=$(generate_zig_install "$install_zig")
     certificate_install=$(generate_certificate_install)
 
-    # Use awk for better multiline handling
-    awk -v docker_inst="$docker_install" \
-        -v aws_inst="$aws_cli_install" \
-        -v aws_sam_inst="$aws_sam_cli_install" \
-        -v github_inst="$github_cli_install" \
-        -v zig_inst="$zig_install" \
+    # Use awk for multiline placeholder replacement
+    awk -v plugin_inst="$plugin_installs" \
         -v cert_inst="$certificate_install" '
-        /{{DOCKER_INSTALL}}/ { print docker_inst; next }
-        /{{AWS_CLI_INSTALL}}/ { print aws_inst; next }
-        /{{AWS_SAM_CLI_INSTALL}}/ { print aws_sam_inst; next }
-        /{{GITHUB_CLI_INSTALL}}/ { print github_inst; next }
-        /{{ZIG_INSTALL}}/ { print zig_inst; next }
+        /{{PLUGIN_INSTALLS}}/ { print plugin_inst; next }
         /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
         { print }
     ' "$template_file" > "$output_file"
