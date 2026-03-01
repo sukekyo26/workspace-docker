@@ -167,8 +167,7 @@ If you're working in an environment with SSL/TLS inspection (corporate proxy, VP
 
 3. **Rebuild the container**:
    ```bash
-   docker compose build --no-cache
-   docker compose up -d
+   bash rebuild-container.sh
    ```
 
 #### Certificate Requirements
@@ -200,7 +199,7 @@ Certificate files (`.crt`, `.pem`) in the `certs/` directory are excluded from g
 #### Method 1: VS Code Dev Container (Recommended)
 
 **For single project:**
-1. Open this folder in VS Code
+1. Open this folder in VS Code (on WSL/SSH/EC2, open via Remote extension)
 2. Run command `Dev Containers: Open Folder in Container` (Ctrl+Shift+P)
 3. Container automatically builds, starts, and connects
 
@@ -221,7 +220,7 @@ This will open all projects as separate workspace folders, each with independent
 
 See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
 
-#### Method 2: Docker Compose
+#### Method 2: Docker Compose (Manual)
 
 ```bash
 # Build image
@@ -634,10 +633,7 @@ bash switch-env.sh <environment-name>
 docker compose down
 
 # Rebuild without cache (important!)
-docker compose build --no-cache
-
-# Start with new configuration
-docker compose up -d
+bash rebuild-container.sh
 ```
 
 #### Reason
@@ -702,8 +698,17 @@ docker compose stats
 
 ### Complete Rebuild
 
+Using `rebuild-container.sh` (recommended):
+
 ```bash
-# Complete rebuild after environment changes
+bash rebuild-container.sh
+```
+
+This runs `devcontainer up --build-no-cache --remove-existing-container`, which handles devcontainer.json features, VS Code extension settings, and Docker image rebuild in one step.
+
+Or manually with Docker Compose:
+
+```bash
 docker compose down --volumes
 docker compose build --no-cache
 docker compose up -d
@@ -781,6 +786,7 @@ Tests display results with color output and return exit code 1 if any test fails
 ### Core Scripts
 - `setup-docker.sh` - Interactive setup script for tool selection
 - `switch-env.sh` - Environment switching script
+- `rebuild-container.sh` - No-cache rebuild of Dev Container image using devcontainer CLI
 - `test.sh` - Comprehensive test script
 - `generate-workspace.sh` - Multi-root workspace generator
 
@@ -795,6 +801,7 @@ Tests display results with color output and return exit code 1 if any test fails
 - `lib/generators.sh` - Shared template generation functions
 - `lib/validators.sh` - Input validation library (service names, usernames, boolean values)
 - `lib/errors.sh` - Error handling and messaging library
+- `lib/devcontainer.sh` - devcontainer CLI prerequisite checks and WSL-compatible wrapper
 
 ### CI/CD
 - `.github/workflows/ci.yml` - GitHub Actions workflow for automated testing and validation

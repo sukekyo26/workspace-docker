@@ -3,7 +3,7 @@
 /docker-compose.yml
 /.devcontainer/devcontainer.json
 /.devcontainer/docker-compose.yml
-multi-project.code-workspace
+*.code-workspace
 
 # Environment files
 .env
