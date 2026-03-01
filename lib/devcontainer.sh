@@ -52,7 +52,11 @@ check_devcontainer_cli() {
 
         if command -v curl &> /dev/null; then
             echo -e "    ${_DC_CYAN}→ インストール中...${_DC_NC}"
-            curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh
+            local install_script
+            install_script=$(mktemp)
+            curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"
+            sh "$install_script"
+            rm -f "$install_script"
             echo -e "  ${_DC_GREEN}✓${_DC_NC} devcontainer CLI をインストールしました"
         else
             echo -e "  ${_DC_RED}✗${_DC_NC} curl が見つかりません"
