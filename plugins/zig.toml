@@ -1,0 +1,27 @@
+[metadata]
+name = "Zig"
+description = "Zig programming language (required for cargo-lambda cross-compilation)"
+default = false
+
+[install]
+requires_root = true
+dockerfile = '''
+# Install Zig (required for cargo-lambda cross-compilation)
+USER root
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -fsSL "https://ziglang.org/builds/zig-${DOWNLOAD_ARCH}-linux-{{VERSION}}.tar.xz" -o /tmp/zig.tar.xz && \
+    mkdir -p /usr/local/zig && \
+    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
+    ln -s /usr/local/zig/zig /usr/local/bin/zig && \
+    rm /tmp/zig.tar.xz
+USER ${USERNAME}
+'''
+
+[version]
+pin = "0.14.0"
