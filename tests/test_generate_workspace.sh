@@ -288,6 +288,155 @@ test_existing_workspaces() {
 }
 
 # ============================================================
+# Test: Copilot settings generation
+# ============================================================
+test_copilot_settings_generation() {
+    section "Copilot settings generation"
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    # _gen_copilot: generate_workspace_file logic with copilot support
+    _gen_copilot() {
+        local output_file="$1"
+        local parent_dir="$2"
+        local primary_copilot="$3"
+        shift 3
+        local folders=("$@")
+
+        {
+            printf '{\n'
+            printf '\t"folders": [\n'
+            local i=0 count=${#folders[@]}
+            for folder in "${folders[@]}"; do
+                i=$((i + 1))
+                local comma=""; [[ "$i" -lt "$count" ]] && comma=","
+                printf '\t\t{\n\t\t\t"name": "%s",\n\t\t\t"path": "../../%s"\n\t\t}%s\n' "$folder" "$folder" "$comma"
+            done
+            printf '\t],\n\t"settings": {\n'
+            printf '\t\t"files.autoSave": "afterDelay",\n'
+
+            if [[ -n "$primary_copilot" ]]; then
+                printf '\t\t"editor.formatOnSave": true,\n'
+                printf '\t\t"chat.instructionsFilesLocations": {\n'
+
+                local copilot_entries=()
+                for folder in "${folders[@]}"; do
+                    if [[ -d "$parent_dir/$folder/.github" ]]; then
+                        if [[ "$folder" == "$primary_copilot" ]]; then
+                            copilot_entries+=("$folder:true")
+                        else
+                            copilot_entries+=("$folder:false")
+                        fi
+                    fi
+                done
+
+                local entry_count=${#copilot_entries[@]}
+                local total_lines=$((entry_count * 2))
+                local line_i=0
+                local entry
+                for entry in "${copilot_entries[@]}"; do
+                    local entry_folder="${entry%%:*}"
+                    local entry_value="${entry##*:}"
+                    line_i=$((line_i + 1))
+                    local comma1=","
+                    printf '\t\t\t"./%s/.github": %s%s\n' "$entry_folder" "$entry_value" "$comma1"
+                    line_i=$((line_i + 1))
+                    local comma2=","
+                    if [[ "$line_i" -ge "$total_lines" ]]; then
+                        comma2=""
+                    fi
+                    printf '\t\t\t"./%s/.github/instructions": %s%s\n' "$entry_folder" "$entry_value" "$comma2"
+                done
+
+                printf '\t\t}\n'
+            else
+                printf '\t\t"editor.formatOnSave": true\n'
+            fi
+            printf '\t}\n}\n'
+        } > "$output_file"
+    }
+
+    # Setup: create mock folders with .github
+    mkdir -p "$tmpdir/parent/proj-a/.github"
+    mkdir -p "$tmpdir/parent/proj-b/.github"
+    mkdir -p "$tmpdir/parent/proj-c"  # no .github
+
+    # Case 1: No copilot primary => no instructionsFilesLocations
+    _gen_copilot "$tmpdir/no-copilot.code-workspace" "$tmpdir/parent" "" "proj-a" "proj-b"
+    assert_file_not_contains "no primary => no instructionsFilesLocations" \
+        "$tmpdir/no-copilot.code-workspace" "instructionsFilesLocations"
+
+    if command -v jq &>/dev/null; then
+        local valid
+        valid=$(jq '.' "$tmpdir/no-copilot.code-workspace" >/dev/null 2>&1 && echo "valid" || echo "invalid")
+        assert_eq "no primary => valid JSON" "valid" "$valid"
+    fi
+
+    # Case 2: With copilot primary => proj-a true, proj-b false
+    _gen_copilot "$tmpdir/with-copilot.code-workspace" "$tmpdir/parent" "proj-a" "proj-a" "proj-b" "proj-c"
+    assert_file_contains "primary set => has instructionsFilesLocations" \
+        "$tmpdir/with-copilot.code-workspace" "instructionsFilesLocations"
+    assert_file_contains "proj-a .github is true" \
+        "$tmpdir/with-copilot.code-workspace" 'proj-a/\.github": true'
+    assert_file_contains "proj-a .github/instructions is true" \
+        "$tmpdir/with-copilot.code-workspace" 'proj-a/\.github/instructions": true'
+    assert_file_contains "proj-b .github is false" \
+        "$tmpdir/with-copilot.code-workspace" 'proj-b/\.github": false'
+    assert_file_contains "proj-b .github/instructions is false" \
+        "$tmpdir/with-copilot.code-workspace" 'proj-b/\.github/instructions": false'
+    assert_file_not_contains "proj-c (no .github) not included" \
+        "$tmpdir/with-copilot.code-workspace" 'proj-c/\.github'
+
+    if command -v jq &>/dev/null; then
+        valid=$(jq '.' "$tmpdir/with-copilot.code-workspace" >/dev/null 2>&1 && echo "valid" || echo "invalid")
+        assert_eq "copilot settings => valid JSON" "valid" "$valid"
+    fi
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: Copilot folder detection logic
+# ============================================================
+test_copilot_folder_detection() {
+    section "Copilot folder detection"
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    # Setup mock folders
+    mkdir -p "$tmpdir/proj-a/.github"
+    mkdir -p "$tmpdir/proj-b/.github"
+    mkdir -p "$tmpdir/proj-c"
+
+    # Detection logic (mirrors select_copilot_primary)
+    _detect() {
+        local parent_dir="$1"; shift
+        local folders=("$@")
+        local copilot_folders=()
+        for folder in "${folders[@]}"; do
+            if [[ -d "$parent_dir/$folder/.github" ]]; then
+                copilot_folders+=("$folder")
+            fi
+        done
+        echo "${#copilot_folders[@]}"
+    }
+
+    local count
+    count=$(_detect "$tmpdir" "proj-a" "proj-b" "proj-c")
+    assert_eq "2 of 3 folders have .github" "2" "$count"
+
+    count=$(_detect "$tmpdir" "proj-a" "proj-c")
+    assert_eq "1 of 2 folders have .github" "1" "$count"
+
+    count=$(_detect "$tmpdir" "proj-c")
+    assert_eq "0 of 1 folders have .github" "0" "$count"
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -299,5 +448,7 @@ test_workspace_file_generation
 test_get_available_dirs
 test_no_set_e
 test_existing_workspaces
+test_copilot_settings_generation
+test_copilot_folder_detection
 
 print_summary
