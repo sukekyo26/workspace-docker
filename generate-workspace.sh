@@ -40,7 +40,6 @@ readonly NC='\033[0m'
 # TUI結果を受け渡すためのグローバル変数（サブシェル回避）
 TUI_SINGLE_RESULT=""
 TUI_MULTI_RESULT=()
-PRIMARY_COPILOT_FOLDER=""
 
 # カーソル復元
 cleanup() {
@@ -367,37 +366,6 @@ interactive_select_folders() {
     done
 }
 
-# Copilot 指示ファイルの優先フォルダを選択
-# 複数フォルダに .github がある場合のみ対話的に選択する
-# 結果: PRIMARY_COPILOT_FOLDER にフォルダ名を格納
-select_copilot_primary() {
-    local folders=("$@")
-
-    # .github を持つフォルダを検出
-    local copilot_folders=()
-    local folder
-    for folder in "${folders[@]}"; do
-        if [[ -d "$PARENT_DIR/$folder/.github" ]]; then
-            copilot_folders+=("$folder")
-        fi
-    done
-
-    if [[ ${#copilot_folders[@]} -le 1 ]]; then
-        # 0〜1 フォルダ — 競合なし
-        PRIMARY_COPILOT_FOLDER=""
-        return
-    fi
-
-    # 複数フォルダに .github が存在 — ユーザーに選択させる
-    echo "" >&2
-    echo -e "${YELLOW}⚠ 複数のフォルダに .github/ が検出されました${NC}" >&2
-    echo -e "${DIM}マルチルートワークスペースでは chat.instructionsFilesLocations で制御できます${NC}" >&2
-    echo "" >&2
-
-    select_single "${BOLD}Copilot 指示ファイルを有効にするフォルダを選択:${NC}" "${copilot_folders[@]}"
-    PRIMARY_COPILOT_FOLDER="${copilot_folders[$TUI_SINGLE_RESULT]}"
-}
-
 # ワークスペースファイル生成
 generate_workspace_file() {
     local output_file="$1"
@@ -427,45 +395,7 @@ generate_workspace_file() {
         printf '\t"settings": {\n'
         printf '\t\t// Add global settings here\n'
         printf '\t\t"files.autoSave": "afterDelay",\n'
-
-        if [[ -n "$PRIMARY_COPILOT_FOLDER" ]]; then
-            printf '\t\t"editor.formatOnSave": true,\n'
-            printf '\t\t"chat.instructionsFilesLocations": {\n'
-
-            # .github を持つフォルダのエントリを生成
-            local copilot_entries=()
-            for folder in "${folders[@]}"; do
-                if [[ -d "$PARENT_DIR/$folder/.github" ]]; then
-                    if [[ "$folder" == "$PRIMARY_COPILOT_FOLDER" ]]; then
-                        copilot_entries+=("$folder:true")
-                    else
-                        copilot_entries+=("$folder:false")
-                    fi
-                fi
-            done
-
-            local entry_count=${#copilot_entries[@]}
-            local total_lines=$((entry_count * 2))  # .github + .github/instructions per entry
-            local line_i=0
-            local entry
-            for entry in "${copilot_entries[@]}"; do
-                local entry_folder="${entry%%:*}"
-                local entry_value="${entry##*:}"
-                line_i=$((line_i + 1))
-                local comma1=","
-                printf '\t\t\t"./%s/.github": %s%s\n' "$entry_folder" "$entry_value" "$comma1"
-                line_i=$((line_i + 1))
-                local comma2=","
-                if [[ "$line_i" -ge "$total_lines" ]]; then
-                    comma2=""
-                fi
-                printf '\t\t\t"./%s/.github/instructions": %s%s\n' "$entry_folder" "$entry_value" "$comma2"
-            done
-
-            printf '\t\t}\n'
-        else
-            printf '\t\t"editor.formatOnSave": true\n'
-        fi
+        printf '\t\t"editor.formatOnSave": true\n'
         printf '\t}\n'
         printf '}\n'
     } > "$output_file"
@@ -478,10 +408,6 @@ generate_workspace_file() {
     for folder in "${folders[@]}"; do
         echo "  - $folder" >&2
     done
-    if [[ -n "$PRIMARY_COPILOT_FOLDER" ]]; then
-        echo "" >&2
-        echo -e "Copilot 指示ファイル: ${BOLD}${PRIMARY_COPILOT_FOLDER}${NC} (他のフォルダは無効化)" >&2
-    fi
 }
 
 # ファイル名入力（空入力時はループ）
@@ -564,14 +490,12 @@ main() {
 
                 echo "" >&2
                 interactive_select_folders "$output_path"
-                select_copilot_primary "${SELECTED_FOLDERS[@]}"
                 generate_workspace_file "$output_path" "${SELECTED_FOLDERS[@]}"
                 ;;
             1)
                 # === 新規作成 ===
                 echo "" >&2
                 interactive_select_folders
-                select_copilot_primary "${SELECTED_FOLDERS[@]}"
                 create_new_workspace "${SELECTED_FOLDERS[@]}"
                 ;;
         esac
@@ -581,7 +505,6 @@ main() {
         echo "" >&2
 
         interactive_select_folders
-        select_copilot_primary "${SELECTED_FOLDERS[@]}"
         create_new_workspace "${SELECTED_FOLDERS[@]}"
     fi
 }
