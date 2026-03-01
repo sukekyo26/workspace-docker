@@ -49,6 +49,19 @@ test_template_usage() {
 }
 
 # ============================================================
+# Test: Plugin-based architecture
+# ============================================================
+test_plugin_architecture() {
+    section "Plugin-based architecture"
+
+    assert_file_contains "checks python3 prerequisite" "$SCRIPT" 'check_python3'
+    assert_file_contains "uses workspace.toml" "$SCRIPT" 'workspace.toml'
+    assert_file_contains "loads workspace config" "$SCRIPT" 'load_workspace_config'
+    assert_file_contains "lists available plugins" "$SCRIPT" 'list_available_plugins'
+    assert_file_contains "supports --init flag" "$SCRIPT" '\-\-init'
+}
+
+# ============================================================
 # Test: User input prompts
 # ============================================================
 test_user_inputs() {
@@ -56,11 +69,7 @@ test_user_inputs() {
 
     assert_file_contains "prompts for service name" "$SCRIPT" 'container_service_name'
     assert_file_contains "prompts for username" "$SCRIPT" 'username'
-    assert_file_contains "prompts for Docker CLI" "$SCRIPT" 'Install Docker CLI'
-    assert_file_contains "prompts for AWS CLI" "$SCRIPT" 'Install AWS CLI'
-    assert_file_contains "prompts for AWS SAM CLI" "$SCRIPT" 'Install AWS SAM CLI'
-    assert_file_contains "prompts for GitHub CLI" "$SCRIPT" 'Install GitHub CLI'
-    assert_file_contains "prompts for Zig" "$SCRIPT" 'Install Zig'
+    assert_file_contains "prompts for port" "$SCRIPT" 'forward_port'
 }
 
 # ============================================================
@@ -75,15 +84,26 @@ test_auto_detection() {
 }
 
 # ============================================================
-# Test: .env generation
+# Test: .env generation (direct file, no symlink)
 # ============================================================
 test_env_generation() {
     section ".env generation"
 
-    assert_file_contains "creates .envs directory" "$SCRIPT" 'mkdir -p .envs'
-    assert_file_contains "generates .env file" "$SCRIPT" '\.envs/.*\.env'
-    assert_file_contains "creates symlink" "$SCRIPT" 'ln -sf'
-    assert_file_contains "validates symlink" "$SCRIPT" 'validate_symlink'
+    assert_file_contains "generates .env file" "$SCRIPT" 'cat > ".env"'
+    assert_file_not_contains "no .envs directory" "$SCRIPT" 'mkdir -p .envs'
+    assert_file_not_contains "no symlink creation" "$SCRIPT" 'ln -sf'
+}
+
+# ============================================================
+# Test: workspace.toml generation
+# ============================================================
+test_workspace_toml_generation() {
+    section "workspace.toml generation"
+
+    assert_file_contains "generates workspace.toml" "$SCRIPT" 'cat > "$WORKSPACE_TOML"'
+    assert_file_contains "contains service_name field" "$SCRIPT" 'service_name'
+    assert_file_contains "contains username field" "$SCRIPT" 'username'
+    assert_file_contains "contains plugins.enable" "$SCRIPT" 'plugins_toml'
 }
 
 # ============================================================
@@ -114,9 +134,11 @@ test_shellcheck() {
 test_script_basics
 test_library_sourcing
 test_template_usage
+test_plugin_architecture
 test_user_inputs
 test_auto_detection
 test_env_generation
+test_workspace_toml_generation
 test_shellcheck
 
 print_summary

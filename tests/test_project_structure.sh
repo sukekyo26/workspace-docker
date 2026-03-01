@@ -28,8 +28,11 @@ test_required_files() {
     assert_dir_exists "certs/ directory" "$PROJECT_ROOT/certs"
     assert_dir_exists "config/ directory" "$PROJECT_ROOT/config"
     assert_dir_exists "lib/ directory" "$PROJECT_ROOT/lib"
+    assert_dir_exists "plugins/ directory" "$PROJECT_ROOT/plugins"
     assert_dir_exists "workspaces/ directory" "$PROJECT_ROOT/workspaces"
     assert_file_exists "workspaces/.gitkeep" "$PROJECT_ROOT/workspaces/.gitkeep"
+    assert_file_exists "lib/toml_parser.py" "$PROJECT_ROOT/lib/toml_parser.py"
+    assert_file_exists "lib/plugin.sh" "$PROJECT_ROOT/lib/plugin.sh"
 }
 
 # ============================================================
@@ -41,7 +44,6 @@ test_scripts_executable() {
     local scripts=(
         "generate-workspace.sh"
         "setup-docker.sh"
-        "switch-env.sh"
         "rebuild-container.sh"
         "test.sh"
     )
@@ -65,13 +67,13 @@ test_syntax_check() {
     local scripts=(
         "generate-workspace.sh"
         "setup-docker.sh"
-        "switch-env.sh"
         "rebuild-container.sh"
         "test.sh"
         "lib/generators.sh"
         "lib/validators.sh"
         "lib/errors.sh"
         "lib/devcontainer.sh"
+        "lib/plugin.sh"
     )
 
     for script in "${scripts[@]}"; do
@@ -94,10 +96,7 @@ test_template_placeholders() {
 
     tmpl="$PROJECT_ROOT/Dockerfile.template"
     if [[ -f "$tmpl" ]]; then
-        assert_file_contains "Dockerfile.template: {{DOCKER_INSTALL}}" "$tmpl" '{{DOCKER_INSTALL}}'
-        assert_file_contains "Dockerfile.template: {{AWS_CLI_INSTALL}}" "$tmpl" '{{AWS_CLI_INSTALL}}'
-        assert_file_contains "Dockerfile.template: {{GITHUB_CLI_INSTALL}}" "$tmpl" '{{GITHUB_CLI_INSTALL}}'
-        assert_file_contains "Dockerfile.template: {{ZIG_INSTALL}}" "$tmpl" '{{ZIG_INSTALL}}'
+        assert_file_contains "Dockerfile.template: {{PLUGIN_INSTALLS}}" "$tmpl" '{{PLUGIN_INSTALLS}}'
         assert_file_contains "Dockerfile.template: {{CUSTOM_CERTIFICATES}}" "$tmpl" '{{CUSTOM_CERTIFICATES}}'
     fi
 
@@ -124,6 +123,7 @@ test_gitignore() {
     assert_file_contains "ignores docker-compose.yml" "$gi" 'docker-compose.yml'
     assert_file_contains "ignores .env" "$gi" '\.env'
     assert_file_contains "ignores .code-workspace" "$gi" '\.code-workspace'
+    assert_file_contains "ignores workspace.toml" "$gi" 'workspace.toml'
     assert_file_contains "ignores certs" "$gi" 'certs/'
 }
 
@@ -152,31 +152,32 @@ test_docker_prerequisites() {
 test_generated_files() {
     section "Generated files (if setup done)"
 
-    if [[ -L "$PROJECT_ROOT/.env" && -e "$PROJECT_ROOT/.env" ]]; then
-        assert_file_exists "Dockerfile" "$PROJECT_ROOT/Dockerfile"
-        assert_file_exists "docker-compose.yml" "$PROJECT_ROOT/docker-compose.yml"
-        assert_file_exists ".devcontainer/devcontainer.json" "$PROJECT_ROOT/.devcontainer/devcontainer.json"
+    if [[ ! -f "$PROJECT_ROOT/workspace.toml" ]]; then
+        skip_test "generated files check" "setup-docker.sh has not been run"
+        return
+    fi
 
-        # Check no unreplaced placeholders
-        if [[ -f "$PROJECT_ROOT/Dockerfile" ]]; then
-            assert_file_not_contains "Dockerfile: no unreplaced {{...}}" "$PROJECT_ROOT/Dockerfile" '{{.*}}'
-        fi
-        if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
-            assert_file_not_contains "docker-compose.yml: no unreplaced {{...}}" "$PROJECT_ROOT/docker-compose.yml" '{{.*}}'
-        fi
+    assert_file_exists "Dockerfile" "$PROJECT_ROOT/Dockerfile"
+    assert_file_exists "docker-compose.yml" "$PROJECT_ROOT/docker-compose.yml"
+    assert_file_exists ".devcontainer/devcontainer.json" "$PROJECT_ROOT/.devcontainer/devcontainer.json"
 
-        # docker-compose.yml syntax validation
-        if command -v docker &>/dev/null && docker compose version &>/dev/null 2>&1; then
-            if docker compose -f "$PROJECT_ROOT/docker-compose.yml" config &>/dev/null; then
-                assert_true "docker-compose.yml syntax is valid" true
-            else
-                assert_true "docker-compose.yml syntax is valid" false
-            fi
+    # Check no unreplaced placeholders
+    if [[ -f "$PROJECT_ROOT/Dockerfile" ]]; then
+        assert_file_not_contains "Dockerfile: no unreplaced {{...}}" "$PROJECT_ROOT/Dockerfile" '{{.*}}'
+    fi
+    if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
+        assert_file_not_contains "docker-compose.yml: no unreplaced {{...}}" "$PROJECT_ROOT/docker-compose.yml" '{{.*}}'
+    fi
+
+    # docker-compose.yml syntax validation
+    if command -v docker &>/dev/null && docker compose version &>/dev/null 2>&1; then
+        if docker compose -f "$PROJECT_ROOT/docker-compose.yml" config &>/dev/null; then
+            assert_true "docker-compose.yml syntax is valid" true
         else
-            skip_test "docker-compose.yml syntax validation" "docker compose not available"
+            assert_true "docker-compose.yml syntax is valid" false
         fi
     else
-        skip_test "generated files check" "setup-docker.sh has not been run"
+        skip_test "docker-compose.yml syntax validation" "docker compose not available"
     fi
 }
 
@@ -186,32 +187,16 @@ test_generated_files() {
 test_env_format() {
     section "Environment file format"
 
-    if [[ ! -d "$PROJECT_ROOT/.envs" ]]; then
-        skip_test "env file format" ".envs directory not found"
+    if [[ ! -f "$PROJECT_ROOT/.env" ]]; then
+        skip_test "env file format" ".env file not found (setup not run)"
         return
     fi
 
-    shopt -s nullglob
-    local env_files=("$PROJECT_ROOT"/.envs/*.env)
-    shopt -u nullglob
+    local env_file="$PROJECT_ROOT/.env"
+    local required_vars=(CONTAINER_SERVICE_NAME USERNAME UID GID DOCKER_GID UBUNTU_VERSION FORWARD_PORT)
 
-    if [[ ${#env_files[@]} -eq 0 ]]; then
-        skip_test "env file format" "no .env files found"
-        return
-    fi
-
-    local required_vars=(CONTAINER_SERVICE_NAME USERNAME UID GID DOCKER_GID)
-    local tool_vars=(INSTALL_DOCKER INSTALL_AWS_CLI INSTALL_AWS_SAM_CLI INSTALL_GITHUB_CLI INSTALL_ZIG)
-
-    for env_file in "${env_files[@]}"; do
-        local name
-        name=$(basename "$env_file")
-        for var in "${required_vars[@]}"; do
-            assert_file_contains "$name has $var" "$env_file" "^${var}="
-        done
-        for var in "${tool_vars[@]}"; do
-            assert_file_contains "$name has $var" "$env_file" "^${var}="
-        done
+    for var in "${required_vars[@]}"; do
+        assert_file_contains ".env has $var" "$env_file" "^${var}="
     done
 }
 
@@ -221,7 +206,7 @@ test_env_format() {
 test_volume_mounts() {
     section "Volume mount points"
 
-    if [[ ! -f "$PROJECT_ROOT/Dockerfile" || ! -L "$PROJECT_ROOT/.env" ]]; then
+    if [[ ! -f "$PROJECT_ROOT/Dockerfile" || ! -f "$PROJECT_ROOT/workspace.toml" ]]; then
         skip_test "volume mount points" "setup-docker.sh has not been run"
         return
     fi

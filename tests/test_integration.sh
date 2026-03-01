@@ -27,6 +27,8 @@ setup_workspace() {
     cp "$PROJECT_ROOT/.devcontainer/docker-compose.yml.template" "$WORK_DIR/.devcontainer/"
     # Copy libs
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
+    # Copy plugins
+    cp -r "$PROJECT_ROOT/plugins" "$WORK_DIR/"
     # Copy certs dir (may be empty)
     cp -r "$PROJECT_ROOT/certs" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/certs"
 }
@@ -36,21 +38,50 @@ teardown_workspace() {
     WORK_DIR=""
 }
 
+# Helper: create a workspace.toml for testing
+create_test_workspace_toml() {
+    local dir="$1"
+    local service_name="$2"
+    local username="$3"
+    shift 3
+    local plugins=("$@")
+
+    local plugins_toml="["
+    for ((i = 0; i < ${#plugins[@]}; i++)); do
+        if [[ $i -gt 0 ]]; then plugins_toml+=", "; fi
+        plugins_toml+="\"${plugins[$i]}\""
+    done
+    plugins_toml+="]"
+
+    cat > "$dir/workspace.toml" << EOF
+[container]
+service_name = "$service_name"
+username = "$username"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = $plugins_toml
+
+[ports]
+forward = [3000]
+EOF
+}
+
 # ============================================================
-# Test: Dockerfile generation — all tools enabled
+# Test: Dockerfile generation — all plugins enabled
 # ============================================================
 test_dockerfile_all_enabled() {
-    section "Dockerfile generation (all enabled)"
+    section "Dockerfile generation (all plugins)"
 
     setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "test-svc" "testuser" \
+        "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "zig"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-
         generate_dockerfile_from_template \
-            "Dockerfile.template" \
-            "Dockerfile" \
-            "true" "true" "true" "true" "true"
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
@@ -66,30 +97,28 @@ test_dockerfile_all_enabled() {
 }
 
 # ============================================================
-# Test: Dockerfile generation — all tools disabled
+# Test: Dockerfile generation — no plugins enabled
 # ============================================================
-test_dockerfile_all_disabled() {
-    section "Dockerfile generation (all disabled)"
+test_dockerfile_no_plugins() {
+    section "Dockerfile generation (no plugins)"
 
     setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "test-svc" "testuser"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-
         generate_dockerfile_from_template \
-            "Dockerfile.template" \
-            "Dockerfile" \
-            "false" "false" "false" "false" "false"
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
     assert_file_not_contains "no unreplaced placeholders" "$WORK_DIR/Dockerfile" '{{.*}}'
     assert_file_not_contains "Docker CLI absent" "$WORK_DIR/Dockerfile" 'Install Docker CLI'
     assert_file_not_contains "AWS CLI absent" "$WORK_DIR/Dockerfile" 'Install AWS CLI'
-    assert_file_not_contains "AWS SAM CLI absent" "$WORK_DIR/Dockerfile" 'Install AWS SAM CLI'
     assert_file_not_contains "GitHub CLI absent" "$WORK_DIR/Dockerfile" 'Install GitHub CLI'
     assert_file_not_contains "Zig absent" "$WORK_DIR/Dockerfile" 'Install Zig'
-    # proto is always installed
+    # proto is always installed (in the template itself)
     assert_file_contains "proto still present" "$WORK_DIR/Dockerfile" 'proto'
 
     teardown_workspace
@@ -102,14 +131,14 @@ test_dockerfile_partial() {
     section "Dockerfile generation (partial)"
 
     setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "test-svc" "testuser" \
+        "docker-cli" "github-cli"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-
         generate_dockerfile_from_template \
-            "Dockerfile.template" \
-            "Dockerfile" \
-            "true" "false" "false" "true" "false"
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
@@ -130,15 +159,15 @@ test_docker_compose_generation() {
 
     setup_workspace
     local service_name="test-service"
+    create_test_workspace_toml "$WORK_DIR" "$service_name" "testuser" \
+        "aws-cli" "github-cli"
 
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_compose_from_template \
-            "docker-compose.yml.template" \
-            "docker-compose.yml" \
-            "$service_name" \
-            "true" "true"
+            "docker-compose.yml.template" "docker-compose.yml" \
+            "$service_name" "workspace.toml"
     )
 
     assert_file_exists "docker-compose.yml generated" "$WORK_DIR/docker-compose.yml"
@@ -214,68 +243,29 @@ test_env_roundtrip() {
 
     local service_name="roundtrip-svc"
     local username="testuser"
-    local uid="1001"
-    local gid="1001"
+    local uid_val="1001"
+    local gid_val="1001"
     local docker_gid="999"
 
-    mkdir -p "$WORK_DIR/.envs"
-    cat > "$WORK_DIR/.envs/${service_name}.env" << EOF
+    cat > "$WORK_DIR/.env" << EOF
 CONTAINER_SERVICE_NAME=$service_name
 USERNAME=$username
-UID=$uid
-GID=$gid
+UID=$uid_val
+GID=$gid_val
 DOCKER_GID=$docker_gid
 UBUNTU_VERSION=24.04
-INSTALL_DOCKER=true
-INSTALL_AWS_CLI=false
-INSTALL_AWS_SAM_CLI=false
-INSTALL_GITHUB_CLI=true
-INSTALL_ZIG=false
+FORWARD_PORT=3000
 EOF
 
     local val
-    val=$(read_env_var "CONTAINER_SERVICE_NAME" "$WORK_DIR/.envs/${service_name}.env")
+    val=$(read_env_var "CONTAINER_SERVICE_NAME" "$WORK_DIR/.env")
     assert_eq "reads CONTAINER_SERVICE_NAME" "$service_name" "$val"
 
-    val=$(read_env_var "INSTALL_AWS_CLI" "$WORK_DIR/.envs/${service_name}.env")
-    assert_eq "reads INSTALL_AWS_CLI=false" "false" "$val"
+    val=$(read_env_var "FORWARD_PORT" "$WORK_DIR/.env")
+    assert_eq "reads FORWARD_PORT" "3000" "$val"
 
-    val=$(read_env_var "INSTALL_GITHUB_CLI" "$WORK_DIR/.envs/${service_name}.env")
-    assert_eq "reads INSTALL_GITHUB_CLI=true" "true" "$val"
-
-    val=$(read_env_var "UBUNTU_VERSION" "$WORK_DIR/.envs/${service_name}.env")
+    val=$(read_env_var "UBUNTU_VERSION" "$WORK_DIR/.env")
     assert_eq "reads UBUNTU_VERSION" "24.04" "$val"
-
-    teardown_workspace
-}
-
-# ============================================================
-# Test: Symlink switching
-# ============================================================
-test_symlink_switching() {
-    section "Symlink switching"
-
-    setup_workspace
-    source "$PROJECT_ROOT/lib/generators.sh"
-
-    mkdir -p "$WORK_DIR/.envs"
-    echo "CONTAINER_SERVICE_NAME=svc-a" > "$WORK_DIR/.envs/svc-a.env"
-    echo "CONTAINER_SERVICE_NAME=svc-b" > "$WORK_DIR/.envs/svc-b.env"
-
-    # Create initial symlink
-    ln -sf ".envs/svc-a.env" "$WORK_DIR/.env"
-    assert_true "initial symlink valid" validate_symlink "$WORK_DIR/.env" ".envs/"
-
-    local val
-    val=$(read_env_var "CONTAINER_SERVICE_NAME" "$WORK_DIR/.env")
-    assert_eq "initial env points to svc-a" "svc-a" "$val"
-
-    # Switch symlink
-    ln -sf ".envs/svc-b.env" "$WORK_DIR/.env"
-    assert_true "switched symlink valid" validate_symlink "$WORK_DIR/.env" ".envs/"
-
-    val=$(read_env_var "CONTAINER_SERVICE_NAME" "$WORK_DIR/.env")
-    assert_eq "switched env points to svc-b" "svc-b" "$val"
 
     teardown_workspace
 }
@@ -291,21 +281,21 @@ test_e2e_pipeline() {
     local service_name="e2e-test"
     local username="devuser"
 
+    create_test_workspace_toml "$WORK_DIR" "$service_name" "$username" \
+        "docker-cli" "github-cli"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
 
         # 1. Generate docker-compose.yml
         generate_compose_from_template \
-            "docker-compose.yml.template" \
-            "docker-compose.yml" \
-            "$service_name" \
-            "false" "true"
+            "docker-compose.yml.template" "docker-compose.yml" \
+            "$service_name" "workspace.toml"
 
-        # 2. Generate Dockerfile (Docker CLI + GitHub CLI only)
+        # 2. Generate Dockerfile
         generate_dockerfile_from_template \
-            "Dockerfile.template" "Dockerfile" \
-            "true" "false" "false" "true" "false"
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
 
         # 3. Generate devcontainer.json
         generate_devcontainer_json_from_template \
@@ -318,23 +308,6 @@ test_e2e_pipeline() {
             ".devcontainer/docker-compose.yml.template" \
             ".devcontainer/docker-compose.yml" \
             "$service_name"
-
-        # 5. Generate .env
-        mkdir -p .envs
-        cat > ".envs/${service_name}.env" << EOF
-CONTAINER_SERVICE_NAME=$service_name
-USERNAME=$username
-UID=1000
-GID=1000
-DOCKER_GID=999
-UBUNTU_VERSION=24.04
-INSTALL_DOCKER=true
-INSTALL_AWS_CLI=false
-INSTALL_AWS_SAM_CLI=false
-INSTALL_GITHUB_CLI=true
-INSTALL_ZIG=false
-EOF
-        ln -sf ".envs/${service_name}.env" .env
     )
 
     # Verify all files exist
@@ -342,7 +315,6 @@ EOF
     assert_file_exists "docker-compose.yml" "$WORK_DIR/docker-compose.yml"
     assert_file_exists "devcontainer.json" "$WORK_DIR/.devcontainer/devcontainer.json"
     assert_file_exists ".devcontainer/docker-compose.yml" "$WORK_DIR/.devcontainer/docker-compose.yml"
-    assert_file_exists ".env symlink target" "$WORK_DIR/.envs/${service_name}.env"
 
     # Verify no unreplaced placeholders in any file
     assert_file_not_contains "Dockerfile clean" "$WORK_DIR/Dockerfile" '{{.*}}'
@@ -395,13 +367,12 @@ test_detect_docker_gid() {
 # ============================================================
 
 test_dockerfile_all_enabled
-test_dockerfile_all_disabled
+test_dockerfile_no_plugins
 test_dockerfile_partial
 test_docker_compose_generation
 test_devcontainer_json_generation
 test_devcontainer_compose_generation
 test_env_roundtrip
-test_symlink_switching
 test_e2e_pipeline
 test_detect_docker_gid
 

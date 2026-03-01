@@ -22,12 +22,14 @@ test_lib_basics() {
     assert_file_exists "validators.sh exists" "$PROJECT_ROOT/lib/validators.sh"
     assert_file_exists "errors.sh exists" "$PROJECT_ROOT/lib/errors.sh"
     assert_file_exists "devcontainer.sh exists" "$PROJECT_ROOT/lib/devcontainer.sh"
-    assert_file_exists "versions.conf exists" "$PROJECT_ROOT/lib/versions.conf"
+    assert_file_exists "plugin.sh exists" "$PROJECT_ROOT/lib/plugin.sh"
+    assert_file_exists "toml_parser.py exists" "$PROJECT_ROOT/lib/toml_parser.py"
 
     assert_true "generators.sh syntax valid" bash -n "$PROJECT_ROOT/lib/generators.sh"
     assert_true "validators.sh syntax valid" bash -n "$PROJECT_ROOT/lib/validators.sh"
     assert_true "errors.sh syntax valid" bash -n "$PROJECT_ROOT/lib/errors.sh"
     assert_true "devcontainer.sh syntax valid" bash -n "$PROJECT_ROOT/lib/devcontainer.sh"
+    assert_true "plugin.sh syntax valid" bash -n "$PROJECT_ROOT/lib/plugin.sh"
 }
 
 # ============================================================
@@ -208,14 +210,13 @@ test_error_functions() {
 }
 
 # ============================================================
-# Test: versions.conf
+# Test: toml_parser.py basic functionality
 # ============================================================
-test_versions_conf() {
-    section "versions.conf"
+test_toml_parser() {
+    section "toml_parser.py"
 
-    local conf="$PROJECT_ROOT/lib/versions.conf"
-    assert_file_contains "UBUNTU_VERSION defined" "$conf" 'UBUNTU_VERSION='
-    assert_file_contains "ZIG_VERSION defined" "$conf" 'ZIG_VERSION='
+    assert_true "toml_parser.py prints usage" python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/docker-cli.toml"
+    assert_true "toml_parser.py can parse plugin" python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/docker-cli.toml"
 }
 
 # ============================================================
@@ -256,7 +257,7 @@ test_shellcheck() {
         return
     fi
 
-    local scripts=("lib/generators.sh" "lib/validators.sh" "lib/errors.sh" "lib/devcontainer.sh")
+    local scripts=("lib/generators.sh" "lib/validators.sh" "lib/errors.sh" "lib/devcontainer.sh" "lib/plugin.sh")
     for script in "${scripts[@]}"; do
         local path="$PROJECT_ROOT/$script"
         local result
@@ -284,7 +285,7 @@ test_validate_symlink
 test_certificate_functions
 test_error_functions
 test_devcontainer_functions
-test_versions_conf
+test_toml_parser
 test_shellcheck
 
 print_summary
