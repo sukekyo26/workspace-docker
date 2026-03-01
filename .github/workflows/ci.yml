@@ -117,6 +117,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create test workspace.toml
+        run: |
+          cat > workspace.toml << 'EOF'
+          [container]
+          service_name = "ci-test"
+          username = "testuser"
+          ubuntu_version = "24.04"
+
+          [plugins]
+          enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli"]
+
+          [ports]
+          forward = [3000]
+          EOF
+
       - name: Create test .env file
         run: |
           cat > .env << 'EOF'
@@ -126,10 +141,7 @@ jobs:
           GID=1000
           DOCKER_GID=999
           UBUNTU_VERSION=24.04
-          INSTALL_DOCKER=true
-          INSTALL_AWS_CLI=true
-          INSTALL_AWS_SAM_CLI=true
-          INSTALL_GITHUB_CLI=true
+          FORWARD_PORT=3000
           EOF
 
       - name: Generate Dockerfile from template
@@ -137,14 +149,11 @@ jobs:
           # Load generator functions
           source lib/generators.sh
 
-          # Generate Dockerfile with all tools enabled for CI test
+          # Generate Dockerfile using plugin-based pipeline
           generate_dockerfile_from_template \
             "Dockerfile.template" \
             "Dockerfile" \
-            "true" \
-            "true" \
-            "true" \
-            "true"
+            "workspace.toml"
 
       - name: Build Docker image
         uses: docker/build-push-action@v6
