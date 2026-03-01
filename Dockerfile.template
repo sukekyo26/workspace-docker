@@ -90,15 +90,7 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
 
 {{CUSTOM_CERTIFICATES}}
 
-{{DOCKER_INSTALL}}
-
-{{AWS_CLI_INSTALL}}
-
-{{AWS_SAM_CLI_INSTALL}}
-
-{{GITHUB_CLI_INSTALL}}
-
-{{ZIG_INSTALL}}
+{{PLUGIN_INSTALLS}}
 
 # proto (multi-language version manager)
 RUN curl -fsSL https://moonrepo.dev/install/proto.sh | bash -s -- --no-profile --yes && \
