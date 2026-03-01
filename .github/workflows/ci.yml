@@ -28,11 +28,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Make test script executable
-        run: chmod +x test.sh
+      - name: Make test scripts executable
+        run: chmod +x tests/run_all.sh tests/test_*.sh
 
       - name: Run tests
-        run: ./test.sh
+        run: ./tests/run_all.sh
 
   template-validation:
     name: Template Validation

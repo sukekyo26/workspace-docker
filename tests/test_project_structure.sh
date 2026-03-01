@@ -128,6 +128,25 @@ test_gitignore() {
 }
 
 # ============================================================
+# Test: Docker prerequisites
+# ============================================================
+test_docker_prerequisites() {
+    section "Docker prerequisites"
+
+    if command -v docker &>/dev/null; then
+        assert_true "Docker is installed" command -v docker
+    else
+        skip_test "Docker is installed" "docker not found"
+    fi
+
+    if command -v docker &>/dev/null && docker compose version &>/dev/null 2>&1; then
+        assert_true "Docker Compose is available" docker compose version
+    else
+        skip_test "Docker Compose is available" "docker compose not found"
+    fi
+}
+
+# ============================================================
 # Test: Generated files (if setup was run)
 # ============================================================
 test_generated_files() {
@@ -145,8 +164,98 @@ test_generated_files() {
         if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
             assert_file_not_contains "docker-compose.yml: no unreplaced {{...}}" "$PROJECT_ROOT/docker-compose.yml" '{{.*}}'
         fi
+
+        # docker-compose.yml syntax validation
+        if command -v docker &>/dev/null && docker compose version &>/dev/null 2>&1; then
+            if docker compose -f "$PROJECT_ROOT/docker-compose.yml" config &>/dev/null; then
+                assert_true "docker-compose.yml syntax is valid" true
+            else
+                assert_true "docker-compose.yml syntax is valid" false
+            fi
+        else
+            skip_test "docker-compose.yml syntax validation" "docker compose not available"
+        fi
     else
         skip_test "generated files check" "setup-docker.sh has not been run"
+    fi
+}
+
+# ============================================================
+# Test: .env file format (if setup was run)
+# ============================================================
+test_env_format() {
+    section "Environment file format"
+
+    if [[ ! -d "$PROJECT_ROOT/.envs" ]]; then
+        skip_test "env file format" ".envs directory not found"
+        return
+    fi
+
+    shopt -s nullglob
+    local env_files=("$PROJECT_ROOT"/.envs/*.env)
+    shopt -u nullglob
+
+    if [[ ${#env_files[@]} -eq 0 ]]; then
+        skip_test "env file format" "no .env files found"
+        return
+    fi
+
+    local required_vars=(CONTAINER_SERVICE_NAME USERNAME UID GID DOCKER_GID)
+    local tool_vars=(INSTALL_DOCKER INSTALL_AWS_CLI INSTALL_AWS_SAM_CLI INSTALL_GITHUB_CLI INSTALL_ZIG)
+
+    for env_file in "${env_files[@]}"; do
+        local name
+        name=$(basename "$env_file")
+        for var in "${required_vars[@]}"; do
+            assert_file_contains "$name has $var" "$env_file" "^${var}="
+        done
+        for var in "${tool_vars[@]}"; do
+            assert_file_contains "$name has $var" "$env_file" "^${var}="
+        done
+    done
+}
+
+# ============================================================
+# Test: Volume mount points (if setup was run)
+# ============================================================
+test_volume_mounts() {
+    section "Volume mount points"
+
+    if [[ ! -f "$PROJECT_ROOT/Dockerfile" || ! -L "$PROJECT_ROOT/.env" ]]; then
+        skip_test "volume mount points" "setup-docker.sh has not been run"
+        return
+    fi
+
+    # Check Dockerfile volume mount point directories
+    local expected_paths=(
+        '~/.proto'
+        '~/.aws'
+        '~/.config/gh'
+        '~/.cargo'
+        '~/.rustup'
+        '~/.deno'
+        '~/.bun'
+        '~/go'
+        '~/.local'
+    )
+
+    for vol in "${expected_paths[@]}"; do
+        local escaped
+        escaped=$(echo "$vol" | sed 's/[.]/\\./g; s|/|\\/|g')
+        if grep -qE "${escaped}(\s|\\\\|\$)" "$PROJECT_ROOT/Dockerfile" 2>/dev/null; then
+            assert_true "Dockerfile has mount point for $vol" true
+        else
+            assert_true "Dockerfile has mount point for $vol" false
+        fi
+    done
+
+    # Check docker-compose.yml named volumes
+    if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
+        local expected_volumes=(proto aws gh-config cargo rustup deno bun go local)
+        for vol in "${expected_volumes[@]}"; do
+            assert_file_contains "docker-compose.yml defines volume '$vol'" \
+                "$PROJECT_ROOT/docker-compose.yml" "^  ${vol}:"
+        done
     fi
 }
 
@@ -190,7 +299,10 @@ test_scripts_executable
 test_syntax_check
 test_template_placeholders
 test_gitignore
+test_docker_prerequisites
 test_generated_files
+test_env_format
+test_volume_mounts
 test_shellcheck_all
 
 print_summary
