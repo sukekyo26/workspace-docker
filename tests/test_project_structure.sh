@@ -212,6 +212,7 @@ test_volume_mounts() {
     fi
 
     # Check Dockerfile volume mount point directories (always-present only)
+    # shellcheck disable=SC2088
     local expected_paths=(
         '~/.proto'
         '~/.local'

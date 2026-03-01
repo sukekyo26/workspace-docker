@@ -61,8 +61,8 @@ jobs:
         run: |
           for file in docker-compose.yml.template .devcontainer/docker-compose.yml.template; do
             echo "Checking $file..."
-            # Replace template variables with dummy values for validation
-            sed 's/{{[^}]*}}/dummy/g' "$file" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || {
+            # Remove standalone placeholder lines, replace inline placeholders with dummy
+            sed '/^[[:space:]]*{{[^}]*}}[[:space:]]*$/d; s/{{[^}]*}}/dummy/g' "$file" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || {
               echo "❌ Invalid YAML: $file"
               exit 1
             }
