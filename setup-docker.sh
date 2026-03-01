@@ -223,6 +223,12 @@ UBUNTU_VERSION=$WS_UBUNTU_VERSION
 FORWARD_PORT=${WS_FORWARD_PORTS[0]:-3000}
 EOF
 
+# Copy .bashrc_custom skeleton if not exists
+if [[ ! -f "config/.bashrc_custom" && -f "config/.bashrc_custom.example" ]]; then
+    cp "config/.bashrc_custom.example" "config/.bashrc_custom"
+    echo "Created config/.bashrc_custom from example"
+fi
+
 # ============================================================
 # Result display
 # ============================================================
