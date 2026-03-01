@@ -226,16 +226,9 @@ test_volume_mounts() {
         return
     fi
 
-    # Check Dockerfile volume mount point directories
+    # Check Dockerfile volume mount point directories (always-present only)
     local expected_paths=(
         '~/.proto'
-        '~/.aws'
-        '~/.config/gh'
-        '~/.cargo'
-        '~/.rustup'
-        '~/.deno'
-        '~/.bun'
-        '~/go'
         '~/.local'
     )
 
@@ -249,9 +242,9 @@ test_volume_mounts() {
         fi
     done
 
-    # Check docker-compose.yml named volumes
+    # Check docker-compose.yml named volumes (always-present only)
     if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
-        local expected_volumes=(proto aws gh-config cargo rustup deno bun go local)
+        local expected_volumes=(proto local)
         for vol in "${expected_volumes[@]}"; do
             assert_file_contains "docker-compose.yml defines volume '$vol'" \
                 "$PROJECT_ROOT/docker-compose.yml" "^  ${vol}:"

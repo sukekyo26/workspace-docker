@@ -133,8 +133,12 @@ validate_file_exists ".devcontainer/docker-compose.yml.template" ".devcontainer/
 
 # Generate docker-compose.yml and Dockerfile
 echo "Generating docker-compose.yml..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    docker-compose.yml.template > docker-compose.yml
+generate_compose_from_template \
+    "docker-compose.yml.template" \
+    "docker-compose.yml" \
+    "$container_service_name" \
+    "$install_aws_cli" \
+    "$install_github_cli"
 
 echo "Generating Dockerfile..."
 

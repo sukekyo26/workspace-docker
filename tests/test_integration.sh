@@ -131,13 +131,22 @@ test_docker_compose_generation() {
     setup_workspace
     local service_name="test-service"
 
-    sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
-        "$WORK_DIR/docker-compose.yml.template" > "$WORK_DIR/docker-compose.yml"
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_compose_from_template \
+            "docker-compose.yml.template" \
+            "docker-compose.yml" \
+            "$service_name" \
+            "true" "true"
+    )
 
     assert_file_exists "docker-compose.yml generated" "$WORK_DIR/docker-compose.yml"
     assert_file_not_contains "no unreplaced {{...}}" "$WORK_DIR/docker-compose.yml" '{{.*}}'
     assert_file_contains "service name replaced" "$WORK_DIR/docker-compose.yml" "$service_name"
     assert_file_contains "volumes section exists" "$WORK_DIR/docker-compose.yml" '^volumes:'
+    assert_file_contains "aws volume present" "$WORK_DIR/docker-compose.yml" 'aws:'
+    assert_file_contains "gh-config volume present" "$WORK_DIR/docker-compose.yml" 'gh-config:'
 
     teardown_workspace
 }
@@ -277,8 +286,11 @@ test_e2e_pipeline() {
         source lib/generators.sh
 
         # 1. Generate docker-compose.yml
-        sed -e "s/{{CONTAINER_SERVICE_NAME}}/$service_name/g" \
-            docker-compose.yml.template > docker-compose.yml
+        generate_compose_from_template \
+            "docker-compose.yml.template" \
+            "docker-compose.yml" \
+            "$service_name" \
+            "false" "true"
 
         # 2. Generate Dockerfile (Docker CLI + GitHub CLI only)
         generate_dockerfile_from_template \

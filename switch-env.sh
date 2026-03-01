@@ -116,8 +116,12 @@ fi
 
 # Regenerate docker-compose.yml
 echo "Regenerating docker-compose.yml..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$CONTAINER_SERVICE_NAME/g" \
-    docker-compose.yml.template > docker-compose.yml
+generate_compose_from_template \
+    "docker-compose.yml.template" \
+    "docker-compose.yml" \
+    "$CONTAINER_SERVICE_NAME" \
+    "$INSTALL_AWS_CLI" \
+    "$INSTALL_GITHUB_CLI"
 
 # Regenerate Dockerfile
 echo "Regenerating Dockerfile..."

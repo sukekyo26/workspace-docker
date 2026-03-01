@@ -108,6 +108,63 @@ detect_docker_gid() {
 }
 
 # ============================================================
+# Docker Compose Volume Functions
+# ============================================================
+
+# Generate optional volume mounts and definitions based on tool flags
+# Usage: generate_optional_volumes "install_aws_cli" "install_github_cli"
+# Returns: two variables via global: _OPTIONAL_VOLUME_MOUNTS, _OPTIONAL_VOLUME_DEFINITIONS
+generate_optional_volumes() {
+    local install_aws_cli="$1"
+    local install_github_cli="$2"
+
+    local mounts=""
+    local definitions=""
+
+    if [ "$install_aws_cli" = true ] || [ "$install_aws_cli" = "true" ]; then
+        mounts="${mounts}
+      # AWS（永続化）
+      - aws:/home/\${USERNAME}/.aws"
+        definitions="${definitions}  aws:
+    name: \"\${CONTAINER_SERVICE_NAME}_aws\"
+"
+    fi
+
+    if [ "$install_github_cli" = true ] || [ "$install_github_cli" = "true" ]; then
+        mounts="${mounts}
+      # GitHub CLI（永続化）
+      - gh-config:/home/\${USERNAME}/.config/gh"
+        definitions="${definitions}  gh-config:
+    name: \"\${CONTAINER_SERVICE_NAME}_gh_config\"
+"
+    fi
+
+    _OPTIONAL_VOLUME_MOUNTS="$mounts"
+    _OPTIONAL_VOLUME_DEFINITIONS="$definitions"
+}
+
+# Generate docker-compose.yml from template with conditional volumes
+# Usage: generate_compose_from_template "template" "output" "service_name" "install_aws_cli" "install_github_cli"
+generate_compose_from_template() {
+    local template_file="$1"
+    local output_file="$2"
+    local service_name="$3"
+    local install_aws_cli="$4"
+    local install_github_cli="$5"
+
+    generate_optional_volumes "$install_aws_cli" "$install_github_cli"
+
+    awk -v service_name="$service_name" \
+        -v vol_mounts="$_OPTIONAL_VOLUME_MOUNTS" \
+        -v vol_defs="$_OPTIONAL_VOLUME_DEFINITIONS" '
+        /{{CONTAINER_SERVICE_NAME}}/ { gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name); print; next }
+        /{{OPTIONAL_VOLUME_MOUNTS}}/ { if (vol_mounts != "") print vol_mounts; next }
+        /{{OPTIONAL_VOLUME_DEFINITIONS}}/ { if (vol_defs != "") print vol_defs; next }
+        { print }
+    ' "$template_file" > "$output_file"
+}
+
+# ============================================================
 # Certificate Functions
 # ============================================================
 
@@ -268,7 +325,8 @@ generate_aws_cli_install() {
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     sudo ./aws/install && \
-    rm -rf aws awscliv2.zip
+    rm -rf aws awscliv2.zip && \
+    mkdir -p ~/.aws
 EOF
     else
         echo ""
@@ -312,6 +370,7 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 USER ${USERNAME}
+RUN mkdir -p ~/.config/gh
 EOF
     else
         echo ""

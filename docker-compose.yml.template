@@ -21,27 +21,9 @@ services:
       # 個人設定（ホストと同期）
       - ~/.ssh:/home/${USERNAME}/.ssh
 
-      # AWS（永続化）
-      - aws:/home/${USERNAME}/.aws
-
-      # GitHub CLI（永続化）
-      - gh-config:/home/${USERNAME}/.config/gh
-
-      # Rust（永続化）
-      - cargo:/home/${USERNAME}/.cargo
-      - rustup:/home/${USERNAME}/.rustup
-
-      # Deno（永続化）
-      - deno:/home/${USERNAME}/.deno
-
-      # Bun（永続化）
-      - bun:/home/${USERNAME}/.bun
-
-      # Go（永続化）
-      - go:/home/${USERNAME}/go
-
       # .local（永続化）- pipx, uv等のユーザーインストールパッケージ
       - local:/home/${USERNAME}/.local
+{{OPTIONAL_VOLUME_MOUNTS}}
     ports:
       - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
     tty: true
@@ -49,19 +31,6 @@ services:
 volumes:
   proto:
     name: "${CONTAINER_SERVICE_NAME}_proto"
-  aws:
-    name: "${CONTAINER_SERVICE_NAME}_aws"
-  gh-config:
-    name: "${CONTAINER_SERVICE_NAME}_gh_config"
-  cargo:
-    name: "${CONTAINER_SERVICE_NAME}_cargo"
-  rustup:
-    name: "${CONTAINER_SERVICE_NAME}_rustup"
-  deno:
-    name: "${CONTAINER_SERVICE_NAME}_deno"
-  bun:
-    name: "${CONTAINER_SERVICE_NAME}_bun"
-  go:
-    name: "${CONTAINER_SERVICE_NAME}_go"
   local:
     name: "${CONTAINER_SERVICE_NAME}_local"
+{{OPTIONAL_VOLUME_DEFINITIONS}}

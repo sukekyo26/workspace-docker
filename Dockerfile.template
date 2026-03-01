@@ -109,13 +109,6 @@ ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.proto \
-    ~/.aws \
-    ~/.config/gh \
-    ~/.cargo \
-    ~/.rustup \
-    ~/.deno \
-    ~/.bun \
-    ~/go \
     ~/.local
 
 # Setup persistent bash history
