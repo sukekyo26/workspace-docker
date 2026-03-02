@@ -1,12 +1,12 @@
 # workspace-docker
 
-A Docker-based Ubuntu development environment template with proto (multi-language version manager) and AWS-ready development tools.
+A Docker-based Ubuntu development environment template with proto (multi-language version manager) and a plugin-based tool selection system.
 
 ## Features
 
-- **Flexible Setup**: Select which tools to install with proto always included
+- **Plugin Architecture**: Extensible tool selection via `plugins/*.toml` — add or customize tools by editing TOML files
+- **TOML-based Configuration**: All settings in a single `workspace.toml` file — edit and re-run to regenerate
 - **proto**: Unified multi-language version manager for Python, Node.js, Bun, Deno, Go, Rust, and 100+ more tools
-- **AWS-Ready Development Tools**: Docker CLI, AWS CLI v2, AWS SAM CLI, GitHub CLI
 - **Custom CA Certificates**: Automatic installation of custom CA certificates for corporate proxy/VPN environments
 - **Persistent Storage**: proto tools and configurations persist across container recreations
 - **Workspace Integration**: Manage multiple projects in a unified development environment
@@ -14,7 +14,7 @@ A Docker-based Ubuntu development environment template with proto (multi-languag
 - **Host Docker Access**: Safely utilize host Docker from within the container
 - **Automatic Environment Detection**: Auto-detects UID/GID/Docker GID to avoid permission issues
 - **UTF-8 Locale**: Properly displays multilingual text including Japanese
-- **Quality Assurance**: Built-in validation libraries and comprehensive test suite with GitHub Actions CI/CD
+- **Quality Assurance**: 8 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
 
 ## Workspace Structure
 
@@ -60,89 +60,87 @@ Note: Re-login required for group changes to take effect.
 
 ### Setup
 
-1. **Run the setup script**
+1. **Run the setup script (first time — interactive mode)**
    ```bash
    bash setup-docker.sh
    ```
+   You will be prompted for a container service name, username, and plugin selection.
+   This generates `workspace.toml` and all Docker configuration files.
 
-2. **Required Input**
-   - **Container/Service Name**:
-     - Allowed characters: alphanumeric (`a-z`, `A-Z`, `0-9`), hyphen (`-`), underscore (`_`)
-     - Length: 1-63 characters
-     - Examples: `dev`, `my-container`, `app_server`
-   - **Username**:
-     - First character: lowercase letter (`a-z`) or underscore (`_`)
-     - Allowed characters: lowercase letters (`a-z`), digits (`0-9`), hyphen (`-`), underscore (`_`)
-     - Length: 1-32 characters
-     - Examples: `user`, `dev_user`, `john-doe`
+2. **Reconfigure (edit workspace.toml and regenerate)**
 
-3. **Software Selection**
-   - **proto**: Always installed (multi-language version manager)
-   - **Docker CLI**: Container operations (default: Yes)
-   - **AWS CLI v2**: AWS resource management (default: Yes)
-   - **AWS SAM CLI**: Build, test, and invoke Serverless apps locally (default: Yes)
-   - **GitHub CLI**: GitHub command-line interface for repository management and workflows (default: Yes)
-   - **Zig**: Zig compiler for cargo-lambda cross-compilation (default: Yes)
+   After initial setup, simply edit `workspace.toml` and re-run the script:
+   ```bash
+   # Edit configuration
+   vim workspace.toml
+
+   # Regenerate all files from workspace.toml
+   bash setup-docker.sh
+   ```
+
+   To re-run the interactive setup, use the `--init` flag:
+   ```bash
+   bash setup-docker.sh --init
+   ```
+
+3. **workspace.toml Configuration**
+
+   ```toml
+   # workspace.toml — workspace-docker configuration
+   # Edit this file and run setup-docker.sh to regenerate
+
+   [container]
+   service_name = "dev"
+   username = "devuser"
+   ubuntu_version = "24.04"
+
+   [plugins]
+   enable = ["aws-cli", "aws-sam-cli", "docker-cli", "github-cli"]
+
+   [apt]
+   extra_packages = ["ripgrep", "fd-find"]  # optional
+
+   [ports]
+   forward = [3000]
+   ```
+
+   Available plugins are defined in `plugins/*.toml`. Each plugin is a self-contained TOML file with install instructions:
+   - `aws-cli` — AWS CLI v2
+   - `aws-sam-cli` — AWS SAM CLI
+   - `docker-cli` — Docker CLI (host Docker via socket mount)
+   - `github-cli` — GitHub CLI
+   - `zig` — Zig compiler (for cargo-lambda cross-compilation)
 
 4. **Auto-detected Information**
    - **UID/GID**: Automatically detects current user's UID/GID
    - **Docker GID**: Automatically detects host Docker group GID (from `/var/run/docker.sock`)
 
 5. **Generated Files**
-   - `Dockerfile` - Generated from template
+   - `workspace.toml` - Configuration file (edit this)
+   - `Dockerfile` - Generated from template + plugins
    - `docker-compose.yml` - Generated from template
    - `.devcontainer/devcontainer.json` - VS Code Dev Container configuration
    - `.devcontainer/docker-compose.yml` - Dev Container docker-compose configuration
-   - `.envs/<service_name>.env` - Environment variables (managed per service, includes software selection flags)
-   - `.env` - Symbolic link to `.envs/<service_name>.env`
+   - `.env` - Environment variables for docker-compose (auto-generated from workspace.toml)
 
-   > **When switching environments**: Using `switch-env.sh` automatically regenerates `.devcontainer` files along with the `.env` symbolic link
+### Environment File (.env)
 
-### Environment File (.env) Management
-
-The setup script generates `.envs/<service_name>.env` files for each container service.
-
-#### Managing Multiple Container Services
-
-```bash
-# First service (e.g., dev)
-bash setup-docker.sh
-# → Creates .envs/dev.env and .env → .envs/dev.env symlink
-
-# Second service (e.g., prod)
-bash setup-docker.sh
-# → Creates .envs/prod.env and updates .env → .envs/prod.env symlink
-
-# Switch services (Method 1: Use script)
-bash switch-env.sh dev    # Switch to dev service
-bash switch-env.sh prod   # Switch to prod service
-
-# Or run without arguments for interactive selection
-bash switch-env.sh
-
-# Note: Script automatically regenerates .devcontainer files
-
-# Switch services (Method 2: Manual symlink change)
-ln -sf .envs/dev.env .env    # Switch to dev service
-ln -sf .envs/prod.env .env   # Switch to prod service
-```
+The `.env` file is auto-generated from `workspace.toml` each time you run `setup-docker.sh`. Do not edit it manually.
 
 #### Example .env File Content
 
 ```env
-# Environment variables for dev
-# Generated on Fri Nov  8 12:34:56 UTC 2025
+# Environment variables for docker-compose
+# Auto-generated from workspace.toml — do not edit manually
+# Regenerate with: ./setup-docker.sh
 
 CONTAINER_SERVICE_NAME=dev
 USERNAME=devuser
 UID=1000
 GID=1000
 DOCKER_GID=989
-INSTALL_DOCKER=true
-INSTALL_AWS_CLI=true
-INSTALL_AWS_SAM_CLI=true
-INSTALL_GITHUB_CLI=true
-INSTALL_ZIG=true
+UBUNTU_VERSION=24.04
+FORWARD_PORT=3000
 ```
 
 ### Custom CA Certificates (for Corporate Proxy/VPN)
@@ -158,11 +156,9 @@ If you're working in an environment with SSL/TLS inspection (corporate proxy, VP
    cp /path/to/internal-ca.crt ./certs/
    ```
 
-2. **Run setup or switch environment** - certificates are automatically detected:
+2. **Run setup** - certificates are automatically detected:
    ```bash
    bash setup-docker.sh
-   # or
-   bash switch-env.sh
    ```
 
 3. **Rebuild the container**:
@@ -421,12 +417,14 @@ proto pin python 3.13
   - 100+ third-party tools via plugins
   - Project-based version switching via `.prototools` file
 
-**Optional Tools** (selectable during setup, all installed by default):
-- **Docker CLI**: Container operations (using host Docker daemon via socket mount)
-- **AWS CLI v2**: AWS resource management
-- **AWS SAM CLI**: Build, test and invoke serverless Lambda functions locally
-- **GitHub CLI**: GitHub command-line interface for repository management, pull requests, issues and workflows
-- **Zig**: Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
+**Plugin Tools** (configured via `workspace.toml`, defined in `plugins/*.toml`):
+- **Docker CLI** (`docker-cli`) — Container operations (using host Docker daemon via socket mount)
+- **AWS CLI v2** (`aws-cli`) — AWS resource management
+- **AWS SAM CLI** (`aws-sam-cli`) — Build, test and invoke serverless Lambda functions locally
+- **GitHub CLI** (`github-cli`) — GitHub command-line interface for repository management and workflows
+- **Zig** (`zig`) — Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
+
+Each plugin is a self-contained TOML file in `plugins/` with metadata, Dockerfile instructions, and version info. To add a new tool, create a new `plugins/<name>.toml` file.
 
 ### System Packages (Always Installed)
 
@@ -599,32 +597,33 @@ source ~/.bashrc
 ### Security and Personal Settings
 
 - **Personal Settings**: `~/.ssh` is synchronized with the host for development convenience
-- **Sensitive Information**: Generated `.env` and `.envs/*.env` files contain user information (UID/GID/Docker GID)
+- **Sensitive Information**: Generated `.env` file contains user information (UID/GID/Docker GID)
 
 > **Warning**: The entire `~/.ssh` directory is accessible from within the container. Container processes can both read and modify these files. Exercise caution when running untrusted code.
 
 ### File Management
 
 - **Template Files Required**: `*.template` files are necessary
-- **Generated Files**: `Dockerfile`, `docker-compose.yml`, `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml`, `.env`, `.envs/` should be excluded from Git (auto-generated)
+- **Generated Files**: `Dockerfile`, `docker-compose.yml`, `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml`, `.env` are auto-generated — exclude from Git
+- **Configuration**: `workspace.toml` is the single source of truth — edit this and re-run `setup-docker.sh`
 - **Persistent Data**: Docker volume data is removed with `docker compose down --volumes`
-- **Environment Variables**: Managed per service in `.envs/<service_name>.env`. `.env` is a switchable symbolic link
-- **Symbolic Link**: `.env` is a relative path symbolic link. Run `docker compose` commands from the project root
 
 ### Development Environment
 
 - **proto**: Unified version manager for Python, Node.js, and 100+ other tools
-- **Ports**: Port 3000 is forwarded by default
+- **Plugin tools**: Configured in `workspace.toml`, defined in `plugins/*.toml`
+- **Ports**: Configurable in `workspace.toml` (default: 3000)
 
-### Environment Switching Notes
+### Reconfiguration Notes
 
-The project includes an environment switching script (`switch-env.sh`), but **changing the username (USERNAME) requires rebuilding the container**.
+To change the configuration, edit `workspace.toml` and run `setup-docker.sh`. **Changing the username (USERNAME) requires rebuilding the container**.
 
-#### Environment Switching Procedure
+#### Reconfiguration Procedure
 
-1. **Switch environment**
+1. **Edit configuration**
 ```bash
-bash switch-env.sh <environment-name>
+vim workspace.toml
+bash setup-docker.sh
 ```
 
 2. **Required steps when username is changed**
@@ -638,33 +637,29 @@ bash rebuild-container.sh
 
 #### Reason
 - When creating a user in the Docker image, the USERNAME build argument is used
-- If the build cache remains after changing environment variables, the old username persists
-- Use `--no-cache` option to completely rebuild ignoring the cache
+- If the build cache remains after changing the username, the old username persists
+- Use `rebuild-container.sh` to completely rebuild ignoring the cache
 
 ### Troubleshooting
 
 - **Permission Errors**: Verify UID/GID are correctly configured
 - **Docker Connection Errors**: Verify Docker GID is auto-detected. Check host Docker GID with `getent group docker | cut -d: -f3`
 - **Volume Issues**: Check volume status with `docker volume ls`
-- **Username Not Updated**: See "Environment Switching Notes" above and rebuild without cache
+- **Username Not Updated**: See "Reconfiguration Notes" above and rebuild without cache
 
 ## Common Commands
 
-### Setup and Environment Switching
+### Setup and Reconfiguration
 
 ```bash
-# Initial setup
+# Initial setup (interactive)
 bash setup-docker.sh
 
-# Switch environment (interactive)
-bash switch-env.sh
+# Reconfigure: edit workspace.toml, then regenerate
+bash setup-docker.sh
 
-# Switch environment (specify argument)
-bash switch-env.sh dev
-bash switch-env.sh prod
-
-# Check available environments
-ls -la .envs/
+# Re-run interactive setup
+bash setup-docker.sh --init
 ```
 
 ### Docker Operations
@@ -717,26 +712,24 @@ docker compose up -d
 ### Testing and Validation
 
 ```bash
-# Project integrity test
-bash test.sh
+# Run all test suites (8 suites)
+bash tests/run_all.sh
 
 # Check generated files
+cat workspace.toml
 cat .env
 cat Dockerfile
 cat docker-compose.yml
 cat .devcontainer/devcontainer.json
 cat .devcontainer/docker-compose.yml
-
-# Or check all at once
-ls -la .env Dockerfile docker-compose.yml .devcontainer/
 ```
 
 ### Cleanup
 
 ```bash
-# Delete generated files (manual)
+# Delete generated files (keep workspace.toml for reconfiguration)
 rm -f Dockerfile docker-compose.yml .env
-rm -rf .devcontainer/devcontainer.json .devcontainer/docker-compose.yml
+rm -f .devcontainer/devcontainer.json .devcontainer/docker-compose.yml
 
 # Delete volumes
 docker compose down --volumes
@@ -747,48 +740,44 @@ docker compose down --volumes --rmi all
 
 ## Testing
 
-A test script is included to validate project integrity:
+The project includes a comprehensive test suite with 8 test suites:
 
 ```bash
-# Run tests
-bash test.sh
+# Run all tests
+bash tests/run_all.sh
 ```
 
-### Test Script Validation Items
+### Test Suites
 
-1. **Template File Existence**
-   - `Dockerfile.template`
-   - `docker-compose.yml.template`
-   - `.devcontainer/devcontainer.json.template`
-   - `.devcontainer/docker-compose.yml.template`
-
-2. **Script File Execute Permissions**
-   - `setup-docker.sh` is executable
-   - `switch-env.sh` is executable
-
-3. **`.envs` Directory Check**
-   - `.envs/` directory exists
-
-4. **Generated File Check** (after setup)
-   - `Dockerfile`, `docker-compose.yml`, `.env` exist
-   - `.devcontainer/devcontainer.json`, `.devcontainer/docker-compose.yml` exist
-   - `.env` is a symbolic link pointing to a valid file
-   - Environment variable files (`*.env`) exist in `.envs/`
-
-5. **Docker Environment Prerequisites**
-   - Docker is installed
-   - Docker Compose is available
-
-Tests display results with color output and return exit code 1 if any test fails. If setup has not been run, a warning is displayed but tests do not fail.
+| Suite | Description |
+|-------|-------------|
+| `test_project_structure` | Template existence, script permissions, ShellCheck on all `.sh` files |
+| `test_lib` | Unit tests for library functions (TOML parser, validators, generators, devcontainer) |
+| `test_plugins` | Plugin TOML structure validation (metadata, install section, version) |
+| `test_setup_docker` | Execution-based tests for `setup-docker.sh` (regeneration from workspace.toml) |
+| `test_rebuild_container` | Container detection and devcontainer CLI wrapper tests |
+| `test_generate_workspace` | Multi-root workspace file generation |
+| `test_integration` | End-to-end generation and structural validity (Dockerfile, YAML, JSON) |
+| `test_snapshot` | Snapshot regression tests comparing generated files against expected output |
 
 ## Project Files
 
 ### Core Scripts
-- `setup-docker.sh` - Interactive setup script for tool selection
-- `switch-env.sh` - Environment switching script
+- `setup-docker.sh` - Setup script (interactive or regenerate from `workspace.toml`)
 - `rebuild-container.sh` - No-cache rebuild of Dev Container image using devcontainer CLI
-- `test.sh` - Comprehensive test script
 - `generate-workspace.sh` - Multi-root workspace generator
+
+### Configuration
+- `workspace.toml` - User configuration (container name, username, plugins, ports)
+
+### Plugins (`plugins/`)
+- `plugins/aws-cli.toml` - AWS CLI v2 plugin
+- `plugins/aws-sam-cli.toml` - AWS SAM CLI plugin
+- `plugins/docker-cli.toml` - Docker CLI plugin
+- `plugins/github-cli.toml` - GitHub CLI plugin
+- `plugins/zig.toml` - Zig compiler plugin
+
+Each plugin TOML contains `[metadata]` (name, description, default), `[install]` (Dockerfile instructions), and `[version]` (pinned or latest).
 
 ### Templates
 - `Dockerfile.template` - Dockerfile template with placeholders
@@ -797,16 +786,22 @@ Tests display results with color output and return exit code 1 if any test fails
 - `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
 
 ### Libraries (`lib/`)
-- `lib/versions.conf` - Centralized version configuration
-- `lib/generators.sh` - Shared template generation functions
-- `lib/validators.sh` - Input validation library (service names, usernames, boolean values)
+- `lib/generators.sh` - Template generation functions
+- `lib/plugin.sh` - Plugin loading and Dockerfile snippet generation
+- `lib/toml_parser.py` - TOML parser (Python 3.11+ tomllib)
+- `lib/validators.sh` - Input validation library (service names, usernames)
 - `lib/errors.sh` - Error handling and messaging library
 - `lib/devcontainer.sh` - devcontainer CLI prerequisite checks and WSL-compatible wrapper
 
+### Tests (`tests/`)
+- `tests/run_all.sh` - Test runner for all 8 suites
+- `tests/test_helper.sh` - Shared assertion functions
+- `tests/test_*.sh` - Individual test suites
+
 ### CI/CD
-- `.github/workflows/ci.yml` - GitHub Actions workflow for automated testing and validation
+- `.github/workflows/ci.yml` - GitHub Actions workflow
   - ShellCheck static analysis
-  - 22-item test suite execution
+  - 8 test suites execution
   - Template validation (YAML/JSON)
   - Dockerfile linting with Hadolint
   - Docker build verification
