@@ -27,6 +27,10 @@ services:
       - aws:/home/${USERNAME}/.aws
       # GitHub CLI（永続化）
       - gh-config:/home/${USERNAME}/.config/gh
+      # GitHub Copilot CLI（永続化）
+      - copilot:/home/${USERNAME}/.copilot
+      # Claude Code（永続化）
+      - claude:/home/${USERNAME}/.claude
     ports:
       - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
     tty: true
@@ -40,4 +44,8 @@ volumes:
     name: "${CONTAINER_SERVICE_NAME}_aws"
   gh-config:
     name: "${CONTAINER_SERVICE_NAME}_gh-config"
+  copilot:
+    name: "${CONTAINER_SERVICE_NAME}_copilot"
+  claude:
+    name: "${CONTAINER_SERVICE_NAME}_claude"
 

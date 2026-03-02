@@ -1,0 +1,20 @@
+[metadata]
+name = "Claude Code"
+description = "Claude Code — AI-powered coding assistant by Anthropic"
+default = false
+
+[install]
+requires_root = false
+dockerfile = '''
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh && \
+    bash /tmp/install-claude.sh && \
+    rm -f /tmp/install-claude.sh && \
+    mkdir -p ~/.claude
+'''
+
+[volumes]
+claude = "/home/${USERNAME}/.claude"
+
+[version]
+strategy = "latest"

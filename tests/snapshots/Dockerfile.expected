@@ -154,6 +154,18 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
 USER ${USERNAME}
 RUN mkdir -p ~/.config/gh
 
+# Install GitHub Copilot CLI
+RUN curl -fsSL https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
+    bash /tmp/install-copilot.sh && \
+    rm -f /tmp/install-copilot.sh && \
+    mkdir -p ~/.copilot
+
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh && \
+    bash /tmp/install-claude.sh && \
+    rm -f /tmp/install-claude.sh && \
+    mkdir -p ~/.claude
+
 # Install Zig (required for cargo-lambda cross-compilation)
 USER root
 RUN ARCH="$(dpkg --print-architecture)" && \

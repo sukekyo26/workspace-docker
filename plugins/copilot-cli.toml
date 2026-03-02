@@ -1,0 +1,20 @@
+[metadata]
+name = "GitHub Copilot CLI"
+description = "GitHub Copilot in the CLI — AI-powered command-line assistant"
+default = false
+
+[install]
+requires_root = false
+dockerfile = '''
+# Install GitHub Copilot CLI
+RUN curl -fsSL https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
+    bash /tmp/install-copilot.sh && \
+    rm -f /tmp/install-copilot.sh && \
+    mkdir -p ~/.copilot
+'''
+
+[volumes]
+copilot = "/home/${USERNAME}/.copilot"
+
+[version]
+strategy = "latest"
