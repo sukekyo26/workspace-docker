@@ -371,6 +371,7 @@ generate_workspace_file() {
     local output_file="$1"
     shift
     local folders=("$@")
+    local settings_file="$SCRIPT_DIR/config/workspace-settings.json"
 
     {
         printf '{\n'
@@ -392,11 +393,8 @@ generate_workspace_file() {
         done
 
         printf '\t],\n'
-        printf '\t"settings": {\n'
-        printf '\t\t// Add global settings here\n'
-        printf '\t\t"files.autoSave": "afterDelay",\n'
-        printf '\t\t"editor.formatOnSave": true\n'
-        printf '\t}\n'
+        printf '\t"settings": '
+        sed '1!s/^/\t/' "$settings_file"
         printf '}\n'
     } > "$output_file"
 

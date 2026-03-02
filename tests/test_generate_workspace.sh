@@ -163,6 +163,7 @@ test_workspace_file_generation() {
     section "Workspace file generation"
 
     # Replicate generate_workspace_file logic
+    local settings_file="$PROJECT_ROOT/config/workspace-settings.json"
     _gen() {
         local output_file="$1"; shift
         local folders=("$@")
@@ -175,9 +176,10 @@ test_workspace_file_generation() {
                 local comma=""; [[ "$i" -lt "$count" ]] && comma=","
                 printf '\t\t{\n\t\t\t"name": "%s",\n\t\t\t"path": "../../%s"\n\t\t}%s\n' "$folder" "$folder" "$comma"
             done
-            printf '\t],\n\t"settings": {\n'
-            printf '\t\t"files.autoSave": "afterDelay",\n'
-            printf '\t\t"editor.formatOnSave": true\n\t}\n}\n'
+            printf '\t],\n'
+            printf '\t"settings": '
+            sed '1!s/^/\t/' "$settings_file"
+            printf '}\n'
         } > "$output_file"
     }
 
@@ -288,6 +290,28 @@ test_existing_workspaces() {
 }
 
 # ============================================================
+# Test: workspace-settings.json exists and is valid
+# ============================================================
+test_workspace_settings_file() {
+    section "workspace-settings.json"
+
+    local settings_file="$PROJECT_ROOT/config/workspace-settings.json"
+    assert_file_exists "settings file exists" "$settings_file"
+
+    if command -v jq &>/dev/null; then
+        local valid
+        valid=$(jq '.' "$settings_file" >/dev/null 2>&1 && echo "valid" || echo "invalid")
+        assert_eq "settings file is valid JSON" "valid" "$valid"
+
+        local key_count
+        key_count=$(jq 'keys | length' "$settings_file")
+        assert_true "settings has at least 1 key" test "$key_count" -ge 1
+    else
+        skip_test "settings JSON validation" "jq not installed"
+    fi
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -299,5 +323,6 @@ test_workspace_file_generation
 test_get_available_dirs
 test_no_set_e
 test_existing_workspaces
+test_workspace_settings_file
 
 print_summary
