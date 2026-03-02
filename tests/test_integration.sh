@@ -364,6 +364,307 @@ test_detect_docker_gid() {
 }
 
 # ============================================================
+# Test: Dockerfile structural validity
+# ============================================================
+test_dockerfile_structure() {
+    section "Dockerfile structural validity"
+
+    setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "struct-test" "testuser" \
+        "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "zig"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_dockerfile_from_template \
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
+    )
+
+    local dockerfile="$WORK_DIR/Dockerfile"
+
+    # Every non-empty, non-comment, non-continuation line must start with a
+    # valid Dockerfile instruction
+    local bad_lines
+    bad_lines=$(awk '
+        /^[[:space:]]*$/ { next }
+        /^[[:space:]]*#/ { next }
+        /^[[:space:]]+/  { next }
+        /^(FROM|RUN|ENV|COPY|USER|WORKDIR|ARG|CMD|ENTRYPOINT|EXPOSE|ADD|LABEL|VOLUME|SHELL|HEALTHCHECK|STOPSIGNAL|ONBUILD)[[:space:]]/ { next }
+        { print NR": "$0 }
+    ' "$dockerfile" || true)
+
+    if [[ -z "$bad_lines" ]]; then
+        assert_eq "all lines are valid Dockerfile syntax" "valid" "valid"
+    else
+        echo "      Invalid lines:"
+        echo "$bad_lines" | head -5 | sed 's/^/        /'
+        assert_eq "all lines are valid Dockerfile syntax" "valid" "invalid"
+    fi
+
+    teardown_workspace
+}
+
+# ============================================================
+# Test: docker-compose.yml YAML validity
+# ============================================================
+test_compose_yaml_validity() {
+    section "docker-compose.yml YAML validity"
+
+    if ! python3 -c "import yaml" 2>/dev/null; then
+        skip_test "docker-compose.yml YAML validity" "python3 yaml module not available"
+        return
+    fi
+
+    setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "yaml-test" "testuser" \
+        "docker-cli" "aws-cli"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_compose_from_template \
+            "docker-compose.yml.template" "docker-compose.yml" \
+            "yaml-test" "workspace.toml"
+    )
+
+    local compose="$WORK_DIR/docker-compose.yml"
+
+    # Replace ${...} env vars with dummy values for YAML parsing
+    local clean_compose
+    clean_compose=$(sed 's/\${[^}]*}/dummy/g' "$compose")
+
+    # YAML parse
+    if echo "$clean_compose" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
+        assert_eq "docker-compose.yml is valid YAML" "valid" "valid"
+    else
+        assert_eq "docker-compose.yml is valid YAML" "valid" "invalid"
+    fi
+
+    # Compose structure: services key
+    local has_services
+    has_services=$(echo "$clean_compose" | python3 -c "
+import sys, yaml
+data = yaml.safe_load(sys.stdin)
+print('yes' if 'services' in data else 'no')
+" 2>/dev/null || echo "error")
+    assert_eq "compose has services key" "yes" "$has_services"
+
+    # Compose structure: volumes key
+    local has_volumes
+    has_volumes=$(echo "$clean_compose" | python3 -c "
+import sys, yaml
+data = yaml.safe_load(sys.stdin)
+print('yes' if 'volumes' in data else 'no')
+" 2>/dev/null || echo "error")
+    assert_eq "compose has volumes key" "yes" "$has_volumes"
+
+    # Service name match
+    local svc_exists
+    svc_exists=$(echo "$clean_compose" | python3 -c "
+import sys, yaml
+data = yaml.safe_load(sys.stdin)
+print('yes' if 'yaml-test' in data.get('services', {}) else 'no')
+" 2>/dev/null || echo "error")
+    assert_eq "compose service name matches" "yes" "$svc_exists"
+
+    teardown_workspace
+}
+
+# ============================================================
+# Test: devcontainer.json JSON validity
+# ============================================================
+test_devcontainer_json_validity() {
+    section "devcontainer.json JSON validity"
+
+    setup_workspace
+    local service="json-test"
+    local username="testuser"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_devcontainer_json_from_template \
+            ".devcontainer/devcontainer.json.template" \
+            ".devcontainer/devcontainer.json" \
+            "$service" "$username" "3000"
+    )
+
+    local dcjson="$WORK_DIR/.devcontainer/devcontainer.json"
+
+    # Strip // comments for JSON parsing (jsonc -> json)
+    local clean_json
+    clean_json=$(sed 's|//.*||' "$dcjson")
+
+    if echo "$clean_json" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
+        assert_eq "devcontainer.json is valid JSON" "valid" "valid"
+    else
+        assert_eq "devcontainer.json is valid JSON" "valid" "invalid"
+    fi
+
+    # Check required fields
+    local has_name has_service
+    has_name=$(echo "$clean_json" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print('yes' if 'name' in data else 'no')
+" 2>/dev/null || echo "error")
+    assert_eq "devcontainer.json has name" "yes" "$has_name"
+
+    has_service=$(echo "$clean_json" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print('yes' if data.get('service') == '$service' else 'no')
+" 2>/dev/null || echo "error")
+    assert_eq "devcontainer.json service matches" "yes" "$has_service"
+
+    teardown_workspace
+}
+
+# ============================================================
+# Test: .devcontainer/docker-compose.yml YAML validity
+# ============================================================
+test_devcontainer_compose_validity() {
+    section ".devcontainer/docker-compose.yml YAML validity"
+
+    if ! python3 -c "import yaml" 2>/dev/null; then
+        skip_test ".devcontainer/docker-compose.yml YAML validity" "python3 yaml module not available"
+        return
+    fi
+
+    setup_workspace
+    local service="dc-yaml-test"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_devcontainer_compose_from_template \
+            ".devcontainer/docker-compose.yml.template" \
+            ".devcontainer/docker-compose.yml" \
+            "$service"
+    )
+
+    local compose="$WORK_DIR/.devcontainer/docker-compose.yml"
+
+    # Replace ${...} env vars with dummy values for YAML parsing
+    local clean_compose
+    clean_compose=$(sed 's/\${[^}]*}/dummy/g' "$compose")
+
+    if echo "$clean_compose" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
+        assert_eq ".devcontainer/docker-compose.yml is valid YAML" "valid" "valid"
+    else
+        assert_eq ".devcontainer/docker-compose.yml is valid YAML" "valid" "invalid"
+    fi
+
+    local svc_exists
+    svc_exists=$(echo "$clean_compose" | python3 -c "
+import sys, yaml
+data = yaml.safe_load(sys.stdin)
+print('yes' if '$service' in data.get('services', {}) else 'no')
+" 2>/dev/null || echo "error")
+    assert_eq ".devcontainer compose service matches" "yes" "$svc_exists"
+
+    teardown_workspace
+}
+
+# ============================================================
+# Test: apt extra_packages insertion
+# ============================================================
+test_apt_extra_packages() {
+    section "apt extra_packages insertion"
+
+    setup_workspace
+
+    # Create workspace.toml with extra packages
+    cat > "$WORK_DIR/workspace.toml" << 'EOF'
+[container]
+service_name = "apt-test"
+username = "testuser"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = []
+
+[ports]
+forward = [3000]
+
+[apt]
+extra_packages = ["vim-nox", "tmux"]
+EOF
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_dockerfile_from_template \
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
+    )
+
+    local dockerfile="$WORK_DIR/Dockerfile"
+
+    # Extra packages should appear in the apt-get install block
+    assert_file_contains "vim-nox in Dockerfile" "$dockerfile" 'vim-nox'
+    assert_file_contains "tmux in Dockerfile" "$dockerfile" 'tmux'
+
+    # Packages should appear before locale-gen (inside apt block)
+    local pkg_line locale_line
+    pkg_line=$(grep -n 'vim-nox' "$dockerfile" | head -1 | cut -d: -f1)
+    locale_line=$(grep -n 'locale-gen' "$dockerfile" | head -1 | cut -d: -f1)
+    if [[ -n "$pkg_line" && -n "$locale_line" && "$pkg_line" -lt "$locale_line" ]]; then
+        assert_eq "extra packages before locale-gen" "yes" "yes"
+    else
+        assert_eq "extra packages before locale-gen" "yes" "no"
+    fi
+
+    # No unreplaced placeholder
+    assert_file_not_contains "no APT_EXTRA placeholder" "$dockerfile" '{{APT_EXTRA_PACKAGES}}'
+
+    teardown_workspace
+}
+
+# ============================================================
+# Test: Certificate section structure
+# ============================================================
+test_certificate_section() {
+    section "Certificate section structure"
+
+    setup_workspace
+
+    # Create a dummy certificate
+    mkdir -p "$WORK_DIR/certs"
+    cat > "$WORK_DIR/certs/test-ca.crt" << 'EOF'
+-----BEGIN CERTIFICATE-----
+MIIBojCCAUmgAwIBAgIRAIuvAAAAAAAAAAAAAAAAAAAA
+-----END CERTIFICATE-----
+EOF
+
+    create_test_workspace_toml "$WORK_DIR" "cert-test" "testuser"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_dockerfile_from_template \
+            "Dockerfile.template" "Dockerfile" "workspace.toml"
+    )
+
+    local dockerfile="$WORK_DIR/Dockerfile"
+
+    # Certificate section should have COPY, USER root, RUN update-ca-certificates
+    assert_file_contains "cert COPY present" "$dockerfile" 'COPY certs/test-ca.crt'
+    assert_file_contains "cert update-ca-certificates" "$dockerfile" 'update-ca-certificates'
+    assert_file_contains "cert SSL_CERT_FILE env" "$dockerfile" 'SSL_CERT_FILE'
+
+    # Verify COPY line is valid Dockerfile syntax
+    local copy_line
+    copy_line=$(grep 'COPY certs/test-ca.crt' "$dockerfile")
+    if [[ "$copy_line" =~ ^COPY ]]; then
+        assert_eq "COPY line valid syntax" "valid" "valid"
+    else
+        assert_eq "COPY line valid syntax" "valid" "invalid"
+    fi
+
+    teardown_workspace
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -376,5 +677,11 @@ test_devcontainer_compose_generation
 test_env_roundtrip
 test_e2e_pipeline
 test_detect_docker_gid
+test_dockerfile_structure
+test_compose_yaml_validity
+test_devcontainer_json_validity
+test_devcontainer_compose_validity
+test_apt_extra_packages
+test_certificate_section
 
 print_summary
