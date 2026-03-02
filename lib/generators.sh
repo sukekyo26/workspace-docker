@@ -325,7 +325,7 @@ generate_dockerfile_from_template() {
         -v apt_extra="$apt_extra" '
         /{{PLUGIN_INSTALLS}}/ { print plugin_inst; next }
         /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
-        /{{APT_EXTRA_PACKAGES}}/ { if (apt_extra != "") printf "%s", apt_extra; sub(/\{\{APT_EXTRA_PACKAGES\}\}/, ""); print; next }
+        /{{APT_EXTRA_PACKAGES}}/ { if (apt_extra != "") printf "%s", apt_extra; sub(/[[:space:]]*\{\{APT_EXTRA_PACKAGES\}\}[[:space:]]*/, "    "); print; next }
         { print }
     ' "$template_file" > "$output_file"
 }
