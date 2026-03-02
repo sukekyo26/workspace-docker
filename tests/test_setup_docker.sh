@@ -24,6 +24,7 @@ setup_test_dir() {
     cp "$SCRIPT" "$tmpdir/"
     cp -r "$PROJECT_ROOT/lib" "$tmpdir/"
     cp -r "$PROJECT_ROOT/plugins" "$tmpdir/"
+    cp -r "$PROJECT_ROOT/config" "$tmpdir/"
     cp "$PROJECT_ROOT/Dockerfile.template" "$tmpdir/"
     cp "$PROJECT_ROOT/docker-compose.yml.template" "$tmpdir/"
     mkdir -p "$tmpdir/.devcontainer" "$tmpdir/certs" "$tmpdir/config"

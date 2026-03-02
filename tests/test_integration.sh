@@ -30,6 +30,8 @@ setup_workspace() {
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
     # Copy plugins
     cp -r "$PROJECT_ROOT/plugins" "$WORK_DIR/"
+    # Copy config
+    cp -r "$PROJECT_ROOT/config" "$WORK_DIR/"
     # Copy certs dir (may be empty)
     cp -r "$PROJECT_ROOT/certs" "$WORK_DIR/" 2>/dev/null || mkdir -p "$WORK_DIR/certs"
 }

@@ -27,6 +27,7 @@ test_required_files() {
     assert_file_exists ".gitignore" "$PROJECT_ROOT/.gitignore"
     assert_dir_exists "certs/ directory" "$PROJECT_ROOT/certs"
     assert_dir_exists "config/ directory" "$PROJECT_ROOT/config"
+    assert_file_exists "config/apt-base-packages.conf" "$PROJECT_ROOT/config/apt-base-packages.conf"
     assert_dir_exists "lib/ directory" "$PROJECT_ROOT/lib"
     assert_dir_exists "plugins/ directory" "$PROJECT_ROOT/plugins"
     assert_dir_exists "workspaces/ directory" "$PROJECT_ROOT/workspaces"

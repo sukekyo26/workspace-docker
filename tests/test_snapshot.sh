@@ -40,6 +40,7 @@ generate_all_files() {
     # Copy libs and plugins
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
     cp -r "$PROJECT_ROOT/plugins" "$WORK_DIR/"
+    cp -r "$PROJECT_ROOT/config" "$WORK_DIR/"
 
     # Empty certs dir (no certificates for snapshot)
     mkdir -p "$WORK_DIR/certs"

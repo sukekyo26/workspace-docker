@@ -310,6 +310,22 @@ generate_dockerfile_from_template() {
     local certificate_install
     certificate_install=$(generate_certificate_install)
 
+    # Build apt base packages from config file
+    local apt_base=""
+    local apt_conf
+    apt_conf="$(cd "$(dirname "$template_file")" && pwd)/config/apt-base-packages.conf"
+    if [[ -f "$apt_conf" ]]; then
+        while IFS= read -r line; do
+            # Skip empty lines and comments
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            # Trim whitespace
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
+            [[ -n "$line" ]] && apt_base="${apt_base}    ${line} \\\\
+"
+        done < "$apt_conf"
+    fi
+
     # Build apt extra packages lines
     local apt_extra=""
     if [[ ${#WS_APT_EXTRA[@]} -gt 0 && -n "${WS_APT_EXTRA[0]}" ]]; then
@@ -322,10 +338,12 @@ generate_dockerfile_from_template() {
     # Use awk for multiline placeholder replacement
     awk -v plugin_inst="$plugin_installs" \
         -v cert_inst="$certificate_install" \
+        -v apt_base="$apt_base" \
         -v apt_extra="$apt_extra" '
         /{{PLUGIN_INSTALLS}}/ { print plugin_inst; next }
         /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
-        /{{APT_EXTRA_PACKAGES}}/ { if (apt_extra != "") printf "%s", apt_extra; sub(/[[:space:]]*\{\{APT_EXTRA_PACKAGES\}\}[[:space:]]*/, "    "); print; next }
+        /{{APT_BASE_PACKAGES}}/ { if (apt_base != "") printf "%s", apt_base; next }
+        /{{APT_EXTRA_PACKAGES}}/ { if (apt_extra != "") printf "%s", apt_extra; next }
         { print }
     ' "$template_file" > "$output_file"
 }
