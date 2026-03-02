@@ -319,12 +319,12 @@ uv venv --python 3.12
 }
 ```
 
-**例2: pyenvでインストールしたPythonを直接使用**
+**例2: proto経由でインストールしたPythonを直接使用**
 
-**project-a/.vscode/settings.json (pyenv Python 3.11)**
+**project-a/.vscode/settings.json (proto Python 3.11)**
 ```json
 {
-  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.defaultInterpreterPath": "~/.proto/tools/python/3.11.9/bin/python",
   "python.analysis.extraPaths": ["${workspaceFolder}"]
 }
 ```

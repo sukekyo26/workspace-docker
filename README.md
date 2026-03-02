@@ -322,12 +322,12 @@ Then configure VS Code to use it:
 }
 ```
 
-**Example 2: Using pyenv-installed Python directly**
+**Example 2: Using proto-installed Python directly**
 
-**project-a/.vscode/settings.json (pyenv Python 3.11)**
+**project-a/.vscode/settings.json (proto Python 3.11)**
 ```json
 {
-  "python.defaultInterpreterPath": "~/.pyenv/versions/3.11.9/bin/python",
+  "python.defaultInterpreterPath": "~/.proto/tools/python/3.11.9/bin/python",
   "python.analysis.extraPaths": ["${workspaceFolder}"]
 }
 ```
