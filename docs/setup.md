@@ -63,6 +63,12 @@ extra_packages = ["ripgrep", "fd-find"]  # optional
 
 [ports]
 forward = [3000]
+
+# Optional: custom persistent volumes (volume-name = "/container/path")
+# Use this to persist paths not covered by plugins.
+# e.g., proto-managed tool data, project-specific caches
+[volumes]
+node-data = "/home/devuser/.node"
 ```
 
 Available plugins are defined in `plugins/*.toml`. Each plugin is a self-contained TOML file with install instructions:
@@ -74,6 +80,21 @@ Available plugins are defined in `plugins/*.toml`. Each plugin is a self-contain
 - `docker-cli` — Docker CLI (host Docker via socket mount, default: on)
 - `github-cli` — GitHub CLI
 - `zig` — Zig compiler (for cargo-lambda cross-compilation)
+
+## Custom Volume Mounts
+
+Plugins automatically add their own persistent volumes (e.g., `proto` mounts `~/.proto`). To add volumes not covered by plugins — for example, paths used by proto-managed tools — use the `[volumes]` section:
+
+```toml
+[volumes]
+node-data = "/home/devuser/.node"
+python-data = "/home/devuser/.python"
+custom-cache = "/home/devuser/.cache/my-tool"
+```
+
+- **Key**: volume name (used as Docker named volume name, prefixed with `${CONTAINER_SERVICE_NAME}_`)
+- **Value**: absolute path inside the container
+- Changes take effect after running `setup-docker.sh` and `rebuild-container.sh`
 
 ## Auto-detected Information
 

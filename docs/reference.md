@@ -173,7 +173,7 @@ bash tests/run_all.sh
 - `generate-workspace.sh` - Multi-root workspace generator
 
 ### Configuration
-- `workspace.toml` - User configuration (container name, username, plugins, ports)
+- `workspace.toml` - User configuration (container name, username, plugins, ports, custom volumes)
 
 ### Plugins (`plugins/`)
 - `plugins/proto.toml` - proto version manager plugin (default: on)

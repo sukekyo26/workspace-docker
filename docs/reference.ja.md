@@ -173,7 +173,7 @@ bash tests/run_all.sh
 - `generate-workspace.sh` - マルチルートワークスペース生成スクリプト
 
 ### 設定
-- `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート）
+- `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、カスタムボリューム）
 
 ### プラグイン（`plugins/`）
 - `plugins/proto.toml` - protoバージョンマネージャープラグイン（デフォルト: on）

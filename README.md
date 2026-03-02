@@ -46,6 +46,10 @@ extra_packages = ["ripgrep", "fd-find"]
 
 [ports]
 forward = [3000]
+
+# Optional: custom persistent volumes (volume-name = "/container/path")
+[volumes]
+my-data = "/home/devuser/.my-tool"
 ```
 
 Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `zig` (defined in `plugins/*.toml`)

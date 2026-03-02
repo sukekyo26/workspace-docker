@@ -46,6 +46,10 @@ extra_packages = ["ripgrep", "fd-find"]
 
 [ports]
 forward = [3000]
+
+# オプション: カスタム永続ボリューム
+[volumes]
+my-data = "/home/devuser/.my-tool"
 ```
 
 利用可能なプラグイン: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `zig`（`plugins/*.toml`で定義）

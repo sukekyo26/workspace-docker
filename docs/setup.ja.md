@@ -63,6 +63,10 @@ extra_packages = ["ripgrep", "fd-find"]  # オプション
 
 [ports]
 forward = [3000]
+
+# オプション: カスタム永続ボリューム (ボリューム名 = "/コンテナ内パス")
+[volumes]
+my-data = "/home/devuser/.my-tool"
 ```
 
 利用可能なプラグインは`plugins/*.toml`で定義されています。各プラグインはインストール手順を含む自己完結型のTOMLファイルです：
@@ -74,6 +78,21 @@ forward = [3000]
 - `docker-cli` — Docker CLI（ソケットマウント経由でホストDockerを利用、デフォルト: on）
 - `github-cli` — GitHub CLI
 - `zig` — Zigコンパイラ（cargo-lambdaのクロスコンパイル用）
+
+## カスタムボリュームマウント
+
+プラグインは自身の永続ボリュームを自動追加します（例: `proto` は `~/.proto` をマウント）。プラグインがカバーしないパスを永続化するには `[volumes]` セクションを使用します：
+
+```toml
+[volumes]
+node-data = "/home/devuser/.node"
+python-data = "/home/devuser/.python"
+custom-cache = "/home/devuser/.cache/my-tool"
+```
+
+- **キー**: ボリューム名（`${CONTAINER_SERVICE_NAME}_` がプレフィックスとして付与されたDockernamed volumeになります）
+- **値**: コンテナ内の絶対パス
+- `setup-docker.sh` と `rebuild-container.sh` 実行後に反映されます
 
 ## 自動検出される情報
 
