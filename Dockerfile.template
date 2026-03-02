@@ -4,6 +4,7 @@ FROM ubuntu:${UBUNTU_VERSION}
 ARG USERNAME
 ARG UID
 ARG GID
+ARG DOCKER_GID
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
