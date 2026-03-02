@@ -76,7 +76,7 @@ test_dockerfile_all_enabled() {
 
     setup_workspace
     create_test_workspace_toml "$WORK_DIR" "test-svc" "testuser" \
-        "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "zig"
+        "proto" "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "zig"
 
     (
         cd "$WORK_DIR" || exit 1
@@ -93,6 +93,8 @@ test_dockerfile_all_enabled() {
     assert_file_contains "GitHub CLI section present" "$WORK_DIR/Dockerfile" 'GitHub CLI'
     assert_file_contains "Zig section present" "$WORK_DIR/Dockerfile" 'Zig'
     assert_file_contains "proto section present" "$WORK_DIR/Dockerfile" 'proto'
+    # proto is now a plugin; verify ENV is set correctly
+    assert_file_contains "proto ENV present" "$WORK_DIR/Dockerfile" 'PROTO_HOME'
 
     teardown_workspace
 }
@@ -119,8 +121,8 @@ test_dockerfile_no_plugins() {
     assert_file_not_contains "AWS CLI absent" "$WORK_DIR/Dockerfile" 'Install AWS CLI'
     assert_file_not_contains "GitHub CLI absent" "$WORK_DIR/Dockerfile" 'Install GitHub CLI'
     assert_file_not_contains "Zig absent" "$WORK_DIR/Dockerfile" 'Install Zig'
-    # proto is always installed (in the template itself)
-    assert_file_contains "proto still present" "$WORK_DIR/Dockerfile" 'proto'
+    # proto is now a plugin — not present when plugins are empty
+    assert_file_not_contains "proto absent" "$WORK_DIR/Dockerfile" 'proto'
 
     teardown_workspace
 }

@@ -92,18 +92,8 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
 
 {{PLUGIN_INSTALLS}}
 
-# proto (multi-language version manager)
-RUN curl -fsSL https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
-    bash /tmp/install-proto.sh --no-profile --yes && \
-    rm -f /tmp/install-proto.sh && \
-    echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \
-    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc
-ENV PROTO_HOME="/home/${USERNAME}/.proto"
-ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
-
 # create volume mount directories for permission
-RUN mkdir -p ~/.proto \
-    ~/.local
+RUN mkdir -p ~/.local
 
 # Setup persistent bash history
 RUN echo 'export HISTFILE=~/.local/state/.bash_history_docker' >> ~/.bashrc && \

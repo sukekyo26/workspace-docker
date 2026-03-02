@@ -70,7 +70,6 @@ else
 
     # Software installation selection
     subsection_header "Software Installation Selection"
-    echo "proto is always installed (multi-language version manager)"
     echo ""
 
     # Dynamic plugin selection from plugins/ directory
@@ -239,7 +238,6 @@ echo "UID/GID: $uid/$gid (automatically detected)"
 echo "Docker GID: $docker_gid (automatically detected)"
 echo ""
 echo "Enabled plugins:"
-echo "  - proto: Yes (always installed)"
 for plugin_id in "${WS_PLUGINS[@]}"; do
     echo "  - ${plugin_id}: Yes"
 done

@@ -171,7 +171,8 @@ EOF
     assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
     assert_file_not_contains "no Docker CLI" "$tmpdir/Dockerfile" 'Install Docker CLI'
     assert_file_not_contains "no AWS CLI" "$tmpdir/Dockerfile" 'Install AWS CLI'
-    assert_file_contains "proto always present" "$tmpdir/Dockerfile" 'proto'
+    # proto is now a plugin — not present when plugins are empty
+    assert_file_not_contains "proto absent when not enabled" "$tmpdir/Dockerfile" 'proto'
 
     rm -rf "$tmpdir"
 }

@@ -1,0 +1,24 @@
+[metadata]
+name = "proto"
+description = "Multi-language version manager (moonrepo/proto)"
+default = true
+
+[install]
+requires_root = false
+dockerfile = '''
+# proto (multi-language version manager)
+RUN curl -fsSL https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
+    bash /tmp/install-proto.sh --no-profile --yes && \
+    rm -f /tmp/install-proto.sh && \
+    echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \
+    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc && \
+    mkdir -p ~/.proto
+ENV PROTO_HOME="/home/${USERNAME}/.proto"
+ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
+'''
+
+[volumes]
+proto = "/home/${USERNAME}/.proto"
+
+[version]
+strategy = "latest"

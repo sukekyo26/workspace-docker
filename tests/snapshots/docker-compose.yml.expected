@@ -15,15 +15,14 @@ services:
       # ワークスペース
       - ..:/home/${USERNAME}/workspace
 
-      # proto（永続化）
-      - proto:/home/${USERNAME}/.proto
-
       # 個人設定（ホストと同期）
       - ~/.ssh:/home/${USERNAME}/.ssh
 
       # .local（永続化）- pipx, uv等のユーザーインストールパッケージ
       - local:/home/${USERNAME}/.local
 
+      # proto（永続化）
+      - proto:/home/${USERNAME}/.proto
       # AWS CLI v2（永続化）
       - aws:/home/${USERNAME}/.aws
       # GitHub CLI（永続化）
@@ -33,10 +32,10 @@ services:
     tty: true
 
 volumes:
-  proto:
-    name: "${CONTAINER_SERVICE_NAME}_proto"
   local:
     name: "${CONTAINER_SERVICE_NAME}_local"
+  proto:
+    name: "${CONTAINER_SERVICE_NAME}_proto"
   aws:
     name: "${CONTAINER_SERVICE_NAME}_aws"
   gh-config:
