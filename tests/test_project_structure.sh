@@ -212,14 +212,20 @@ test_volume_mounts() {
         return
     fi
 
-    # Check Dockerfile volume mount point directories (always-present only)
-    # shellcheck disable=SC2088
-    local expected_paths=(
-        '~/.proto'
-        '~/.local'
-    )
+    # Load workspace config to check enabled plugins
+    local enabled_plugins=""
+    enabled_plugins=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$PROJECT_ROOT/workspace.toml" 2>/dev/null | grep '^WS_PLUGINS=' || true)
 
-    for vol in "${expected_paths[@]}"; do
+    # Determine which plugin-specific volumes to test based on workspace.toml
+    local paths_to_check=('~/.local')
+    local volumes_to_check=(local)
+
+    if echo "$enabled_plugins" | grep -q "'proto'"; then
+        paths_to_check+=('~/.proto')
+        volumes_to_check+=(proto)
+    fi
+
+    for vol in "${paths_to_check[@]}"; do
         local escaped
         escaped=$(echo "$vol" | sed 's/[.]/\\./g; s|/|\\/|g')
         if grep -qE "${escaped}(\s|\\\\|\$)" "$PROJECT_ROOT/Dockerfile" 2>/dev/null; then
@@ -229,10 +235,9 @@ test_volume_mounts() {
         fi
     done
 
-    # Check docker-compose.yml named volumes (always-present only)
+    # Check docker-compose.yml named volumes
     if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
-        local expected_volumes=(proto local)
-        for vol in "${expected_volumes[@]}"; do
+        for vol in "${volumes_to_check[@]}"; do
             assert_file_contains "docker-compose.yml defines volume '$vol'" \
                 "$PROJECT_ROOT/docker-compose.yml" "^  ${vol}:"
         done
