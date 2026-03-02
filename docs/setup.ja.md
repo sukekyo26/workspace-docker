@@ -56,7 +56,7 @@ username = "devuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["aws-cli", "aws-sam-cli", "docker-cli", "github-cli"]
+enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
 extra_packages = ["ripgrep", "fd-find"]  # オプション
@@ -66,9 +66,12 @@ forward = [3000]
 ```
 
 利用可能なプラグインは`plugins/*.toml`で定義されています。各プラグインはインストール手順を含む自己完結型のTOMLファイルです：
+- `proto` — 多言語バージョンマネージャー（デフォルト: on）
 - `aws-cli` — AWS CLI v2
 - `aws-sam-cli` — AWS SAM CLI
-- `docker-cli` — Docker CLI（ソケットマウント経由でホストDockerを利用）
+- `claude-code` — Claude Code（AIコーディングアシスタント）
+- `copilot-cli` — GitHub Copilot CLI
+- `docker-cli` — Docker CLI（ソケットマウント経由でホストDockerを利用、デフォルト: on）
 - `github-cli` — GitHub CLI
 - `zig` — Zigコンパイラ（cargo-lambdaのクロスコンパイル用）
 

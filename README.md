@@ -1,14 +1,14 @@
 # workspace-docker
 
-A Docker-based Ubuntu development environment template with proto (multi-language version manager) and a plugin-based tool selection system.
+A Docker-based Ubuntu development environment template with a plugin-based tool selection system.
 
 ## Features
 
 - **Plugin Architecture**: Extensible tool selection via `plugins/*.toml` — add or customize tools by editing TOML files
 - **TOML-based Configuration**: All settings in a single `workspace.toml` file — edit and re-run to regenerate
-- **proto**: Unified multi-language version manager for Python, Node.js, Bun, Deno, Go, Rust, and 100+ more tools
 - **Custom CA Certificates**: Automatic installation of custom CA certificates for corporate proxy/VPN environments
-- **Persistent Storage**: proto tools and configurations persist across container recreations
+- **Persistent Storage**: Plugin data and configurations persist across container recreations via named volumes
+- **Externalized Package Management**: Base apt packages managed in `config/apt-base-packages.conf`, project-specific extras via `workspace.toml`
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
 - **Quality Assurance**: 8 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
 
@@ -39,7 +39,7 @@ username = "devuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["aws-cli", "aws-sam-cli", "docker-cli", "github-cli"]
+enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
 extra_packages = ["ripgrep", "fd-find"]
@@ -48,7 +48,7 @@ extra_packages = ["ripgrep", "fd-find"]
 forward = [3000]
 ```
 
-Available plugins: `aws-cli`, `aws-sam-cli`, `docker-cli`, `github-cli`, `zig` (defined in `plugins/*.toml`)
+Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `zig` (defined in `plugins/*.toml`)
 
 ### Starting the Development Environment
 

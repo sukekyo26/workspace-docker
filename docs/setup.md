@@ -56,7 +56,7 @@ username = "devuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["aws-cli", "aws-sam-cli", "docker-cli", "github-cli"]
+enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
 extra_packages = ["ripgrep", "fd-find"]  # optional
@@ -66,9 +66,12 @@ forward = [3000]
 ```
 
 Available plugins are defined in `plugins/*.toml`. Each plugin is a self-contained TOML file with install instructions:
+- `proto` — Multi-language version manager (default: on)
 - `aws-cli` — AWS CLI v2
 - `aws-sam-cli` — AWS SAM CLI
-- `docker-cli` — Docker CLI (host Docker via socket mount)
+- `claude-code` — Claude Code (AI coding assistant)
+- `copilot-cli` — GitHub Copilot CLI
+- `docker-cli` — Docker CLI (host Docker via socket mount, default: on)
 - `github-cli` — GitHub CLI
 - `zig` — Zig compiler (for cargo-lambda cross-compilation)
 

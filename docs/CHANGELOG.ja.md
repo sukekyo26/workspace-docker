@@ -11,7 +11,7 @@
 - **プラグインアーキテクチャ**: `plugins/*.toml` TOMLファイルによる拡張可能なツール選択
   - TOMLパーサーヘルパー（`lib/toml_parser.py`）— Python 3.11+ `tomllib`使用
   - プラグインローディングライブラリ（`lib/plugin.sh`）— Dockerfileスニペット生成
-  - 既存ツール用プラグイン定義: `aws-cli`, `aws-sam-cli`, `docker-cli`, `github-cli`, `zig`
+  - 既存ツール用プラグイン定義: `proto`, `aws-cli`, `aws-sam-cli`, `copilot-cli`, `claude-code`, `docker-cli`, `github-cli`, `zig`
 - **workspace.toml**: 対話式セットアップに代わる単一TOML設定ファイル
   - `[container]` セクション — サービス名、ユーザー名、Ubuntuバージョン
   - `[plugins]` セクション — ツール選択
@@ -21,6 +21,8 @@
 - `workspace.toml`の`[ports].forward`による設定可能なポートフォワーディング
 - 有効なプラグインに基づく条件付きDockerボリューム生成
 - 初回セットアップ時の`.bashrc_custom`スケルトンの自動コピー
+- ベースaptパッケージを`config/apt-base-packages.conf`に外部化
+- 新プラグイン: `copilot-cli`（GitHub Copilot CLI）、`claude-code`（Anthropic Claude Code）
 - curlセキュリティ強化: curl-pipe-shパターンの排除と全curlコマンドへの`-f`フラグ追加
 - デフォルトシステムユーティリティに`uuid-runtime`パッケージを追加
 - システムパッケージに`python3`、`python3-pip`、`python3-venv`、`file`、`patch`、`gettext-base`を追加
@@ -37,6 +39,9 @@
 - **破壊的変更**: `generators.sh`をプラグインベース生成パイプラインで書き直し
 - **破壊的変更**: `switch-env.sh`と`.envs/`マルチ環境管理を廃止
 - `Dockerfile.template`を単一プラグインプレースホルダー（`{{PLUGIN_INSTALLS}}`）使用に簡素化
+- protoをハードコードからプラグインシステムに移行（`plugins/proto.toml`）
+- ハードコードのaptパッケージを`Dockerfile.template`から`config/apt-base-packages.conf`に移動
+- `Dockerfile.template`を約62行（約120行から）に最小化—プレースホルダーとベースインフラのみ
 - デフォルトツールを最小セット（proto + Docker CLIのみ）に変更
 - テンプレート置換をawkに統一（sedベースのアプローチを削除）
 - プラグインベースアーキテクチャ用にテストスイートを書き直し

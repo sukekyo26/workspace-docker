@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Plugin Architecture**: Extensible tool selection via `plugins/*.toml` TOML files
   - TOML parser helper (`lib/toml_parser.py`) using Python 3.11+ `tomllib`
   - Plugin loading library (`lib/plugin.sh`) for Dockerfile snippet generation
-  - Plugin definitions for all existing tools: `aws-cli`, `aws-sam-cli`, `docker-cli`, `github-cli`, `zig`
+  - Plugin definitions for all existing tools: `proto`, `aws-cli`, `aws-sam-cli`, `copilot-cli`, `claude-code`, `docker-cli`, `github-cli`, `zig`
 - **workspace.toml**: Single TOML configuration file replacing interactive-only setup
   - `[container]` section for service name, username, Ubuntu version
   - `[plugins]` section for tool selection
@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable port forwarding via `workspace.toml` `[ports].forward`
 - Conditional Docker volume generation based on enabled plugins
 - Auto-copy `.bashrc_custom` skeleton from example on first setup
+- Externalized base apt packages into `config/apt-base-packages.conf`
+- New plugins: `copilot-cli` (GitHub Copilot CLI), `claude-code` (Anthropic Claude Code)
 - Curl security hardening: eliminated curl-pipe-sh patterns and added `-f` flag to all curl calls
 - `uuid-runtime` package to default system utilities
 - `python3`, `python3-pip`, `python3-venv`, `file`, `patch`, `gettext-base` to system packages
@@ -37,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Rewritten `generators.sh` with plugin-based generation pipeline
 - **BREAKING**: Removed `switch-env.sh` and `.envs/` multi-environment management
 - Simplified `Dockerfile.template` to use single plugin placeholder (`{{PLUGIN_INSTALLS}}`)
+- Migrated proto from hardcoded Dockerfile.template to plugin system (`plugins/proto.toml`)
+- Moved hardcoded apt packages from `Dockerfile.template` to `config/apt-base-packages.conf`
+- Minimized `Dockerfile.template` to 62 lines (from ~120 lines) with placeholders and base infrastructure only
 - Default tools changed to minimal set (proto + Docker CLI only)
 - Template substitution unified to awk (removed sed-based approach)
 - Rewritten test suite for plugin-based architecture

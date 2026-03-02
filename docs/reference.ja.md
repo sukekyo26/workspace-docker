@@ -4,26 +4,21 @@
 
 ### 開発ツール
 
-**proto**（常にインストール）:
-- **proto**: 統合的な多言語バージョンマネージャー。以下をサポート:
-  - **Python**（+ poetry、uv）
-  - **Node.js**（+ npm、pnpm、yarn）
-  - **Bun**、**Deno**、**Go**、**Rust**、**Ruby**
-  - プラグイン経由で100以上のサードパーティツール
-  - `.prototools`ファイルによるプロジェクトベースのバージョン切り替え
-
 **プラグインツール**（`workspace.toml`で設定、`plugins/*.toml`で定義）:
-- **Docker CLI** (`docker-cli`) — コンテナ操作（ホストのDockerデーモンをソケットマウント経由で利用）
+- **proto** (`proto`, デフォルト: on) — 統合的な多言語バージョンマネージャー（Python, Node.js, Bun, Deno, Go, Rust, 100以上のツール）
+- **Docker CLI** (`docker-cli`, デフォルト: on) — コンテナ操作（ホストのDockerデーモンをソケットマウント経由で利用）
 - **AWS CLI v2** (`aws-cli`) — AWSリソース管理
 - **AWS SAM CLI** (`aws-sam-cli`) — サーバーレスLambda関数のローカルでのビルド、テスト、実行
 - **GitHub CLI** (`github-cli`) — リポジトリ管理、プルリクエスト、Issue、ワークフロー操作のためのCLI
+- **GitHub Copilot CLI** (`copilot-cli`) — AIパワードのコマンドラインアシスタント
+- **Claude Code** (`claude-code`) — AnthropicのAIコーディングアシスタント
 - **Zig** (`zig`) — cargo-lambdaのクロスコンパイルに必要なZigコンパイラ（x86_64とaarch64をサポート）
 
 各プラグインは`plugins/`ディレクトリ内の自己完結型TOMLファイルで、メタデータ、Dockerfile命令、バージョン情報を含みます。新しいツールを追加するには、`plugins/<name>.toml`ファイルを作成するだけです。
 
-## システムパッケージ（常時インストール）
+## システムパッケージ
 
-以下のパッケージは常にインストールされ、完全な開発環境を提供します。
+ベースパッケージは`config/apt-base-packages.conf`で管理されています。プロジェクト固有のパッケージは`workspace.toml`の`[apt] extra_packages`で追加できます。
 
 ### 必須パッケージ
 - **ca-certificates** - SSL/TLS証明書管理、安全なHTTPS接続に必要
@@ -181,9 +176,12 @@ bash tests/run_all.sh
 - `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート）
 
 ### プラグイン（`plugins/`）
+- `plugins/proto.toml` - protoバージョンマネージャープラグイン（デフォルト: on）
 - `plugins/aws-cli.toml` - AWS CLI v2プラグイン
 - `plugins/aws-sam-cli.toml` - AWS SAM CLIプラグイン
-- `plugins/docker-cli.toml` - Docker CLIプラグイン
+- `plugins/claude-code.toml` - Claude Codeプラグイン
+- `plugins/copilot-cli.toml` - GitHub Copilot CLIプラグイン
+- `plugins/docker-cli.toml` - Docker CLIプラグイン（デフォルト: on）
 - `plugins/github-cli.toml` - GitHub CLIプラグイン
 - `plugins/zig.toml` - Zigコンパイラプラグイン
 

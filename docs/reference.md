@@ -4,26 +4,21 @@
 
 ### Development Tools
 
-**proto** (always installed):
-- **proto**: Unified multi-language version manager supporting:
-  - **Python** (+ poetry, uv)
-  - **Node.js** (+ npm, pnpm, yarn)
-  - **Bun**, **Deno**, **Go**, **Rust**, **Ruby**
-  - 100+ third-party tools via plugins
-  - Project-based version switching via `.prototools` file
-
 **Plugin Tools** (configured via `workspace.toml`, defined in `plugins/*.toml`):
-- **Docker CLI** (`docker-cli`) — Container operations (using host Docker daemon via socket mount)
+- **proto** (`proto`, default: on) — Unified multi-language version manager (Python, Node.js, Bun, Deno, Go, Rust, 100+ tools)
+- **Docker CLI** (`docker-cli`, default: on) — Container operations (using host Docker daemon via socket mount)
 - **AWS CLI v2** (`aws-cli`) — AWS resource management
 - **AWS SAM CLI** (`aws-sam-cli`) — Build, test and invoke serverless Lambda functions locally
 - **GitHub CLI** (`github-cli`) — GitHub command-line interface for repository management and workflows
+- **GitHub Copilot CLI** (`copilot-cli`) — AI-powered command-line assistant
+- **Claude Code** (`claude-code`) — AI-powered coding assistant by Anthropic
 - **Zig** (`zig`) — Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
 
 Each plugin is a self-contained TOML file in `plugins/` with metadata, Dockerfile instructions, and version info. To add a new tool, create a new `plugins/<name>.toml` file.
 
-## System Packages (Always Installed)
+## System Packages
 
-The following packages are always installed to provide a complete development environment.
+Base packages are managed in `config/apt-base-packages.conf`. Project-specific extra packages can be added via `workspace.toml` under `[apt] extra_packages`.
 
 ### Essential Packages
 - **ca-certificates** - SSL/TLS certificate management for secure HTTPS connections
@@ -181,9 +176,12 @@ bash tests/run_all.sh
 - `workspace.toml` - User configuration (container name, username, plugins, ports)
 
 ### Plugins (`plugins/`)
+- `plugins/proto.toml` - proto version manager plugin (default: on)
 - `plugins/aws-cli.toml` - AWS CLI v2 plugin
 - `plugins/aws-sam-cli.toml` - AWS SAM CLI plugin
-- `plugins/docker-cli.toml` - Docker CLI plugin
+- `plugins/claude-code.toml` - Claude Code plugin
+- `plugins/copilot-cli.toml` - GitHub Copilot CLI plugin
+- `plugins/docker-cli.toml` - Docker CLI plugin (default: on)
 - `plugins/github-cli.toml` - GitHub CLI plugin
 - `plugins/zig.toml` - Zig compiler plugin
 

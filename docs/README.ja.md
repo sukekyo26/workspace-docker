@@ -1,14 +1,14 @@
 # workspace-docker
 
-Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。proto（多言語バージョンマネージャー）とプラグインベースのツール選択システムを備えています。
+Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。プラグインベースのツール選択システムを備えています。
 
 ## 主な特徴
 
 - **プラグインアーキテクチャ**: `plugins/*.toml`による拡張可能なツール選択 — TOMLファイルの編集でツールの追加・カスタマイズが可能
 - **TOML設定ファイル**: すべての設定が`workspace.toml`に集約 — 編集して再実行するだけで再生成
-- **proto**: Python、Node.js、Bun、Deno、Go、Rust、および100以上のツールに対応した統合的な多言語バージョンマネージャー
 - **カスタムCA証明書**: 企業プロキシ/VPN環境向けのカスタムCA証明書の自動インストール
-- **永続化対応**: protoツールや設定が永続化され、コンテナ再作成後も保持
+- **永続化対応**: プラグインのデータや設定がnamed volumeで永続化され、コンテナ再作成後も保持
+- **外部化パッケージ管理**: ベースaptパッケージは`config/apt-base-packages.conf`で管理、プロジェクト固有パッケージは`workspace.toml`で追加
 - **VS Code Dev Container対応**: `.devcontainer`設定により、VS Codeとシームレスに統合
 - **品質保証**: 8つのテストスイートとGitHub Actions CI/CD（ShellCheck、Hadolint、スナップショットテスト）
 
@@ -39,7 +39,7 @@ username = "devuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["aws-cli", "aws-sam-cli", "docker-cli", "github-cli"]
+enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
 extra_packages = ["ripgrep", "fd-find"]
@@ -48,7 +48,7 @@ extra_packages = ["ripgrep", "fd-find"]
 forward = [3000]
 ```
 
-利用可能なプラグイン: `aws-cli`, `aws-sam-cli`, `docker-cli`, `github-cli`, `zig`（`plugins/*.toml`で定義）
+利用可能なプラグイン: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `zig`（`plugins/*.toml`で定義）
 
 ### 開発環境の起動
 
