@@ -160,6 +160,10 @@ success "Detected Docker GID: $docker_gid"
 # ============================================================
 # Template file validation
 # ============================================================
+validate_no_duplicate_apt_packages \
+    "$SCRIPT_DIR/config/apt-base-packages.conf" \
+    "${WS_APT_EXTRA[@]}" || true
+
 validate_file_exists "docker-compose.yml.template" "docker-compose.yml.template" || exit 1
 validate_file_exists "Dockerfile.template" "Dockerfile.template" || exit 1
 validate_file_exists ".devcontainer/devcontainer.json.template" ".devcontainer/devcontainer.json.template" || exit 1

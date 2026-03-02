@@ -99,3 +99,43 @@ validate_dir_exists() {
 
     return 0
 }
+
+# Validate that apt extra_packages don't duplicate base packages
+# Usage: validate_no_duplicate_apt_packages "apt_base_packages_conf" "extra_pkg1" "extra_pkg2" ...
+# Returns: 0 if no duplicates, 1 if duplicates found (prints warnings)
+validate_no_duplicate_apt_packages() {
+    local base_conf="$1"
+    shift
+    local extra_packages=("$@")
+
+    if [[ ${#extra_packages[@]} -eq 0 || -z "${extra_packages[0]}" ]]; then
+        return 0
+    fi
+
+    if [[ ! -f "$base_conf" ]]; then
+        return 0
+    fi
+
+    # Build set of base packages
+    local found_duplicates=false
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" || "$pkg" =~ ^[[:space:]]*# ]] && continue
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        [[ -z "$pkg" ]] && continue
+
+        for extra in "${extra_packages[@]}"; do
+            if [[ "$extra" == "$pkg" ]]; then
+                echo "WARNING: [apt] extra_packages contains '${extra}', which is already in apt-base-packages.conf" >&2
+                found_duplicates=true
+            fi
+        done
+    done < "$base_conf"
+
+    if [[ "$found_duplicates" == true ]]; then
+        echo "WARNING: Remove duplicates from [apt] extra_packages in workspace.toml to avoid redundant installs" >&2
+        return 1
+    fi
+
+    return 0
+}
