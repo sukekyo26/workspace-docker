@@ -210,65 +210,88 @@ test_error_functions() {
 }
 
 # ============================================================
-# Test: toml_parser.py basic functionality
+# Test: toml_parser.py - detailed output verification
 # ============================================================
 test_toml_parser() {
     section "toml_parser.py"
 
-    assert_true "toml_parser.py prints usage" python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/docker-cli.toml"
-    assert_true "toml_parser.py can parse plugin" python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/docker-cli.toml"
+    # Test workspace parsing
+    local tmptoml
+    tmptoml=$(mktemp)
+    cat > "$tmptoml" << 'EOF'
+[container]
+service_name = "parser-test"
+username = "devuser"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = ["docker-cli", "aws-cli"]
+
+[ports]
+forward = [8080]
+
+[apt]
+extra_packages = ["htop", "tmux"]
+EOF
+
+    local output
+    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmptoml")
+    assert_true "toml_parser.py runs without error" test $? -eq 0
+
+    # Verify each parsed value
+    eval "$output"
+    assert_eq "WS_SERVICE_NAME" "parser-test" "$WS_SERVICE_NAME"
+    assert_eq "WS_USERNAME" "devuser" "$WS_USERNAME"
+    assert_eq "WS_UBUNTU_VERSION" "24.04" "$WS_UBUNTU_VERSION"
+    assert_eq "WS_PLUGINS count" "2" "${#WS_PLUGINS[@]}"
+    assert_eq "WS_PLUGINS[0]" "docker-cli" "${WS_PLUGINS[0]}"
+    assert_eq "WS_PLUGINS[1]" "aws-cli" "${WS_PLUGINS[1]}"
+    assert_eq "WS_FORWARD_PORTS[0]" "8080" "${WS_FORWARD_PORTS[0]}"
+    assert_eq "WS_APT_EXTRA count" "2" "${#WS_APT_EXTRA[@]}"
+    assert_eq "WS_APT_EXTRA[0]" "htop" "${WS_APT_EXTRA[0]}"
+    assert_eq "WS_APT_EXTRA[1]" "tmux" "${WS_APT_EXTRA[1]}"
+
+    rm -f "$tmptoml"
+
+    # Test plugin parsing
+    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/docker-cli.toml")
+    eval "$output"
+    assert_eq "PLUGIN_ID" "docker-cli" "$PLUGIN_ID"
+    assert_eq "PLUGIN_NAME" "Docker CLI" "$PLUGIN_NAME"
+    assert_eq "PLUGIN_REQUIRES_ROOT" "true" "$PLUGIN_REQUIRES_ROOT"
+
+    # Test list-plugins
+    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" list-plugins "$PROJECT_ROOT/plugins")
+    eval "$output"
+    assert_true "PLUGIN_IDS has entries" test "${#PLUGIN_IDS[@]}" -gt 0
 }
 
 # ============================================================
-# Test: devcontainer.sh - function definitions
+# Test: devcontainer.sh - function execution
 # ============================================================
 test_devcontainer_functions() {
     section "devcontainer.sh functions"
 
-    local dc="$PROJECT_ROOT/lib/devcontainer.sh"
+    source "$PROJECT_ROOT/lib/devcontainer.sh"
 
-    # Required functions exist
-    assert_file_contains "check_docker defined" "$dc" 'check_docker()'
-    assert_file_contains "check_devcontainer_cli defined" "$dc" 'check_devcontainer_cli()'
-    assert_file_contains "check_devcontainer_json defined" "$dc" 'check_devcontainer_json()'
-    assert_file_contains "check_env_file defined" "$dc" 'check_env_file()'
-    assert_file_contains "check_all_prerequisites defined" "$dc" 'check_all_prerequisites()'
-    assert_file_contains "is_wsl defined" "$dc" 'is_wsl()'
-    assert_file_contains "run_devcontainer defined" "$dc" 'run_devcontainer()'
+    # Functions are defined and callable
+    assert_true "check_docker is a function" declare -f check_docker
+    assert_true "check_devcontainer_cli is a function" declare -f check_devcontainer_cli
+    assert_true "check_all_prerequisites is a function" declare -f check_all_prerequisites
+    assert_true "is_wsl is a function" declare -f is_wsl
+    assert_true "run_devcontainer is a function" declare -f run_devcontainer
 
-    # curl installer, NOT npm
-    assert_file_contains "uses curl installer" "$dc" 'curl -fsSL.*devcontainers/cli.*install.sh'
-    assert_file_not_contains "does NOT use npm" "$dc" 'npm install.*@devcontainers/cli'
+    # is_wsl returns meaningful result (not error)
+    is_wsl 2>/dev/null
+    local wsl_rc=$?
+    assert_true "is_wsl returns 0 or 1" test "$wsl_rc" -le 1
 
-    # WSL detection & Docker path handling
-    assert_file_contains "checks /proc/version for WSL" "$dc" '/proc/version'
-    assert_file_contains "sets DOCKER_HOST for WSL" "$dc" 'DOCKER_HOST'
-    assert_file_contains "passes --docker-path" "$dc" '\-\-docker-path'
-}
-
-# ============================================================
-# Test: shellcheck on lib files
-# ============================================================
-test_shellcheck() {
-    section "shellcheck"
-
-    if ! command -v shellcheck &>/dev/null; then
-        skip_test "shellcheck lib/*.sh" "shellcheck not installed"
-        return
+    # check_docker runs (Docker available in this container)
+    if command -v docker &>/dev/null; then
+        assert_true "check_docker succeeds" check_docker
+    else
+        skip_test "check_docker execution" "docker not installed"
     fi
-
-    local scripts=("lib/generators.sh" "lib/validators.sh" "lib/errors.sh" "lib/devcontainer.sh" "lib/plugin.sh")
-    for script in "${scripts[@]}"; do
-        local path="$PROJECT_ROOT/$script"
-        local result
-        result=$(shellcheck -S error "$path" 2>&1 || true)
-        if [[ -z "$result" ]]; then
-            assert_eq "shellcheck $script (errors only)" "0" "0"
-        else
-            echo "$result" | head -10 | sed 's/^/      /'
-            assert_eq "shellcheck $script (errors only)" "0" "1"
-        fi
-    done
 }
 
 # ============================================================
@@ -286,6 +309,5 @@ test_certificate_functions
 test_error_functions
 test_devcontainer_functions
 test_toml_parser
-test_shellcheck
 
 print_summary

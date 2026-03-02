@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # tests/test_setup_docker.sh
-# Tests for setup-docker.sh
+# Tests for setup-docker.sh — execution-based tests
 # ============================================================
 
 set -uo pipefail
@@ -15,6 +15,27 @@ echo ""
 echo "[ test_setup_docker.sh ]"
 
 # ============================================================
+# Helper: create a tmpdir with all project files needed
+# ============================================================
+setup_test_dir() {
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    cp "$SCRIPT" "$tmpdir/"
+    cp -r "$PROJECT_ROOT/lib" "$tmpdir/"
+    cp -r "$PROJECT_ROOT/plugins" "$tmpdir/"
+    cp "$PROJECT_ROOT/Dockerfile.template" "$tmpdir/"
+    cp "$PROJECT_ROOT/docker-compose.yml.template" "$tmpdir/"
+    mkdir -p "$tmpdir/.devcontainer" "$tmpdir/certs" "$tmpdir/config"
+    cp "$PROJECT_ROOT/.devcontainer/"*.template "$tmpdir/.devcontainer/"
+    if [[ -f "$PROJECT_ROOT/config/.bashrc_custom.example" ]]; then
+        cp "$PROJECT_ROOT/config/.bashrc_custom.example" "$tmpdir/config/"
+    fi
+
+    echo "$tmpdir"
+}
+
+# ============================================================
 # Test: Script basics
 # ============================================================
 test_script_basics() {
@@ -26,106 +47,133 @@ test_script_basics() {
 }
 
 # ============================================================
-# Test: Library sourcing
+# Test: Regenerate from existing workspace.toml
 # ============================================================
-test_library_sourcing() {
-    section "Library sourcing"
+test_regenerate_from_toml() {
+    section "Regenerate from workspace.toml"
 
-    assert_file_contains "sources generators.sh" "$SCRIPT" 'source.*lib/generators.sh'
-    assert_file_contains "sources validators.sh" "$SCRIPT" 'source.*lib/validators.sh'
-    assert_file_contains "sources errors.sh" "$SCRIPT" 'source.*lib/errors.sh'
-}
+    local tmpdir
+    tmpdir=$(setup_test_dir)
 
-# ============================================================
-# Test: Template file usage
-# ============================================================
-test_template_usage() {
-    section "Template file usage"
+    cat > "$tmpdir/workspace.toml" << 'EOF'
+[container]
+service_name = "setup-test"
+username = "testuser"
+ubuntu_version = "24.04"
 
-    assert_file_contains "uses Dockerfile.template" "$SCRIPT" 'Dockerfile.template'
-    assert_file_contains "uses docker-compose.yml.template" "$SCRIPT" 'docker-compose.yml.template'
-    assert_file_contains "uses devcontainer.json.template" "$SCRIPT" 'devcontainer.json.template'
-    assert_file_contains "uses docker-compose.yml.template (devcontainer)" "$SCRIPT" '.devcontainer/docker-compose.yml.template'
-}
+[plugins]
+enable = ["docker-cli", "github-cli"]
 
-# ============================================================
-# Test: Plugin-based architecture
-# ============================================================
-test_plugin_architecture() {
-    section "Plugin-based architecture"
+[ports]
+forward = [8080]
+EOF
 
-    assert_file_contains "checks python3 prerequisite" "$SCRIPT" 'check_python3'
-    assert_file_contains "uses workspace.toml" "$SCRIPT" 'workspace.toml'
-    assert_file_contains "loads workspace config" "$SCRIPT" 'load_workspace_config'
-    assert_file_contains "lists available plugins" "$SCRIPT" 'list_available_plugins'
-    assert_file_contains "supports --init flag" "$SCRIPT" '\-\-init'
-}
+    (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
+    local exit_code=$?
 
-# ============================================================
-# Test: User input prompts
-# ============================================================
-test_user_inputs() {
-    section "User input prompts"
+    assert_eq "setup-docker.sh exits 0" "0" "$exit_code"
 
-    assert_file_contains "prompts for service name" "$SCRIPT" 'container_service_name'
-    assert_file_contains "prompts for username" "$SCRIPT" 'username'
-    assert_file_contains "prompts for port" "$SCRIPT" 'forward_port'
-}
+    # Verify all generated files exist
+    assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
+    assert_file_exists "docker-compose.yml generated" "$tmpdir/docker-compose.yml"
+    assert_file_exists ".env generated" "$tmpdir/.env"
+    assert_file_exists "devcontainer.json generated" "$tmpdir/.devcontainer/devcontainer.json"
+    assert_file_exists ".devcontainer/compose generated" "$tmpdir/.devcontainer/docker-compose.yml"
 
-# ============================================================
-# Test: Auto-detection
-# ============================================================
-test_auto_detection() {
-    section "Auto-detection"
+    # Verify .env content
+    local val
+    val=$(grep '^CONTAINER_SERVICE_NAME=' "$tmpdir/.env" | cut -d= -f2)
+    assert_eq ".env CONTAINER_SERVICE_NAME" "setup-test" "$val"
 
-    assert_file_contains "detects UID" "$SCRIPT" 'id -u'
-    assert_file_contains "detects GID" "$SCRIPT" 'id -g'
-    assert_file_contains "detects Docker GID" "$SCRIPT" 'detect_docker_gid'
-}
+    val=$(grep '^USERNAME=' "$tmpdir/.env" | cut -d= -f2)
+    assert_eq ".env USERNAME" "testuser" "$val"
 
-# ============================================================
-# Test: .env generation (direct file, no symlink)
-# ============================================================
-test_env_generation() {
-    section ".env generation"
+    val=$(grep '^FORWARD_PORT=' "$tmpdir/.env" | cut -d= -f2)
+    assert_eq ".env FORWARD_PORT" "8080" "$val"
 
-    assert_file_contains "generates .env file" "$SCRIPT" 'cat > ".env"'
-    assert_file_not_contains "no .envs directory" "$SCRIPT" 'mkdir -p .envs'
-    assert_file_not_contains "no symlink creation" "$SCRIPT" 'ln -sf'
-}
+    # Verify Dockerfile has correct plugins
+    assert_file_contains "Docker CLI in Dockerfile" "$tmpdir/Dockerfile" 'Docker CLI'
+    assert_file_contains "GitHub CLI in Dockerfile" "$tmpdir/Dockerfile" 'GitHub CLI'
+    assert_file_not_contains "AWS CLI absent" "$tmpdir/Dockerfile" 'Install AWS CLI'
 
-# ============================================================
-# Test: workspace.toml generation
-# ============================================================
-test_workspace_toml_generation() {
-    section "workspace.toml generation"
+    # Verify service name propagation
+    assert_file_contains "service in compose" "$tmpdir/docker-compose.yml" 'setup-test'
+    assert_file_contains "service in devcontainer.json" "$tmpdir/.devcontainer/devcontainer.json" 'setup-test'
 
-    # shellcheck disable=SC2016
-    assert_file_contains "generates workspace.toml" "$SCRIPT" 'cat > "$WORKSPACE_TOML"'
-    assert_file_contains "contains service_name field" "$SCRIPT" 'service_name'
-    assert_file_contains "contains username field" "$SCRIPT" 'username'
-    assert_file_contains "contains plugins.enable" "$SCRIPT" 'plugins_toml'
-}
-
-# ============================================================
-# Test: shellcheck
-# ============================================================
-test_shellcheck() {
-    section "shellcheck"
-
-    if ! command -v shellcheck &>/dev/null; then
-        skip_test "shellcheck setup-docker.sh" "shellcheck not installed"
-        return
+    # Verify .bashrc_custom auto-copy
+    if [[ -f "$PROJECT_ROOT/config/.bashrc_custom.example" ]]; then
+        assert_file_exists ".bashrc_custom auto-copied" "$tmpdir/config/.bashrc_custom"
     fi
 
-    local result
-    result=$(shellcheck -S error "$SCRIPT" 2>&1 || true)
-    if [[ -z "$result" ]]; then
-        assert_eq "shellcheck passes (errors only)" "0" "0"
-    else
-        echo "$result" | head -10 | sed 's/^/      /'
-        assert_eq "shellcheck passes (errors only)" "0" "1"
-    fi
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: Regenerate with all plugins
+# ============================================================
+test_regenerate_all_plugins() {
+    section "Regenerate with all plugins"
+
+    local tmpdir
+    tmpdir=$(setup_test_dir)
+
+    cat > "$tmpdir/workspace.toml" << 'EOF'
+[container]
+service_name = "all-plugins"
+username = "devuser"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "zig"]
+
+[ports]
+forward = [3000]
+EOF
+
+    (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
+
+    assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
+    assert_file_contains "Docker CLI present" "$tmpdir/Dockerfile" 'Docker CLI'
+    assert_file_contains "AWS CLI present" "$tmpdir/Dockerfile" 'AWS CLI'
+    assert_file_contains "AWS SAM CLI present" "$tmpdir/Dockerfile" 'AWS SAM CLI'
+    assert_file_contains "GitHub CLI present" "$tmpdir/Dockerfile" 'GitHub CLI'
+    assert_file_contains "Zig present" "$tmpdir/Dockerfile" 'Zig'
+    assert_file_contains "aws volume" "$tmpdir/docker-compose.yml" 'aws:'
+    assert_file_contains "gh-config volume" "$tmpdir/docker-compose.yml" 'gh-config:'
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: Regenerate with no plugins
+# ============================================================
+test_regenerate_no_plugins() {
+    section "Regenerate with no plugins"
+
+    local tmpdir
+    tmpdir=$(setup_test_dir)
+
+    cat > "$tmpdir/workspace.toml" << 'EOF'
+[container]
+service_name = "minimal"
+username = "testuser"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = []
+
+[ports]
+forward = [3000]
+EOF
+
+    (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
+
+    assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
+    assert_file_not_contains "no Docker CLI" "$tmpdir/Dockerfile" 'Install Docker CLI'
+    assert_file_not_contains "no AWS CLI" "$tmpdir/Dockerfile" 'Install AWS CLI'
+    assert_file_contains "proto always present" "$tmpdir/Dockerfile" 'proto'
+
+    rm -rf "$tmpdir"
 }
 
 # ============================================================
@@ -133,13 +181,8 @@ test_shellcheck() {
 # ============================================================
 
 test_script_basics
-test_library_sourcing
-test_template_usage
-test_plugin_architecture
-test_user_inputs
-test_auto_detection
-test_env_generation
-test_workspace_toml_generation
-test_shellcheck
+test_regenerate_from_toml
+test_regenerate_all_plugins
+test_regenerate_no_plugins
 
 print_summary

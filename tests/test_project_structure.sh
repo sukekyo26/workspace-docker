@@ -239,7 +239,7 @@ test_volume_mounts() {
 }
 
 # ============================================================
-# Test: shellcheck all scripts
+# Test: shellcheck all scripts (consolidated)
 # ============================================================
 test_shellcheck_all() {
     section "shellcheck (all scripts)"
@@ -249,22 +249,25 @@ test_shellcheck_all() {
         return
     fi
 
-    local scripts=(
-        "generate-workspace.sh"
-        "rebuild-container.sh"
-    )
+    # Find all .sh files in the project (excluding .devcontainer)
+    local scripts=()
+    while IFS= read -r script; do
+        scripts+=("$script")
+    done < <(find "$PROJECT_ROOT" -name '*.sh' \
+        -not -path '*/.devcontainer/*' \
+        -not -path '*/node_modules/*' \
+        -not -path '*/.git/*' \
+        -not -path '*/local/*' | sort)
 
-    for script in "${scripts[@]}"; do
-        local path="$PROJECT_ROOT/$script"
-        if [[ -f "$path" ]]; then
-            local result
-            result=$(shellcheck -S error "$path" 2>&1 || true)
-            if [[ -z "$result" ]]; then
-                assert_eq "shellcheck $script (errors)" "0" "0"
-            else
-                echo "$result" | head -5 | sed 's/^/      /'
-                assert_eq "shellcheck $script (errors)" "0" "1"
-            fi
+    for path in "${scripts[@]}"; do
+        local relpath="${path#"$PROJECT_ROOT/"}"
+        local result
+        result=$(shellcheck -S error "$path" 2>&1 || true)
+        if [[ -z "$result" ]]; then
+            assert_eq "shellcheck $relpath (errors)" "0" "0"
+        else
+            echo "$result" | head -5 | sed 's/^/      /'
+            assert_eq "shellcheck $relpath (errors)" "0" "1"
         fi
     done
 }
