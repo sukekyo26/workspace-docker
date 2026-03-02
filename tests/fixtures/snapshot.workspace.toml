@@ -1,0 +1,13 @@
+# Snapshot test fixture — all plugins enabled with fixed values
+# Used by tests/test_snapshot.sh for regression detection
+
+[container]
+service_name = "snapshot-test"
+username = "testuser"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "zig"]
+
+[ports]
+forward = [3000]
