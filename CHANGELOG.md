@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Plugin Architecture**: Extensible tool selection via `plugins/*.toml` TOML files
+  - TOML parser helper (`lib/toml_parser.py`) using Python 3.11+ `tomllib`
+  - Plugin loading library (`lib/plugin.sh`) for Dockerfile snippet generation
+  - Plugin definitions for all existing tools: `aws-cli`, `aws-sam-cli`, `docker-cli`, `github-cli`, `zig`
+- **workspace.toml**: Single TOML configuration file replacing interactive-only setup
+  - `[container]` section for service name, username, Ubuntu version
+  - `[plugins]` section for tool selection
+  - `[apt]` section for extra system packages
+  - `[ports]` section for port forwarding
+- Extra apt packages support via `workspace.toml` `[apt].extra_packages`
+- Configurable port forwarding via `workspace.toml` `[ports].forward`
+- Conditional Docker volume generation based on enabled plugins
+- Auto-copy `.bashrc_custom` skeleton from example on first setup
+- Curl security hardening: eliminated curl-pipe-sh patterns and added `-f` flag to all curl calls
+- `uuid-runtime` package to default system utilities
+- `python3`, `python3-pip`, `python3-venv`, `file`, `patch`, `gettext-base` to system packages
+- Interactive workspace generator script (`generate-workspace.sh`)
+- DevContainer management scripts (`rebuild-container.sh`, `lib/devcontainer.sh`)
+- Snapshot regression tests comparing generated files against expected output
+- Structural validity tests for generated Dockerfile, YAML, and JSON files
+- Execution-based tests replacing source-grep approach for more reliable validation
+- Integration tests for end-to-end file generation pipeline
+- Plugin TOML structure validation test suite
+
+### Changed
+- **BREAKING**: Rewritten `setup-docker.sh` with plugin-based architecture
+- **BREAKING**: Rewritten `generators.sh` with plugin-based generation pipeline
+- **BREAKING**: Removed `switch-env.sh` and `.envs/` multi-environment management
+- Simplified `Dockerfile.template` to use single plugin placeholder (`{{PLUGIN_INSTALLS}}`)
+- Default tools changed to minimal set (proto + Docker CLI only)
+- Template substitution unified to awk (removed sed-based approach)
+- Rewritten test suite for plugin-based architecture
+- CI workflow updated for plugin-based architecture and Hadolint on generated Dockerfile
+- All ShellCheck style-level warnings resolved with `.shellcheckrc` configuration
+- README completely rewritten for plugin architecture and workspace.toml configuration
+- README split into compact Quick Start (root) with detailed guides in `docs/`
+  - `docs/setup.md` / `docs/setup.ja.md` — Full setup and configuration guide
+  - `docs/usage.md` / `docs/usage.ja.md` — Development workflows, commands, mounted dirs
+  - `docs/reference.md` / `docs/reference.ja.md` — Pre-installed software, project files
+- Replaced pyenv references with proto in Python configuration examples
+
+### Removed
+- `switch-env.sh` multi-environment switcher
+- `.envs/` directory for environment profiles
+- `test.sh` wrapper script (replaced by `tests/run_all.sh`)
+- Dead code: `validate_package_manager` function
+- Deprecated version field from template substitution
+- Non-functional `chat.instructionsFilesLocations` configuration
+
+### Fixed
+- Removed GID 999 fallback in Docker GID detection
+- APT_EXTRA_PACKAGES placeholder replacement handling leading whitespace
+- Locale-gen restoration after APT_EXTRA_PACKAGES placeholder replacement
+- CI template validation YAML parsing errors
+
 ## [3.1.0] - 2026-01-19
 
 ### Added
