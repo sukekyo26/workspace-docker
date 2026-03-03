@@ -132,6 +132,7 @@ generate_devcontainer_json() {
     local plugins_dir
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
+    mkdir -p "$(dirname "$output_file")"
     python3 "$GENERATORS_PY" devcontainer-json "$workspace_toml" "$plugins_dir" > "$output_file"
 }
 
@@ -143,6 +144,7 @@ generate_devcontainer_compose() {
     local plugins_dir
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
+    mkdir -p "$(dirname "$output_file")"
     python3 "$GENERATORS_PY" devcontainer-compose "$workspace_toml" "$plugins_dir" > "$output_file"
 }
 
