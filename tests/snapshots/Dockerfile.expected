@@ -99,7 +99,6 @@ RUN curl -fsSL https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh &&
     mkdir -p ~/.proto
 ENV PROTO_HOME="/home/${USERNAME}/.proto"
 ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
-
 USER root
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 ARG DOCKER_GID
@@ -113,7 +112,6 @@ RUN mkdir -p /etc/apt/keyrings && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     groupadd -g ${DOCKER_GID} docker 2>/dev/null || groupmod -g ${DOCKER_GID} docker && \
     usermod -aG docker ${USERNAME}
-
 USER ${USERNAME}
 # Install AWS CLI v2
 RUN ARCH="$(dpkg --print-architecture)" && \
@@ -127,7 +125,6 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     sudo ./aws/install && \
     rm -rf aws awscliv2.zip && \
     mkdir -p ~/.aws
-
 # Install AWS SAM CLI
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
@@ -140,7 +137,6 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     unzip aws-sam-cli.zip -d sam-installation && \
     sudo ./sam-installation/install && \
     rm -rf sam-installation aws-sam-cli.zip
-
 USER root
 # Install GitHub CLI
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
@@ -151,22 +147,18 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-USER ${USERNAME}
-RUN mkdir -p ~/.config/gh
-
+RUN mkdir -p /home/${USERNAME}/.config/gh && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.config/gh
 USER ${USERNAME}
 # Install GitHub Copilot CLI
 RUN curl -fsSL https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
     bash /tmp/install-copilot.sh && \
     rm -f /tmp/install-copilot.sh && \
     mkdir -p ~/.copilot
-
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh && \
     bash /tmp/install-claude.sh && \
     rm -f /tmp/install-claude.sh && \
     mkdir -p ~/.claude
-
 USER root
 # Install Zig (required for cargo-lambda cross-compilation)
 RUN ARCH="$(dpkg --print-architecture)" && \
@@ -181,7 +173,6 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
     ln -s /usr/local/zig/zig /usr/local/bin/zig && \
     rm /tmp/zig.tar.xz
-
 USER ${USERNAME}
 
 # create volume mount directories for permission

@@ -15,8 +15,7 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-USER ${USERNAME}
-RUN mkdir -p ~/.config/gh
+RUN mkdir -p /home/${USERNAME}/.config/gh && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.config/gh
 '''
 
 [volumes]

@@ -186,6 +186,11 @@ generate_plugin_installs() {
             continue
         fi
 
+        # Strip trailing newlines
+        while [[ "$snippet" == *$'\n' ]]; do
+            snippet="${snippet%$'\n'}"
+        done
+
         # Replace {{VERSION}} with pinned version if available
         if [[ -n "$PLUGIN_VERSION_PIN" ]]; then
             snippet="${snippet//\{\{VERSION\}\}/$PLUGIN_VERSION_PIN}"
@@ -208,51 +213,3 @@ USER \${USERNAME}"
     printf '%s' "$result"
 }
 
-# ============================================================
-# Volume Generation from Plugins
-# ============================================================
-
-# Generate optional volume mounts and definitions for enabled plugins
-# Usage: generate_plugin_volumes "plugin1" "plugin2" ...
-# Sets: _OPTIONAL_VOLUME_MOUNTS, _OPTIONAL_VOLUME_DEFINITIONS
-generate_plugin_volumes() {
-    local enabled_plugins=("$@")
-    local mounts=""
-    local definitions=""
-
-    for plugin_id in "${enabled_plugins[@]}"; do
-        load_plugin "$plugin_id" || continue
-
-        local count=${#PLUGIN_VOLUME_NAMES[@]}
-        for ((i = 0; i < count; i++)); do
-            local vol_name="${PLUGIN_VOLUME_NAMES[$i]}"
-            local vol_path="${PLUGIN_VOLUME_PATHS[$i]}"
-
-            mounts="${mounts}
-      # ${PLUGIN_NAME}（永続化）
-      - ${vol_name}:${vol_path}"
-            definitions="${definitions}  ${vol_name}:
-    name: \"\${CONTAINER_SERVICE_NAME}_${vol_name}\"
-"
-        done
-    done
-
-    # Also handle workspace.toml custom volumes if loaded
-    if [[ -n "${WS_VOLUME_NAMES+x}" ]]; then
-        local ws_count=${#WS_VOLUME_NAMES[@]}
-        for ((i = 0; i < ws_count; i++)); do
-            local vol_name="${WS_VOLUME_NAMES[$i]}"
-            local vol_path="${WS_VOLUME_PATHS[$i]}"
-
-            mounts="${mounts}
-      # ユーザー定義ボリューム
-      - ${vol_name}:${vol_path}"
-            definitions="${definitions}  ${vol_name}:
-    name: \"\${CONTAINER_SERVICE_NAME}_${vol_name}\"
-"
-        done
-    fi
-
-    _OPTIONAL_VOLUME_MOUNTS="$mounts"
-    _OPTIONAL_VOLUME_DEFINITIONS="$definitions"
-}
