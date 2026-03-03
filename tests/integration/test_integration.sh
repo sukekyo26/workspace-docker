@@ -129,6 +129,8 @@ test_dockerfile_no_plugins() {
     assert_file_not_contains "Zig absent" "$WORK_DIR/Dockerfile" 'Install Zig'
     # proto is now a plugin — not present when plugins are empty
     assert_file_not_contains "proto absent" "$WORK_DIR/Dockerfile" 'proto'
+    # ARG DOCKER_GID should not be present without docker-cli
+    assert_file_not_contains "DOCKER_GID absent" "$WORK_DIR/Dockerfile" 'DOCKER_GID'
 
     teardown_workspace
 }

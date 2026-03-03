@@ -8,6 +8,7 @@ requires_root = true
 dockerfile = '''
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 USER root
+ARG DOCKER_GID
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
