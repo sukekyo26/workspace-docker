@@ -93,4 +93,3 @@ subsection_header() {
     echo ""
     echo -e "${GREEN}--- $* ---${NC}"
 }
-

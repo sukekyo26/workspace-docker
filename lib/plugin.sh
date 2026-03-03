@@ -212,4 +212,3 @@ USER \${USERNAME}"
 
     printf '%s' "$result"
 }
-

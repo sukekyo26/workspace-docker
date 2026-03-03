@@ -165,4 +165,3 @@ test_real_workspace_output
 test_real_plugin_output
 
 print_summary
-
