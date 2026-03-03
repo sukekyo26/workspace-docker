@@ -6,7 +6,8 @@
 
 set -uo pipefail
 
-TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/.. && pwd)"
+# shellcheck source=../test_helper.sh
 source "$TESTS_DIR/test_helper.sh"
 
 SCRIPT="$PROJECT_ROOT/rebuild-container.sh"

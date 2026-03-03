@@ -20,10 +20,8 @@ echo ""
 echo "Project: $PROJECT_ROOT"
 echo ""
 
-# Find and run all test_*.sh files
-shopt -s nullglob
-test_files=("$TESTS_DIR"/test_*.sh)
-shopt -u nullglob
+# Find and run all test_*.sh files recursively
+mapfile -t test_files < <(find "$TESTS_DIR" -name 'test_*.sh' ! -name 'test_helper.sh' | sort)
 
 if [[ ${#test_files[@]} -eq 0 ]]; then
     echo "No test files found in $TESTS_DIR"
@@ -31,10 +29,8 @@ if [[ ${#test_files[@]} -eq 0 ]]; then
 fi
 
 for test_file in "${test_files[@]}"; do
-    # Skip the helper file
-    [[ "$(basename "$test_file")" == "test_helper.sh" ]] && continue
-
-    suite_name=$(basename "$test_file" .sh)
+    suite_name="${test_file#"$TESTS_DIR/"}"
+    suite_name="${suite_name%.sh}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Running: $suite_name"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -45,8 +41,6 @@ for test_file in "${test_files[@]}"; do
         SUITE_RESULTS+=("❌ $suite_name")
     fi
 
-    # Extract counts from subshell output is not possible,
-    # so we rely on exit code for pass/fail per suite
     echo ""
 done
 
