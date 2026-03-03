@@ -79,7 +79,7 @@ test_dockerfile_all_enabled() {
 
     setup_workspace
     create_test_workspace_toml "$WORK_DIR" "test-svc" "testuser" \
-        "proto" "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "zig"
+        "proto" "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "copilot-cli" "claude-code" "uv" "zig"
 
     (
         cd "$WORK_DIR" || exit 1
@@ -94,6 +94,9 @@ test_dockerfile_all_enabled() {
     assert_file_contains "AWS CLI section present" "$WORK_DIR/Dockerfile" 'AWS CLI'
     assert_file_contains "AWS SAM CLI section present" "$WORK_DIR/Dockerfile" 'AWS SAM CLI'
     assert_file_contains "GitHub CLI section present" "$WORK_DIR/Dockerfile" 'GitHub CLI'
+    assert_file_contains "Copilot CLI section present" "$WORK_DIR/Dockerfile" 'Copilot CLI'
+    assert_file_contains "Claude Code section present" "$WORK_DIR/Dockerfile" 'Claude Code'
+    assert_file_contains "uv section present" "$WORK_DIR/Dockerfile" 'uv'
     assert_file_contains "Zig section present" "$WORK_DIR/Dockerfile" 'Zig'
     assert_file_contains "proto section present" "$WORK_DIR/Dockerfile" 'proto'
     # proto is now a plugin; verify ENV is set correctly

@@ -126,7 +126,7 @@ username = "devuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "zig"]
+enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "copilot-cli", "claude-code", "uv", "zig"]
 
 [ports]
 forward = [3000]
@@ -139,9 +139,14 @@ EOF
     assert_file_contains "AWS CLI present" "$tmpdir/Dockerfile" 'AWS CLI'
     assert_file_contains "AWS SAM CLI present" "$tmpdir/Dockerfile" 'AWS SAM CLI'
     assert_file_contains "GitHub CLI present" "$tmpdir/Dockerfile" 'GitHub CLI'
+    assert_file_contains "Copilot CLI present" "$tmpdir/Dockerfile" 'Copilot CLI'
+    assert_file_contains "Claude Code present" "$tmpdir/Dockerfile" 'Claude Code'
+    assert_file_contains "uv present" "$tmpdir/Dockerfile" 'uv'
     assert_file_contains "Zig present" "$tmpdir/Dockerfile" 'Zig'
     assert_file_contains "aws volume" "$tmpdir/docker-compose.yml" 'aws:'
     assert_file_contains "gh-config volume" "$tmpdir/docker-compose.yml" 'gh-config:'
+    assert_file_contains "copilot volume" "$tmpdir/docker-compose.yml" 'copilot:'
+    assert_file_contains "claude volume" "$tmpdir/docker-compose.yml" 'claude:'
 
     rm -rf "$tmpdir"
 }
