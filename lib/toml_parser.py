@@ -30,7 +30,11 @@ except ModuleNotFoundError:
 
 
 def shell_quote(value):
-    """Quote a value for safe use in shell eval."""
+    """Quote a value for safe use in shell eval (single-line output).
+
+    Uses $'...' quoting to encode newlines, backslashes, and single quotes
+    as escape sequences, ensuring each key=value pair is exactly one line.
+    """
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, (int, float)):
@@ -40,7 +44,14 @@ def shell_quote(value):
         items = " ".join(shell_quote(v) for v in value)
         return f"({items})"
     s = str(value)
-    return "'" + s.replace("'", "'\\''") + "'"
+    # Use $'...' quoting for guaranteed single-line output
+    # Order matters: escape backslashes first
+    s = s.replace("\\", "\\\\")
+    s = s.replace("'", "\\'")
+    s = s.replace("\n", "\\n")
+    s = s.replace("\r", "\\r")
+    s = s.replace("\t", "\\t")
+    return "$'" + s + "'"
 
 
 def print_kv(key, value):

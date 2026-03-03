@@ -14,6 +14,41 @@ PLUGIN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOML_PARSER="$PLUGIN_LIB_DIR/toml_parser.py"
 
 # ============================================================
+# Safe eval with variable name whitelist
+# ============================================================
+
+# Evaluate TOML parser output safely with variable name whitelist
+# Usage: _safe_eval_toml_output "$output" VAR1 VAR2 ...
+# Only evaluates lines whose variable name is in the whitelist
+_safe_eval_toml_output() {
+    local output="$1"
+    shift
+    local -a allowed_keys=("$@")
+
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local key="${line%%=*}"
+        # Reject variable names with non-alphanumeric/underscore characters
+        if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+            echo "ERROR: Invalid variable name in TOML output: $key" >&2
+            return 1
+        fi
+        local allowed=false
+        for k in "${allowed_keys[@]}"; do
+            if [[ "$key" == "$k" ]]; then
+                allowed=true
+                break
+            fi
+        done
+        if [[ "$allowed" != true ]]; then
+            echo "ERROR: Unexpected variable in TOML output: $key" >&2
+            return 1
+        fi
+        eval "$line"
+    done <<< "$output"
+}
+
+# ============================================================
 # Python/TOML Prerequisites
 # ============================================================
 
@@ -66,7 +101,12 @@ load_workspace_config() {
 
     local output
     output=$(python3 "$TOML_PARSER" workspace "$config_file") || return 1
-    eval "$output"
+    _safe_eval_toml_output "$output" \
+        WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
+        WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
+        WS_VOLUME_NAMES WS_VOLUME_PATHS \
+        WS_ENV_KEYS WS_ENV_VALS \
+        WS_VSCODE_EXTENSIONS
 }
 
 # ============================================================
@@ -93,7 +133,8 @@ list_available_plugins() {
 
     local output
     output=$(python3 "$TOML_PARSER" list-plugins "$plugins_dir") || return 1
-    eval "$output"
+    _safe_eval_toml_output "$output" \
+        PLUGIN_IDS PLUGIN_NAMES PLUGIN_DESCRIPTIONS PLUGIN_DEFAULTS
 }
 
 # Load a single plugin's definition
@@ -115,7 +156,11 @@ load_plugin() {
 
     local output
     output=$(python3 "$TOML_PARSER" plugin "$plugin_file") || return 1
-    eval "$output"
+    _safe_eval_toml_output "$output" \
+        PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
+        PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT \
+        PLUGIN_VOLUME_NAMES PLUGIN_VOLUME_PATHS \
+        PLUGIN_VERSION_PIN PLUGIN_VERSION_STRATEGY
 }
 
 # ============================================================
