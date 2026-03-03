@@ -164,19 +164,14 @@ validate_no_duplicate_apt_packages \
     "$SCRIPT_DIR/config/apt-base-packages.conf" \
     "${WS_APT_EXTRA[@]}" || true
 
-validate_file_exists "docker-compose.yml.template" "docker-compose.yml.template" || exit 1
-validate_file_exists "Dockerfile.template" "Dockerfile.template" || exit 1
-validate_file_exists ".devcontainer/devcontainer.json.template" ".devcontainer/devcontainer.json.template" || exit 1
-validate_file_exists ".devcontainer/docker-compose.yml.template" ".devcontainer/docker-compose.yml.template" || exit 1
+validate_file_exists "templates/Dockerfile.template" "templates/Dockerfile.template" || exit 1
 
 # ============================================================
 # File generation
 # ============================================================
 echo "Generating docker-compose.yml..."
-generate_compose_from_template \
-    "docker-compose.yml.template" \
+generate_compose \
     "docker-compose.yml" \
-    "$WS_SERVICE_NAME" \
     "$WORKSPACE_TOML"
 
 echo "Generating Dockerfile..."
@@ -192,23 +187,19 @@ if has_valid_certificates; then
 fi
 
 generate_dockerfile_from_template \
-    "Dockerfile.template" \
+    "templates/Dockerfile.template" \
     "Dockerfile" \
     "$WORKSPACE_TOML"
 
 echo "Generating .devcontainer/devcontainer.json..."
-generate_devcontainer_json_from_template \
-    ".devcontainer/devcontainer.json.template" \
+generate_devcontainer_json \
     ".devcontainer/devcontainer.json" \
-    "$WS_SERVICE_NAME" \
-    "$WS_USERNAME" \
-    "${WS_FORWARD_PORTS[0]:-3000}"
+    "$WORKSPACE_TOML"
 
 echo "Generating .devcontainer/docker-compose.yml..."
-generate_devcontainer_compose_from_template \
-    ".devcontainer/docker-compose.yml.template" \
+generate_devcontainer_compose \
     ".devcontainer/docker-compose.yml" \
-    "$WS_SERVICE_NAME"
+    "$WORKSPACE_TOML"
 
 # Generate .env file for docker-compose
 echo "Generating .env..."

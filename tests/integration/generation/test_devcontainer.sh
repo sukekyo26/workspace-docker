@@ -27,13 +27,13 @@ test_devcontainer_json_generation() {
     local service_name="test-service"
     local username="testuser"
 
+    create_test_workspace_toml "$WORK_DIR" "$service_name" "$username"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-        generate_devcontainer_json_from_template \
-            ".devcontainer/devcontainer.json.template" \
-            ".devcontainer/devcontainer.json" \
-            "$service_name" "$username" "3000"
+        generate_devcontainer_json \
+            ".devcontainer/devcontainer.json" "workspace.toml"
     )
 
     assert_file_exists "devcontainer.json generated" "$WORK_DIR/.devcontainer/devcontainer.json"
@@ -53,13 +53,13 @@ test_devcontainer_compose_generation() {
     setup_workspace
     local service_name="test-service"
 
+    create_test_workspace_toml "$WORK_DIR" "$service_name" "testuser"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-        generate_devcontainer_compose_from_template \
-            ".devcontainer/docker-compose.yml.template" \
-            ".devcontainer/docker-compose.yml" \
-            "$service_name"
+        generate_devcontainer_compose \
+            ".devcontainer/docker-compose.yml" "workspace.toml"
     )
 
     assert_file_exists ".devcontainer/docker-compose.yml generated" "$WORK_DIR/.devcontainer/docker-compose.yml"
@@ -79,13 +79,13 @@ test_devcontainer_json_validity() {
     local service="json-test"
     local username="testuser"
 
+    create_test_workspace_toml "$WORK_DIR" "$service" "$username"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-        generate_devcontainer_json_from_template \
-            ".devcontainer/devcontainer.json.template" \
-            ".devcontainer/devcontainer.json" \
-            "$service" "$username" "3000"
+        generate_devcontainer_json \
+            ".devcontainer/devcontainer.json" "workspace.toml"
     )
 
     local dcjson="$WORK_DIR/.devcontainer/devcontainer.json"
@@ -133,13 +133,13 @@ test_devcontainer_compose_validity() {
     setup_workspace
     local service="dc-yaml-test"
 
+    create_test_workspace_toml "$WORK_DIR" "$service" "testuser"
+
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-        generate_devcontainer_compose_from_template \
-            ".devcontainer/docker-compose.yml.template" \
-            ".devcontainer/docker-compose.yml" \
-            "$service"
+        generate_devcontainer_compose \
+            ".devcontainer/docker-compose.yml" "workspace.toml"
     )
 
     local compose="$WORK_DIR/.devcontainer/docker-compose.yml"

@@ -73,25 +73,20 @@ test_e2e_pipeline() {
         source lib/generators.sh
 
         # 1. Generate docker-compose.yml
-        generate_compose_from_template \
-            "docker-compose.yml.template" "docker-compose.yml" \
-            "$service_name" "workspace.toml"
+        generate_compose \
+            "docker-compose.yml" "workspace.toml"
 
         # 2. Generate Dockerfile
         generate_dockerfile_from_template \
-            "Dockerfile.template" "Dockerfile" "workspace.toml"
+            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
 
         # 3. Generate devcontainer.json
-        generate_devcontainer_json_from_template \
-            ".devcontainer/devcontainer.json.template" \
-            ".devcontainer/devcontainer.json" \
-            "$service_name" "$username" "3000"
+        generate_devcontainer_json \
+            ".devcontainer/devcontainer.json" "workspace.toml"
 
         # 4. Generate .devcontainer/docker-compose.yml
-        generate_devcontainer_compose_from_template \
-            ".devcontainer/docker-compose.yml.template" \
-            ".devcontainer/docker-compose.yml" \
-            "$service_name"
+        generate_devcontainer_compose \
+            ".devcontainer/docker-compose.yml" "workspace.toml"
     )
 
     # Verify all files exist

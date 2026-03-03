@@ -26,10 +26,9 @@ setup_test_dir() {
     cp -r "$PROJECT_ROOT/lib" "$tmpdir/"
     cp -r "$PROJECT_ROOT/plugins" "$tmpdir/"
     cp -r "$PROJECT_ROOT/config" "$tmpdir/"
-    cp "$PROJECT_ROOT/Dockerfile.template" "$tmpdir/"
-    cp "$PROJECT_ROOT/docker-compose.yml.template" "$tmpdir/"
+    mkdir -p "$tmpdir/templates"
+    cp "$PROJECT_ROOT/templates/Dockerfile.template" "$tmpdir/templates/"
     mkdir -p "$tmpdir/.devcontainer" "$tmpdir/certs" "$tmpdir/config"
-    cp "$PROJECT_ROOT/.devcontainer/"*.template "$tmpdir/.devcontainer/"
     if [[ -f "$PROJECT_ROOT/config/.bashrc_custom.example" ]]; then
         cp "$PROJECT_ROOT/config/.bashrc_custom.example" "$tmpdir/config/"
     fi

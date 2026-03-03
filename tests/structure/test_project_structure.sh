@@ -19,10 +19,8 @@ echo "[ test_project_structure.sh ]"
 test_required_files() {
     section "Required files"
 
-    assert_file_exists "Dockerfile.template" "$PROJECT_ROOT/Dockerfile.template"
-    assert_file_exists "docker-compose.yml.template" "$PROJECT_ROOT/docker-compose.yml.template"
-    assert_file_exists ".devcontainer/devcontainer.json.template" "$PROJECT_ROOT/.devcontainer/devcontainer.json.template"
-    assert_file_exists ".devcontainer/docker-compose.yml.template" "$PROJECT_ROOT/.devcontainer/docker-compose.yml.template"
+    assert_file_exists "templates/Dockerfile.template" "$PROJECT_ROOT/templates/Dockerfile.template"
+    assert_file_exists "lib/generators.py" "$PROJECT_ROOT/lib/generators.py"
     assert_file_exists "README.md" "$PROJECT_ROOT/README.md"
     assert_file_exists "LICENSE" "$PROJECT_ROOT/LICENSE"
     assert_file_exists ".gitignore" "$PROJECT_ROOT/.gitignore"
@@ -96,21 +94,10 @@ test_template_placeholders() {
 
     local tmpl
 
-    tmpl="$PROJECT_ROOT/Dockerfile.template"
+    tmpl="$PROJECT_ROOT/templates/Dockerfile.template"
     if [[ -f "$tmpl" ]]; then
         assert_file_contains "Dockerfile.template: {{PLUGIN_INSTALLS}}" "$tmpl" '{{PLUGIN_INSTALLS}}'
         assert_file_contains "Dockerfile.template: {{CUSTOM_CERTIFICATES}}" "$tmpl" '{{CUSTOM_CERTIFICATES}}'
-    fi
-
-    tmpl="$PROJECT_ROOT/docker-compose.yml.template"
-    if [[ -f "$tmpl" ]]; then
-        assert_file_contains "docker-compose.yml.template: {{CONTAINER_SERVICE_NAME}}" "$tmpl" '{{CONTAINER_SERVICE_NAME}}'
-    fi
-
-    tmpl="$PROJECT_ROOT/.devcontainer/devcontainer.json.template"
-    if [[ -f "$tmpl" ]]; then
-        assert_file_contains "devcontainer.json.template: {{CONTAINER_SERVICE_NAME}}" "$tmpl" '{{CONTAINER_SERVICE_NAME}}'
-        assert_file_contains "devcontainer.json.template: {{USERNAME}}" "$tmpl" '{{USERNAME}}'
     fi
 }
 

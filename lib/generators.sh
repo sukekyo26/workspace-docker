@@ -108,81 +108,42 @@ detect_docker_gid() {
 }
 
 # ============================================================
-# Docker Compose Volume Functions
+# YAML/JSON Programmatic Generators (via lib/generators.py)
 # ============================================================
 
-# Generate docker-compose.yml from template with plugin-based volumes
-# Usage: generate_compose_from_template "template" "output" "service_name" "workspace_toml"
-generate_compose_from_template() {
-    local template_file="$1"
-    local output_file="$2"
-    local service_name="$3"
-    local workspace_toml="$4"
+GENERATORS_PY="$LIB_DIR/generators.py"
 
-    load_workspace_config "$workspace_toml"
-    generate_plugin_volumes "${WS_PLUGINS[@]}"
+# Generate docker-compose.yml programmatically
+# Usage: generate_compose "output" "workspace_toml"
+generate_compose() {
+    local output_file="$1"
+    local workspace_toml="$2"
+    local plugins_dir
+    plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
-    awk -v service_name="$service_name" \
-        -v vol_mounts="$_OPTIONAL_VOLUME_MOUNTS" \
-        -v vol_defs="$_OPTIONAL_VOLUME_DEFINITIONS" '
-        /{{CONTAINER_SERVICE_NAME}}/ { gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name); print; next }
-        /{{OPTIONAL_VOLUME_MOUNTS}}/ { if (vol_mounts != "") print vol_mounts; next }
-        /{{OPTIONAL_VOLUME_DEFINITIONS}}/ { if (vol_defs != "") print vol_defs; next }
-        { print }
-    ' "$template_file" > "$output_file"
+    python3 "$GENERATORS_PY" compose "$workspace_toml" "$plugins_dir" > "$output_file"
 }
 
-# Generate devcontainer.json from template
-# Usage: generate_devcontainer_json_from_template "template" "output" "service_name" "username" "forward_port"
-# Requires: WS_VSCODE_EXTENSIONS to be set via load_workspace_config
-generate_devcontainer_json_from_template() {
-    local template_file="$1"
-    local output_file="$2"
-    local service_name="$3"
-    local username="$4"
-    local forward_port="$5"
+# Generate devcontainer.json programmatically
+# Usage: generate_devcontainer_json "output" "workspace_toml"
+generate_devcontainer_json() {
+    local output_file="$1"
+    local workspace_toml="$2"
+    local plugins_dir
+    plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
-    # Build JSON extensions block from WS_VSCODE_EXTENSIONS
-    local ext_json=""
-    if [[ -n "${WS_VSCODE_EXTENSIONS+x}" ]] && [[ ${#WS_VSCODE_EXTENSIONS[@]} -gt 0 ]] && [[ -n "${WS_VSCODE_EXTENSIONS[0]}" ]]; then
-        ext_json=$'\t\t\t'"\"extensions\": ["$'\n'
-        for ((i = 0; i < ${#WS_VSCODE_EXTENSIONS[@]}; i++)); do
-            ext_json+=$'\t\t\t\t'"\"${WS_VSCODE_EXTENSIONS[$i]}\""
-            if [[ $i -lt $((${#WS_VSCODE_EXTENSIONS[@]} - 1)) ]]; then
-                ext_json+=","
-            fi
-            ext_json+=$'\n'
-        done
-        ext_json+=$'\t\t\t'"]"
-    else
-        ext_json=$'\t\t\t'"\"extensions\": []"
-    fi
-
-    EXT_JSON="$ext_json" \
-    awk -v service_name="$service_name" \
-        -v username="$username" \
-        -v forward_port="$forward_port" '
-        /{{VSCODE_EXTENSIONS}}/ { print ENVIRON["EXT_JSON"]; next }
-        {
-            gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name)
-            gsub(/{{USERNAME}}/, username)
-            gsub(/{{FORWARD_PORT}}/, forward_port)
-            print
-        }
-    ' "$template_file" > "$output_file"
+    python3 "$GENERATORS_PY" devcontainer-json "$workspace_toml" "$plugins_dir" > "$output_file"
 }
 
-# Generate .devcontainer/docker-compose.yml from template
-# Usage: generate_devcontainer_compose_from_template "template" "output" "service_name"
-generate_devcontainer_compose_from_template() {
-    local template_file="$1"
-    local output_file="$2"
-    local service_name="$3"
+# Generate .devcontainer/docker-compose.yml programmatically
+# Usage: generate_devcontainer_compose "output" "workspace_toml"
+generate_devcontainer_compose() {
+    local output_file="$1"
+    local workspace_toml="$2"
+    local plugins_dir
+    plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
-    awk -v service_name="$service_name" '
-        /{{CONTAINER_SERVICE_NAME}}/ { gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name); print; next }
-        { print }
-    ' "$template_file" > "$output_file"
+    python3 "$GENERATORS_PY" devcontainer-compose "$workspace_toml" "$plugins_dir" > "$output_file"
 }
 
 # ============================================================
@@ -332,7 +293,7 @@ generate_dockerfile_from_template() {
     # Build apt base packages from config file
     local apt_base=""
     local apt_conf
-    apt_conf="$(cd "$(dirname "$template_file")" && pwd)/config/apt-base-packages.conf"
+    apt_conf="$(cd "$(dirname "$workspace_toml")" && pwd)/config/apt-base-packages.conf"
     if [[ -f "$apt_conf" ]]; then
         while IFS= read -r line; do
             # Skip empty lines and comments

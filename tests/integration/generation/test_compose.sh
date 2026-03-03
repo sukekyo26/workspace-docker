@@ -30,9 +30,8 @@ test_docker_compose_generation() {
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-        generate_compose_from_template \
-            "docker-compose.yml.template" "docker-compose.yml" \
-            "$service_name" "workspace.toml"
+        generate_compose \
+            "docker-compose.yml" "workspace.toml"
     )
 
     assert_file_exists "docker-compose.yml generated" "$WORK_DIR/docker-compose.yml"
@@ -63,9 +62,8 @@ test_compose_yaml_validity() {
     (
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
-        generate_compose_from_template \
-            "docker-compose.yml.template" "docker-compose.yml" \
-            "yaml-test" "workspace.toml"
+        generate_compose \
+            "docker-compose.yml" "workspace.toml"
     )
 
     local compose="$WORK_DIR/docker-compose.yml"

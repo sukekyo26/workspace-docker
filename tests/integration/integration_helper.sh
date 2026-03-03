@@ -11,12 +11,10 @@ WORK_DIR=""
 
 setup_workspace() {
     WORK_DIR=$(mktemp -d)
-    # Copy templates
-    cp "$PROJECT_ROOT/Dockerfile.template" "$WORK_DIR/"
-    cp "$PROJECT_ROOT/docker-compose.yml.template" "$WORK_DIR/"
+    # Copy Dockerfile template
+    mkdir -p "$WORK_DIR/templates"
+    cp "$PROJECT_ROOT/templates/Dockerfile.template" "$WORK_DIR/templates/"
     mkdir -p "$WORK_DIR/.devcontainer"
-    cp "$PROJECT_ROOT/.devcontainer/devcontainer.json.template" "$WORK_DIR/.devcontainer/"
-    cp "$PROJECT_ROOT/.devcontainer/docker-compose.yml.template" "$WORK_DIR/.devcontainer/"
     # Copy libs
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
     # Copy plugins

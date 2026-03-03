@@ -31,12 +31,10 @@ WORK_DIR=""
 generate_all_files() {
     WORK_DIR=$(mktemp -d)
 
-    # Copy templates
-    cp "$PROJECT_ROOT/Dockerfile.template" "$WORK_DIR/"
-    cp "$PROJECT_ROOT/docker-compose.yml.template" "$WORK_DIR/"
+    # Copy Dockerfile template
+    mkdir -p "$WORK_DIR/templates"
+    cp "$PROJECT_ROOT/templates/Dockerfile.template" "$WORK_DIR/templates/"
     mkdir -p "$WORK_DIR/.devcontainer"
-    cp "$PROJECT_ROOT/.devcontainer/devcontainer.json.template" "$WORK_DIR/.devcontainer/"
-    cp "$PROJECT_ROOT/.devcontainer/docker-compose.yml.template" "$WORK_DIR/.devcontainer/"
 
     # Copy libs and plugins
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
@@ -57,21 +55,16 @@ generate_all_files() {
         load_workspace_config "workspace.toml"
 
         generate_dockerfile_from_template \
-            "Dockerfile.template" "Dockerfile" "workspace.toml"
+            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
 
-        generate_compose_from_template \
-            "docker-compose.yml.template" "docker-compose.yml" \
-            "$WS_SERVICE_NAME" "workspace.toml"
+        generate_compose \
+            "docker-compose.yml" "workspace.toml"
 
-        generate_devcontainer_json_from_template \
-            ".devcontainer/devcontainer.json.template" \
-            ".devcontainer/devcontainer.json" \
-            "$WS_SERVICE_NAME" "$WS_USERNAME" "${WS_FORWARD_PORTS[0]:-3000}"
+        generate_devcontainer_json \
+            ".devcontainer/devcontainer.json" "workspace.toml"
 
-        generate_devcontainer_compose_from_template \
-            ".devcontainer/docker-compose.yml.template" \
-            ".devcontainer/docker-compose.yml" \
-            "$WS_SERVICE_NAME"
+        generate_devcontainer_compose \
+            ".devcontainer/docker-compose.yml" "workspace.toml"
     )
 }
 
