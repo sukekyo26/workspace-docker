@@ -1,9 +1,10 @@
 {
-	"files.autoSave": "afterDelay",
-	"files.trimTrailingWhitespace": true,
-	"files.insertFinalNewline": true,
-	"editor.formatOnSave": true,
-	"editor.insertSpaces": true,
-	"editor.detectIndentation": false,
-	"github.copilot.chat.localeOverride": "ja"
+  "files.autoSave": "afterDelay",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": true,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "github.copilot.chat.localeOverride": "ja",
+  "editor.tabSize": 2
 }
