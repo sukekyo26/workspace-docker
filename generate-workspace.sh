@@ -28,13 +28,8 @@ PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 WORKSPACES_DIR="$SCRIPT_DIR/workspaces"
 
 # ===== Colors =====
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly CYAN='\033[0;36m'
-readonly YELLOW='\033[1;33m'
-readonly BOLD='\033[1m'
-readonly DIM='\033[2m'
-readonly NC='\033[0m'
+# shellcheck source=lib/colors.sh
+source "$SCRIPT_DIR/lib/colors.sh"
 
 # ===== Global State =====
 # TUI結果を受け渡すためのグローバル変数（サブシェル回避）

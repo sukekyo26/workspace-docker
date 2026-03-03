@@ -17,18 +17,11 @@
 
 set -euo pipefail
 
-# ===== Colors =====
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-BOLD='\033[1m'
-NC='\033[0m'
-
 # ===== Resolve Script Location =====
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
 # ===== Load Shared Libraries =====
+source "$SCRIPT_DIR/lib/colors.sh"
 source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
 # Container Environment Check

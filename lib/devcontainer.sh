@@ -14,12 +14,10 @@
 #   run_devcontainer        WSL 環境を考慮した devcontainer CLI ラッパー
 # ============================================================
 
-# Colors (errors.sh と重複してもOK: 単体でも動くように)
-_DC_RED='\033[0;31m'
-_DC_GREEN='\033[0;32m'
-_DC_CYAN='\033[0;36m'
-_DC_YELLOW='\033[1;33m'
-_DC_NC='\033[0m'
+# Load shared color constants
+_DC_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=colors.sh
+source "$_DC_LIB_DIR/colors.sh"
 
 # ============================================================
 # check_docker
@@ -28,16 +26,16 @@ _DC_NC='\033[0m'
 # 失敗した場合は exit 1 で終了する。
 check_docker() {
     if ! command -v docker &> /dev/null; then
-        echo -e "  ${_DC_RED}✗${_DC_NC} Docker がインストールされていません"
+        echo -e "  ${RED}✗${NC} Docker がインストールされていません"
         echo "    → https://docs.docker.com/get-docker/"
         exit 1
     fi
     if ! docker info &> /dev/null 2>&1; then
-        echo -e "  ${_DC_RED}✗${_DC_NC} Docker デーモンが起動していません"
+        echo -e "  ${RED}✗${NC} Docker デーモンが起動していません"
         echo "    → Docker Desktop を起動するか、sudo systemctl start docker を実行してください"
         exit 1
     fi
-    echo -e "  ${_DC_GREEN}✓${_DC_NC} Docker"
+    echo -e "  ${GREEN}✓${NC} Docker"
 }
 
 # ============================================================
@@ -48,24 +46,24 @@ check_docker() {
 #   https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh
 check_devcontainer_cli() {
     if ! command -v devcontainer &> /dev/null; then
-        echo -e "  ${_DC_YELLOW}✗${_DC_NC} devcontainer CLI が見つかりません"
+        echo -e "  ${YELLOW}✗${NC} devcontainer CLI が見つかりません"
 
         if command -v curl &> /dev/null; then
-            echo -e "    ${_DC_CYAN}→ インストール中...${_DC_NC}"
+            echo -e "    ${CYAN}→ インストール中...${NC}"
             local install_script
             install_script=$(mktemp)
             curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"
             sh "$install_script"
             rm -f "$install_script"
-            echo -e "  ${_DC_GREEN}✓${_DC_NC} devcontainer CLI をインストールしました"
+            echo -e "  ${GREEN}✓${NC} devcontainer CLI をインストールしました"
         else
-            echo -e "  ${_DC_RED}✗${_DC_NC} curl が見つかりません"
+            echo -e "  ${RED}✗${NC} curl が見つかりません"
             echo "    devcontainer CLI をインストールするには curl が必要です:"
             echo "      curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh"
             exit 1
         fi
     else
-        echo -e "  ${_DC_GREEN}✓${_DC_NC} devcontainer CLI"
+        echo -e "  ${GREEN}✓${NC} devcontainer CLI"
     fi
 }
 
@@ -75,11 +73,11 @@ check_devcontainer_cli() {
 check_devcontainer_json() {
     local workspace_dir="$1"
     if [[ ! -f "$workspace_dir/.devcontainer/devcontainer.json" ]]; then
-        echo -e "  ${_DC_RED}✗${_DC_NC} .devcontainer/devcontainer.json が見つかりません"
+        echo -e "  ${RED}✗${NC} .devcontainer/devcontainer.json が見つかりません"
         echo "    → 先に setup-docker.sh を実行してください"
         exit 1
     fi
-    echo -e "  ${_DC_GREEN}✓${_DC_NC} devcontainer.json"
+    echo -e "  ${GREEN}✓${NC} devcontainer.json"
 }
 
 # ============================================================
@@ -88,11 +86,11 @@ check_devcontainer_json() {
 check_env_file() {
     local workspace_dir="$1"
     if [[ ! -f "$workspace_dir/.env" ]]; then
-        echo -e "  ${_DC_RED}✗${_DC_NC} .env が見つかりません"
+        echo -e "  ${RED}✗${NC} .env が見つかりません"
         echo "    → 先に setup-docker.sh を実行してください"
         exit 1
     fi
-    echo -e "  ${_DC_GREEN}✓${_DC_NC} .env"
+    echo -e "  ${GREEN}✓${NC} .env"
 }
 
 # ============================================================
@@ -103,7 +101,7 @@ check_all_prerequisites() {
     local workspace_dir="$1"
 
     echo ""
-    echo -e "${_DC_CYAN}前提条件を確認中...${_DC_NC}"
+    echo -e "${CYAN}前提条件を確認中...${NC}"
 
     check_docker
     check_devcontainer_cli
@@ -153,7 +151,7 @@ run_devcontainer() {
         docker_path=$(command -v docker 2>/dev/null || true)
 
         if [[ -z "$docker_path" ]]; then
-            echo -e "  ${_DC_RED}✗${_DC_NC} WSL 内で docker が見つかりません"
+            echo -e "  ${RED}✗${NC} WSL 内で docker が見つかりません"
             exit 1
         fi
 
