@@ -11,14 +11,17 @@ Usage:
 Requires Python 3.11+ (tomllib) or tomli package for older versions.
 """
 
-import sys
+from __future__ import annotations
+
 import os
+import sys
+from typing import Any
 
 try:
     import tomllib
 except ModuleNotFoundError:
     try:
-        import tomli as tomllib
+        import tomli as tomllib  # type: ignore[no-redef,import-not-found]
     except ModuleNotFoundError:
         print(
             "ERROR: No TOML parser available. "
@@ -29,7 +32,7 @@ except ModuleNotFoundError:
         sys.exit(1)
 
 
-def shell_quote(value):
+def shell_quote(value: Any) -> str:
     """Quote a value for safe use in shell eval (single-line output).
 
     Uses $'...' quoting to encode newlines, backslashes, and single quotes
@@ -54,12 +57,12 @@ def shell_quote(value):
     return "$'" + s + "'"
 
 
-def print_kv(key, value):
+def print_kv(key: str, value: Any) -> None:
     """Print a shell-safe key=value pair."""
     print(f"{key}={shell_quote(value)}")
 
 
-def cmd_workspace(filepath):
+def cmd_workspace(filepath: str) -> None:
     """Parse workspace.toml and output shell variables."""
     with open(filepath, "rb") as f:
         data = tomllib.load(f)
@@ -98,7 +101,7 @@ def cmd_workspace(filepath):
     print_kv("WS_VSCODE_EXTENSIONS", vscode.get("extensions", []))
 
 
-def cmd_plugin(filepath):
+def cmd_plugin(filepath: str) -> None:
     """Parse a plugin TOML file and output shell variables."""
     with open(filepath, "rb") as f:
         data = tomllib.load(f)
@@ -128,7 +131,7 @@ def cmd_plugin(filepath):
     print_kv("PLUGIN_VERSION_STRATEGY", version.get("strategy", "latest"))
 
 
-def cmd_list_plugins(dirpath):
+def cmd_list_plugins(dirpath: str) -> None:
     """List all plugin TOML files with their metadata."""
     if not os.path.isdir(dirpath):
         print(f"ERROR: Directory not found: {dirpath}", file=sys.stderr)
@@ -167,7 +170,7 @@ def cmd_list_plugins(dirpath):
     print_kv("PLUGIN_DEFAULTS", defaults)
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 3:
         print(f"Usage: {sys.argv[0]} <workspace|plugin|list-plugins> <file|dir>", file=sys.stderr)
         sys.exit(1)

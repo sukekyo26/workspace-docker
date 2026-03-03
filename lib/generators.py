@@ -12,15 +12,18 @@ Usage:
 Requires Python 3.11+ (tomllib) or tomli package for older versions.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys
+from typing import Any
 
 try:
     import tomllib
 except ModuleNotFoundError:
     try:
-        import tomli as tomllib
+        import tomli as tomllib  # type: ignore[no-redef,import-not-found]
     except ModuleNotFoundError:
         print(
             "ERROR: No TOML parser available. "
@@ -31,13 +34,15 @@ except ModuleNotFoundError:
         sys.exit(1)
 
 
-def load_toml(filepath):
+def load_toml(filepath: str) -> dict[str, Any]:
     """Load and parse a TOML file."""
     with open(filepath, "rb") as f:
         return tomllib.load(f)
 
 
-def get_plugin_volumes(plugins_dir, enabled_plugins):
+def get_plugin_volumes(
+    plugins_dir: str, enabled_plugins: list[str]
+) -> list[tuple[str, str, str]]:
     """Get volumes from enabled plugins.
 
     Returns list of (plugin_name, vol_name, vol_path) tuples.
@@ -59,7 +64,7 @@ def get_plugin_volumes(plugins_dir, enabled_plugins):
 # docker-compose.yml generator
 # ============================================================
 
-def generate_compose(workspace_data, plugins_dir):
+def generate_compose(workspace_data: dict[str, Any], plugins_dir: str) -> str:
     """Generate docker-compose.yml content."""
     service_name = workspace_data.get("container", {}).get("service_name", "dev")
     enabled_plugins = workspace_data.get("plugins", {}).get("enable", [])
@@ -132,7 +137,7 @@ def generate_compose(workspace_data, plugins_dir):
 # devcontainer.json generator (JSONC with comments)
 # ============================================================
 
-def generate_devcontainer_json(workspace_data, _plugins_dir):
+def generate_devcontainer_json(workspace_data: dict[str, Any], _plugins_dir: str) -> str:
     """Generate .devcontainer/devcontainer.json content (JSONC)."""
     service_name = workspace_data.get("container", {}).get("service_name", "dev")
     username = workspace_data.get("container", {}).get("username", "developer")
@@ -205,7 +210,7 @@ def generate_devcontainer_json(workspace_data, _plugins_dir):
 # .devcontainer/docker-compose.yml generator
 # ============================================================
 
-def generate_devcontainer_compose(workspace_data, _plugins_dir):
+def generate_devcontainer_compose(workspace_data: dict[str, Any], _plugins_dir: str) -> str:
     """Generate .devcontainer/docker-compose.yml content."""
     service_name = workspace_data.get("container", {}).get("service_name", "dev")
 
@@ -257,7 +262,7 @@ COMMANDS = {
 }
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 4:
         cmds = "|".join(COMMANDS)
         print(
