@@ -44,42 +44,58 @@ jobs:
       - name: Check template files exist
         run: |
           files=(
-            "Dockerfile.template"
-            "docker-compose.yml.template"
-            ".devcontainer/devcontainer.json.template"
-            ".devcontainer/docker-compose.yml.template"
+            "templates/Dockerfile.template"
+            "lib/generators.py"
           )
           for file in "${files[@]}"; do
             if [ ! -f "$file" ]; then
-              echo "❌ Missing template file: $file"
+              echo "❌ Missing file: $file"
               exit 1
             fi
             echo "✓ Found: $file"
           done
 
-      - name: Validate YAML templates
+      - name: Validate programmatic generators
         run: |
-          for file in docker-compose.yml.template .devcontainer/docker-compose.yml.template; do
-            echo "Checking $file..."
-            # Remove standalone placeholder lines, replace inline placeholders with dummy
-            sed '/^[[:space:]]*{{[^}]*}}[[:space:]]*$/d; s/{{[^}]*}}/dummy/g' "$file" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || {
-              echo "❌ Invalid YAML: $file"
+          echo "Checking generators.py can generate all targets..."
+          # Create minimal workspace.toml for validation
+          cat > /tmp/test-ws.toml << 'TOML'
+          [container]
+          service_name = "ci-test"
+          username = "testuser"
+          ubuntu_version = "24.04"
+          [plugins]
+          enable = ["docker-cli"]
+          [ports]
+          forward = [3000]
+          TOML
+          for cmd in compose devcontainer-json devcontainer-compose; do
+            python3 lib/generators.py $cmd /tmp/test-ws.toml plugins > /dev/null || {
+              echo "❌ generators.py $cmd failed"
               exit 1
             }
-            echo "✓ Valid: $file"
+            echo "✓ generators.py $cmd OK"
           done
 
-      - name: Validate JSON templates
+      - name: Validate JSON output
         run: |
-          for file in .devcontainer/devcontainer.json.template; do
-            echo "Checking $file..."
-            # Check for basic JSON structure (template has variables so full validation isn't possible)
-            if ! grep -q '"name"' "$file"; then
-              echo "❌ Missing required field in: $file"
+          cat > /tmp/test-ws.toml << 'TOML'
+          [container]
+          service_name = "ci-test"
+          username = "testuser"
+          ubuntu_version = "24.04"
+          [plugins]
+          enable = []
+          [ports]
+          forward = [3000]
+          TOML
+          echo "Checking devcontainer.json validity..."
+          python3 lib/generators.py devcontainer-json /tmp/test-ws.toml plugins | \
+            sed 's|//.*||' | python3 -c "import sys, json; json.load(sys.stdin)" || {
+              echo "❌ Invalid JSON output from generators.py"
               exit 1
-            fi
-            echo "✓ Valid structure: $file"
-          done
+            }
+          echo "✓ Valid JSON output"
 
   docker-build:
     name: Docker Build Test
@@ -129,7 +145,7 @@ jobs:
 
           # Generate Dockerfile using plugin-based pipeline
           generate_dockerfile_from_template \
-            "Dockerfile.template" \
+            "templates/Dockerfile.template" \
             "Dockerfile" \
             "workspace.toml"
 

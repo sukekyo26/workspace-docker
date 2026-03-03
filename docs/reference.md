@@ -189,14 +189,12 @@ bash tests/run_all.sh
 
 Each plugin TOML contains `[metadata]` (name, description, default), `[install]` (Dockerfile instructions), and `[version]` (pinned or latest).
 
-### Templates
-- `Dockerfile.template` - Dockerfile template with placeholders
-- `docker-compose.yml.template` - docker-compose.yml template
-- `.devcontainer/devcontainer.json.template` - VS Code Dev Container configuration template
-- `.devcontainer/docker-compose.yml.template` - Dev Container docker-compose configuration template
+### Templates & Generators
+- `templates/Dockerfile.template` - Dockerfile template with placeholders
+- `lib/generators.py` - Programmatic YAML/JSON generator (docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml)
 
 ### Libraries (`lib/`)
-- `lib/generators.sh` - Template generation functions
+- `lib/generators.sh` - Generator orchestration functions
 - `lib/plugin.sh` - Plugin loading and Dockerfile snippet generation
 - `lib/toml_parser.py` - TOML parser (Python 3.11+ tomllib)
 - `lib/validators.sh` - Input validation library (service names, usernames)
@@ -212,6 +210,6 @@ Each plugin TOML contains `[metadata]` (name, description, default), `[install]`
 - `.github/workflows/ci.yml` - GitHub Actions workflow
   - ShellCheck static analysis
   - 8 test suites execution
-  - Template validation (YAML/JSON)
+  - Template validation and generator verification
   - Dockerfile linting with Hadolint
   - Docker build verification

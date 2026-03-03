@@ -189,14 +189,12 @@ bash tests/run_all.sh
 
 各プラグインTOMLには`[metadata]`（名前、説明、デフォルト）、`[install]`（Dockerfile命令）、`[version]`（ピン留めまたはlatest）が含まれます。
 
-### テンプレート
-- `Dockerfile.template` - プレースホルダー付きDockerfileテンプレート
-- `docker-compose.yml.template` - docker-compose.ymlテンプレート
-- `.devcontainer/devcontainer.json.template` - VS Code Dev Container設定のテンプレート
-- `.devcontainer/docker-compose.yml.template` - Dev Container用docker-compose設定のテンプレート
+### テンプレート & ジェネレータ
+- `templates/Dockerfile.template` - プレースホルダー付きDockerfileテンプレート
+- `lib/generators.py` - YAML/JSONプログラマティックジェネレータ（docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml）
 
 ### ライブラリ（`lib/`）
-- `lib/generators.sh` - テンプレート生成関数
+- `lib/generators.sh` - ジェネレータオーケストレーション関数
 - `lib/plugin.sh` - プラグイン読み込みとDockerfileスニペット生成
 - `lib/toml_parser.py` - TOMLパーサー（Python 3.11+ tomllib）
 - `lib/validators.sh` - 入力検証ライブラリ（サービス名、ユーザー名）
@@ -212,6 +210,6 @@ bash tests/run_all.sh
 - `.github/workflows/ci.yml` - GitHub Actionsワークフロー
   - ShellCheck静的解析
   - 8テストスイート実行
-  - テンプレート検証（YAML/JSON）
+  - テンプレート検証とジェネレータ検証
   - HadolintによるDockerfile Lint
   - Dockerビルド検証
