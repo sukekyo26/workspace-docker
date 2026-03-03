@@ -26,9 +26,7 @@ setup_test_dir() {
     cp -r "$PROJECT_ROOT/lib" "$tmpdir/"
     cp -r "$PROJECT_ROOT/plugins" "$tmpdir/"
     cp -r "$PROJECT_ROOT/config" "$tmpdir/"
-    mkdir -p "$tmpdir/templates"
-    cp "$PROJECT_ROOT/templates/Dockerfile.template" "$tmpdir/templates/"
-    mkdir -p "$tmpdir/.devcontainer" "$tmpdir/certs" "$tmpdir/config"
+    mkdir -p "$tmpdir/certs"
     if [[ -f "$PROJECT_ROOT/config/.bashrc_custom.example" ]]; then
         cp "$PROJECT_ROOT/config/.bashrc_custom.example" "$tmpdir/config/"
     fi
@@ -73,6 +71,9 @@ EOF
     local exit_code=$?
 
     assert_eq "setup-docker.sh exits 0" "0" "$exit_code"
+
+    # Verify .devcontainer/ directory is created automatically
+    assert_true ".devcontainer/ dir created" test -d "$tmpdir/.devcontainer"
 
     # Verify all generated files exist
     assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"

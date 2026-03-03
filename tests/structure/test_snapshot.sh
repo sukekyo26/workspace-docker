@@ -30,7 +30,6 @@ WORK_DIR=""
 
 generate_all_files() {
     WORK_DIR=$(mktemp -d)
-    mkdir -p "$WORK_DIR/.devcontainer"
 
     # Copy libs and plugins
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
