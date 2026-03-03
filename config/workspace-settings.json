@@ -6,5 +6,11 @@
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
   "github.copilot.chat.localeOverride": "ja",
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "[python]": {
+    "editor.tabSize": 4
+  },
+  "[dockerfile]": {
+    "editor.tabSize": 4
+  }
 }
