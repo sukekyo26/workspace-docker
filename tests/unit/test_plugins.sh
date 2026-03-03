@@ -65,8 +65,13 @@ EOF
     output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmpfile")
     assert_eq "exit code 0" "0" "$?"
 
-    # Eval and check variables
-    eval "$output"
+    # Eval via whitelist
+    _safe_eval_toml_output "$output" \
+        WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
+        WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
+        WS_VOLUME_NAMES WS_VOLUME_PATHS \
+        WS_ENV_KEYS WS_ENV_VALS \
+        WS_VSCODE_EXTENSIONS
     assert_eq "WS_SERVICE_NAME" "test-svc" "$WS_SERVICE_NAME"
     assert_eq "WS_USERNAME" "testuser" "$WS_USERNAME"
     assert_eq "WS_UBUNTU_VERSION" "24.04" "$WS_UBUNTU_VERSION"
@@ -110,7 +115,11 @@ TOML
     output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$tmpfile")
     assert_eq "exit code 0" "0" "$?"
 
-    eval "$output"
+    _safe_eval_toml_output "$output" \
+        PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
+        PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT \
+        PLUGIN_VOLUME_NAMES PLUGIN_VOLUME_PATHS \
+        PLUGIN_VERSION_PIN PLUGIN_VERSION_STRATEGY
     assert_eq "PLUGIN_NAME" "Test Tool" "$PLUGIN_NAME"
     assert_eq "PLUGIN_DESCRIPTION" "A test plugin" "$PLUGIN_DESCRIPTION"
     assert_eq "PLUGIN_DEFAULT" "true" "$PLUGIN_DEFAULT"
