@@ -296,6 +296,46 @@ test_devcontainer_functions() {
 }
 
 # ============================================================
+# Test: validators.sh - validate_no_duplicate_apt_packages
+# ============================================================
+test_validate_no_duplicate_apt_packages() {
+    section "validate_no_duplicate_apt_packages"
+
+    source "$PROJECT_ROOT/lib/errors.sh"
+    source "$PROJECT_ROOT/lib/validators.sh"
+
+    local tmpconf
+    tmpconf=$(mktemp)
+    cat > "$tmpconf" << 'EOF'
+# Base packages
+curl
+git
+wget
+sudo
+EOF
+
+    # No duplicates — should pass
+    assert_true "no duplicates passes" validate_no_duplicate_apt_packages "$tmpconf" "vim" "tmux"
+
+    # Duplicate detected — should fail
+    assert_false "duplicate 'curl' detected" validate_no_duplicate_apt_packages "$tmpconf" "curl"
+
+    # Multiple extras, one duplicate
+    assert_false "duplicate among multiple extras" validate_no_duplicate_apt_packages "$tmpconf" "vim" "git" "htop"
+
+    # Empty extras — should pass
+    assert_true "empty extras passes" validate_no_duplicate_apt_packages "$tmpconf"
+
+    # Empty extras with empty string — should pass
+    assert_true "empty string extras passes" validate_no_duplicate_apt_packages "$tmpconf" ""
+
+    # Non-existent conf file — should pass (graceful)
+    assert_true "missing conf passes" validate_no_duplicate_apt_packages "/nonexistent/file" "vim"
+
+    rm -f "$tmpconf"
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -310,5 +350,6 @@ test_certificate_functions
 test_error_functions
 test_devcontainer_functions
 test_toml_parser
+test_validate_no_duplicate_apt_packages
 
 print_summary
