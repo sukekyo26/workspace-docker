@@ -145,7 +145,13 @@ test_generated_files() {
 
     assert_file_exists "Dockerfile" "$PROJECT_ROOT/Dockerfile"
     assert_file_exists "docker-compose.yml" "$PROJECT_ROOT/docker-compose.yml"
-    assert_file_exists ".devcontainer/devcontainer.json" "$PROJECT_ROOT/.devcontainer/devcontainer.json"
+
+    # .devcontainer/ is created by setup-docker.sh and gitignored
+    if [[ -d "$PROJECT_ROOT/.devcontainer" ]]; then
+        assert_file_exists ".devcontainer/devcontainer.json" "$PROJECT_ROOT/.devcontainer/devcontainer.json"
+    else
+        skip_test ".devcontainer/devcontainer.json" ".devcontainer/ not generated yet"
+    fi
 
     # Check no unreplaced placeholders
     if [[ -f "$PROJECT_ROOT/Dockerfile" ]]; then
