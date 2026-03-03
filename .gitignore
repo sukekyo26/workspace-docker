@@ -21,3 +21,8 @@ config/.bashrc_custom
 
 # VS Code user-specific settings (not project-wide)
 .vscode/
+
+# Python
+__pycache__/
+*.pyc
+.mypy_cache/
