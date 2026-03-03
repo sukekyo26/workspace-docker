@@ -6,7 +6,6 @@ IFS=$'\n\t'
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Load shared libraries
 # shellcheck source=lib/generators.sh
@@ -140,9 +139,6 @@ enable = $plugins_toml
 
 [ports]
 forward = [$forward_port]
-
-[workspace]
-paths = ["$PARENT_DIR"]
 EOF
 
     # Reload to set WS_* variables
