@@ -170,6 +170,10 @@ load_plugin() {
 # Generate combined Dockerfile install snippets for enabled plugins
 # Usage: generate_plugin_installs "plugin1" "plugin2" ...
 # Returns: combined Dockerfile content on stdout
+#
+# If a plugin has requires_root = true, USER root / USER ${USERNAME}
+# is automatically wrapped around its snippet. Plugin TOMLs should NOT
+# include these USER directives manually.
 generate_plugin_installs() {
     local enabled_plugins=("$@")
     local result=""
@@ -185,6 +189,13 @@ generate_plugin_installs() {
         # Replace {{VERSION}} with pinned version if available
         if [[ -n "$PLUGIN_VERSION_PIN" ]]; then
             snippet="${snippet//\{\{VERSION\}\}/$PLUGIN_VERSION_PIN}"
+        fi
+
+        # Auto-wrap with USER directives for root-requiring plugins
+        if [[ "$PLUGIN_REQUIRES_ROOT" == "true" ]]; then
+            snippet="USER root
+${snippet}
+USER \${USERNAME}"
         fi
 
         if [[ -n "$result" ]]; then

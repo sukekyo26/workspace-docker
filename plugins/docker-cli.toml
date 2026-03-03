@@ -7,7 +7,6 @@ default = true
 requires_root = true
 dockerfile = '''
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
-USER root
 ARG DOCKER_GID
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
@@ -19,8 +18,6 @@ RUN mkdir -p /etc/apt/keyrings && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     groupadd -g ${DOCKER_GID} docker 2>/dev/null || groupmod -g ${DOCKER_GID} docker && \
     usermod -aG docker ${USERNAME}
-
-USER ${USERNAME}
 '''
 
 [version]
