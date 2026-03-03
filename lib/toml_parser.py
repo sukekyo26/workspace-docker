@@ -152,9 +152,19 @@ def cmd_list_plugins(dirpath):
     print_kv("PLUGIN_DEFAULTS", defaults)
 
 
+def cmd_workspace_paths(filepath):
+    """Parse workspace.toml and output scan paths, one per line."""
+    with open(filepath, "rb") as f:
+        data = tomllib.load(f)
+    workspace = data.get("workspace", {})
+    paths = workspace.get("paths", [])
+    for p in paths:
+        print(os.path.expanduser(p))
+
+
 def main():
     if len(sys.argv) < 3:
-        print(f"Usage: {sys.argv[0]} <workspace|plugin|list-plugins> <file|dir>", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} <workspace|plugin|list-plugins|workspace-paths> <file|dir>", file=sys.stderr)
         sys.exit(1)
 
     command = sys.argv[1]
@@ -166,6 +176,8 @@ def main():
         cmd_plugin(target)
     elif command == "list-plugins":
         cmd_list_plugins(target)
+    elif command == "workspace-paths":
+        cmd_workspace_paths(target)
     else:
         print(f"Unknown command: {command}", file=sys.stderr)
         sys.exit(1)

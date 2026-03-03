@@ -292,9 +292,59 @@ select_multi() {
 # Business Logic Functions
 # ============================================================
 
-# 親ディレクトリ内のフォルダ一覧を取得（隠しフォルダ除く）
+# ディレクトリが直下にファイルを含まずフォルダのみかを判定
+is_folder_only_dir() {
+    local dir="$1"
+    local file_count
+    file_count=$(find "$dir" -mindepth 1 -maxdepth 1 -type f ! -name ".*" 2>/dev/null | wc -l)
+    [[ "$file_count" -eq 0 ]]
+}
+
+# workspace.toml からスキャンパスを取得（未設定時は PARENT_DIR）
+get_scan_paths() {
+    local workspace_toml="$SCRIPT_DIR/workspace.toml"
+    if [[ -f "$workspace_toml" ]]; then
+        local paths
+        paths=$(python3 "$SCRIPT_DIR/lib/toml_parser.py" workspace-paths "$workspace_toml" 2>/dev/null) || true
+        if [[ -n "$paths" ]]; then
+            echo "$paths"
+            return
+        fi
+    fi
+    echo "$PARENT_DIR"
+}
+
+# スキャンパス配下のフォルダ一覧を取得（隠しフォルダ除く）
+# フォルダのみを含むディレクトリは配下のサブディレクトリも展開する
+# 出力: PARENT_DIR からの相対パス（例: workspace-docker, groupA/repo1）
 get_available_dirs() {
-    find "$PARENT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort
+    local scan_paths=()
+    while IFS= read -r p; do
+        [[ -n "$p" ]] && scan_paths+=("$p")
+    done < <(get_scan_paths)
+
+    for scan_path in "${scan_paths[@]}"; do
+        [[ ! -d "$scan_path" ]] && continue
+
+        while IFS= read -r dir; do
+            [[ -z "$dir" ]] && continue
+            local full_path="$scan_path/$dir"
+            local rel_path
+            rel_path=$(realpath --relative-to="$PARENT_DIR" "$full_path" 2>/dev/null) || rel_path="$dir"
+            echo "$rel_path"
+
+            # フォルダのみを含むディレクトリはサブディレクトリも展開
+            if is_folder_only_dir "$full_path"; then
+                while IFS= read -r subdir; do
+                    [[ -z "$subdir" ]] && continue
+                    local sub_full="$full_path/$subdir"
+                    local sub_rel
+                    sub_rel=$(realpath --relative-to="$PARENT_DIR" "$sub_full" 2>/dev/null) || sub_rel="$dir/$subdir"
+                    echo "$sub_rel"
+                done < <(find "$full_path" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
+            fi
+        done < <(find "$scan_path" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
+    done
 }
 
 # 既存の .code-workspace ファイル一覧を取得（workspaces/ 内）
@@ -302,10 +352,10 @@ get_workspace_files() {
     find "$WORKSPACES_DIR" -maxdepth 1 -name "*.code-workspace" -printf '%f\n' 2>/dev/null | sort
 }
 
-# ワークスペースファイルから現在のフォルダ一覧を取得
+# ワークスペースファイルから現在のフォルダ一覧を取得（path から ../../ を除去）
 get_current_folders() {
     local file="$1"
-    grep '"name":' "$file" | sed 's/.*"name":[[:space:]]*"\([^"]*\)".*/\1/'
+    grep '"path":' "$file" | sed 's/.*"path":[[:space:]]*"\([^"]*\)".*/\1/' | sed 's|^\.\./\.\./||'
 }
 
 # フォルダの対話的選択
@@ -386,8 +436,10 @@ generate_workspace_file() {
             if [[ "$i" -lt "$count" ]]; then
                 comma=","
             fi
+            local name
+            name=$(basename "$folder")
             printf '\t\t{\n'
-            printf '\t\t\t"name": "%s",\n' "$folder"
+            printf '\t\t\t"name": "%s",\n' "$name"
             printf '\t\t\t"path": "../../%s"\n' "$folder"
             printf '\t\t}%s\n' "$comma"
         done
@@ -453,7 +505,10 @@ main() {
     echo " .code-workspace ファイル ジェネレーター" >&2
     echo -e "========================================${NC}" >&2
     echo "" >&2
-    echo -e "スキャン対象:   ${BOLD}${PARENT_DIR}${NC}" >&2
+    echo -e "スキャン対象:" >&2
+    while IFS= read -r scan_path; do
+        [[ -n "$scan_path" ]] && echo -e "  ${BOLD}${scan_path}${NC}" >&2
+    done < <(get_scan_paths)
     echo -e "出力先:         ${BOLD}workspaces/${NC}" >&2
     echo "" >&2
 

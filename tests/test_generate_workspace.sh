@@ -174,7 +174,9 @@ test_workspace_file_generation() {
             for folder in "${folders[@]}"; do
                 i=$((i + 1))
                 local comma=""; [[ "$i" -lt "$count" ]] && comma=","
-                printf '\t\t{\n\t\t\t"name": "%s",\n\t\t\t"path": "../../%s"\n\t\t}%s\n' "$folder" "$folder" "$comma"
+                local name
+                name=$(basename "$folder")
+                printf '\t\t{\n\t\t\t"name": "%s",\n\t\t\t"path": "../../%s"\n\t\t}%s\n' "$name" "$folder" "$comma"
             done
             printf '\t],\n'
             printf '\t"settings": '
@@ -203,6 +205,16 @@ test_workspace_file_generation() {
     assert_file_exists "multi folder file created" "$tmpdir/t2.code-workspace"
     name_count=$(grep -c '"name":' "$tmpdir/t2.code-workspace")
     assert_eq "3 folders => 3 name entries" "3" "$name_count"
+
+    # Nested folder (e.g., groupA/repo1)
+    _gen "$tmpdir/t3.code-workspace" "groupA/repo1" "project-b"
+    assert_file_exists "nested folder file created" "$tmpdir/t3.code-workspace"
+    local nested_name
+    nested_name=$(grep '"name":' "$tmpdir/t3.code-workspace" | head -1 | sed 's/.*"name":[[:space:]]*"\([^"]*\)".*/\1/')
+    assert_eq "nested folder name is basename" "repo1" "$nested_name"
+    local nested_path
+    nested_path=$(grep '"path":' "$tmpdir/t3.code-workspace" | head -1 | sed 's/.*"path":[[:space:]]*"\([^"]*\)".*/\1/')
+    assert_eq "nested folder path is ../../groupA/repo1" "../../groupA/repo1" "$nested_path"
 
     # Settings section exists
     assert_file_contains "settings section present" "$tmpdir/t2.code-workspace" '"settings"'
@@ -240,6 +252,111 @@ test_get_available_dirs() {
     assert_eq "hidden excluded, 2 dirs found" "2" "${#dirs[@]}"
     assert_eq "sorted: project-a first" "project-a" "${dirs[0]}"
     assert_eq "sorted: project-b second" "project-b" "${dirs[1]}"
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: is_folder_only_dir logic
+# ============================================================
+test_is_folder_only_dir() {
+    section "is_folder_only_dir logic"
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    # Directory with only subdirectories
+    mkdir -p "$tmpdir/group-a/repo1" "$tmpdir/group-a/repo2"
+    local file_count
+    file_count=$(find "$tmpdir/group-a" -mindepth 1 -maxdepth 1 -type f ! -name ".*" 2>/dev/null | wc -l)
+    assert_eq "folder-only dir has 0 files" "0" "$file_count"
+
+    # Directory with files
+    mkdir -p "$tmpdir/project-b"
+    echo "content" > "$tmpdir/project-b/README.md"
+    file_count=$(find "$tmpdir/project-b" -mindepth 1 -maxdepth 1 -type f ! -name ".*" 2>/dev/null | wc -l)
+    assert_eq "dir with file has 1 file" "1" "$file_count"
+
+    # Directory with hidden files only (should count as folder-only)
+    mkdir -p "$tmpdir/group-b/repo3"
+    echo "hidden" > "$tmpdir/group-b/.gitkeep"
+    file_count=$(find "$tmpdir/group-b" -mindepth 1 -maxdepth 1 -type f ! -name ".*" 2>/dev/null | wc -l)
+    assert_eq "hidden-only dir has 0 visible files" "0" "$file_count"
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: Subdirectory expansion for folder-only dirs
+# ============================================================
+test_subdir_expansion() {
+    section "Subdirectory expansion"
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    # Create a folder-only parent with subdirectories
+    mkdir -p "$tmpdir/group-a/repo1" "$tmpdir/group-a/repo2"
+    # Create a regular project with files
+    mkdir -p "$tmpdir/project-b"
+    echo "readme" > "$tmpdir/project-b/README.md"
+
+    # Simulate get_available_dirs logic
+    local result=()
+    while IFS= read -r dir; do
+        [[ -z "$dir" ]] && continue
+        local full_path="$tmpdir/$dir"
+        result+=("$dir")
+
+        local file_count
+        file_count=$(find "$full_path" -mindepth 1 -maxdepth 1 -type f ! -name ".*" 2>/dev/null | wc -l)
+        if [[ "$file_count" -eq 0 ]]; then
+            while IFS= read -r subdir; do
+                [[ -n "$subdir" ]] && result+=("$dir/$subdir")
+            done < <(find "$full_path" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
+        fi
+    done < <(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
+
+    assert_eq "total entries (parent + subs + regular)" "4" "${#result[@]}"
+    assert_eq "1st: group-a (parent)" "group-a" "${result[0]}"
+    assert_eq "2nd: group-a/repo1" "group-a/repo1" "${result[1]}"
+    assert_eq "3rd: group-a/repo2" "group-a/repo2" "${result[2]}"
+    assert_eq "4th: project-b" "project-b" "${result[3]}"
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: get_current_folders from path (not name)
+# ============================================================
+test_get_current_folders() {
+    section "get_current_folders extracts paths"
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cat > "$tmpdir/test.code-workspace" <<'EOF'
+{
+\t"folders": [
+\t\t{
+\t\t\t"name": "repo1",
+\t\t\t"path": "../../groupA/repo1"
+\t\t},
+\t\t{
+\t\t\t"name": "project-b",
+\t\t\t"path": "../../project-b"
+\t\t}
+\t]
+}
+EOF
+
+    local folders=()
+    while IFS= read -r folder; do
+        [[ -n "$folder" ]] && folders+=("$folder")
+    done < <(grep '"path":' "$tmpdir/test.code-workspace" | sed 's/.*"path":[[:space:]]*"\([^"]*\)".*/\1/' | sed 's|^\.\./\.\./||')
+
+    assert_eq "2 folders found" "2" "${#folders[@]}"
+    assert_eq "first folder" "groupA/repo1" "${folders[0]}"
+    assert_eq "second folder" "project-b" "${folders[1]}"
 
     rm -rf "$tmpdir"
 }
@@ -321,6 +438,9 @@ test_tui_cursor_logic
 test_toggle_logic
 test_workspace_file_generation
 test_get_available_dirs
+test_is_folder_only_dir
+test_subdir_expansion
+test_get_current_folders
 test_no_set_e
 test_existing_workspaces
 test_workspace_settings_file
