@@ -134,6 +134,7 @@ generate_compose_from_template() {
 
 # Generate devcontainer.json from template
 # Usage: generate_devcontainer_json_from_template "template" "output" "service_name" "username" "forward_port"
+# Requires: WS_VSCODE_EXTENSIONS to be set via load_workspace_config
 generate_devcontainer_json_from_template() {
     local template_file="$1"
     local output_file="$2"
@@ -141,9 +142,27 @@ generate_devcontainer_json_from_template() {
     local username="$4"
     local forward_port="$5"
 
+    # Build JSON extensions block from WS_VSCODE_EXTENSIONS
+    local ext_json=""
+    if [[ -n "${WS_VSCODE_EXTENSIONS+x}" ]] && [[ ${#WS_VSCODE_EXTENSIONS[@]} -gt 0 ]] && [[ -n "${WS_VSCODE_EXTENSIONS[0]}" ]]; then
+        ext_json=$'\t\t\t'"\"extensions\": ["$'\n'
+        for ((i = 0; i < ${#WS_VSCODE_EXTENSIONS[@]}; i++)); do
+            ext_json+=$'\t\t\t\t'"\"${WS_VSCODE_EXTENSIONS[$i]}\""
+            if [[ $i -lt $((${#WS_VSCODE_EXTENSIONS[@]} - 1)) ]]; then
+                ext_json+=","
+            fi
+            ext_json+=$'\n'
+        done
+        ext_json+=$'\t\t\t'"]"
+    else
+        ext_json=$'\t\t\t'"\"extensions\": []"
+    fi
+
+    EXT_JSON="$ext_json" \
     awk -v service_name="$service_name" \
         -v username="$username" \
         -v forward_port="$forward_port" '
+        /{{VSCODE_EXTENSIONS}}/ { print ENVIRON["EXT_JSON"]; next }
         {
             gsub(/{{CONTAINER_SERVICE_NAME}}/, service_name)
             gsub(/{{USERNAME}}/, username)

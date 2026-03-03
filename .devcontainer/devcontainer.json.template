@@ -36,18 +36,7 @@
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
-			"extensions": [
-				"MS-CEINTL.vscode-language-pack-ja",
-				"ms-azuretools.vscode-docker",
-				"ms-python.python",
-				"ms-python.vscode-pylance",
-				"ms-vscode.vscode-typescript-next",
-				"eamodio.gitlens",
-				"github.copilot-chat",
-				"github.vscode-github-actions",
-				"oderwat.indent-rainbow",
-				"shardulm94.trailing-spaces"
-			]
+{{VSCODE_EXTENSIONS}}
 		}
 	}
 

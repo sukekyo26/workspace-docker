@@ -82,6 +82,10 @@ def cmd_workspace(filepath):
     print_kv("WS_ENV_KEYS", env_keys)
     print_kv("WS_ENV_VALS", env_vals)
 
+    # VSCode extensions
+    vscode = data.get("vscode", {})
+    print_kv("WS_VSCODE_EXTENSIONS", vscode.get("extensions", []))
+
 
 def cmd_plugin(filepath):
     """Parse a plugin TOML file and output shell variables."""
