@@ -217,10 +217,13 @@ test_volume_mounts() {
     enabled_plugins=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$PROJECT_ROOT/workspace.toml" 2>/dev/null | grep '^WS_PLUGINS=' || true)
 
     # Determine which plugin-specific volumes to test based on workspace.toml
+    # These are literal strings for grep-matching in Dockerfile, not paths for expansion
+    # shellcheck disable=SC2088
     local paths_to_check=('~/.local')
     local volumes_to_check=(local)
 
     if echo "$enabled_plugins" | grep -q "'proto'"; then
+        # shellcheck disable=SC2088
         paths_to_check+=('~/.proto')
         volumes_to_check+=(proto)
     fi
@@ -268,7 +271,7 @@ test_shellcheck_all() {
     for path in "${scripts[@]}"; do
         local relpath="${path#"$PROJECT_ROOT/"}"
         local result
-        result=$(shellcheck -S error "$path" 2>&1 || true)
+        result=$(shellcheck "$path" 2>&1 || true)
         if [[ -z "$result" ]]; then
             assert_eq "shellcheck $relpath (errors)" "0" "0"
         else

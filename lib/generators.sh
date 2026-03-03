@@ -321,7 +321,7 @@ generate_dockerfile_from_template() {
             # Trim whitespace
             line="${line#"${line%%[![:space:]]*}"}"
             line="${line%"${line##*[![:space:]]}"}"
-            [[ -n "$line" ]] && apt_base="${apt_base}    ${line} \\\\
+            [[ -n "$line" ]] && apt_base="${apt_base}    ${line} \\
 "
         done < "$apt_conf"
     fi
@@ -330,20 +330,23 @@ generate_dockerfile_from_template() {
     local apt_extra=""
     if [[ ${#WS_APT_EXTRA[@]} -gt 0 && -n "${WS_APT_EXTRA[0]}" ]]; then
         for pkg in "${WS_APT_EXTRA[@]}"; do
-            apt_extra="${apt_extra}    ${pkg} \\\\
+            apt_extra="${apt_extra}    ${pkg} \\
 "
         done
     fi
 
     # Use awk for multiline placeholder replacement
-    awk -v plugin_inst="$plugin_installs" \
-        -v cert_inst="$certificate_install" \
-        -v apt_base="$apt_base" \
-        -v apt_extra="$apt_extra" '
-        /{{PLUGIN_INSTALLS}}/ { print plugin_inst; next }
-        /{{CUSTOM_CERTIFICATES}}/ { print cert_inst; next }
-        /{{APT_BASE_PACKAGES}}/ { if (apt_base != "") printf "%s", apt_base; next }
-        /{{APT_EXTRA_PACKAGES}}/ { if (apt_extra != "") printf "%s", apt_extra; next }
+    # Note: awk -v interprets backslash escapes, so we use ENVIRON[] instead
+    # to preserve backslash-newline continuations in Dockerfile RUN commands
+    PLUGIN_INST="$plugin_installs" \
+    CERT_INST="$certificate_install" \
+    APT_BASE="$apt_base" \
+    APT_EXTRA="$apt_extra" \
+    awk '
+        /{{PLUGIN_INSTALLS}}/ { print ENVIRON["PLUGIN_INST"]; next }
+        /{{CUSTOM_CERTIFICATES}}/ { print ENVIRON["CERT_INST"]; next }
+        /{{APT_BASE_PACKAGES}}/ { if (ENVIRON["APT_BASE"] != "") printf "%s", ENVIRON["APT_BASE"]; next }
+        /{{APT_EXTRA_PACKAGES}}/ { if (ENVIRON["APT_EXTRA"] != "") printf "%s", ENVIRON["APT_EXTRA"]; next }
         { print }
     ' "$template_file" > "$output_file"
 }
