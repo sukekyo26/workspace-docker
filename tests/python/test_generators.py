@@ -19,6 +19,7 @@ from generators import (
     generate_compose,
     generate_devcontainer_compose,
     generate_devcontainer_json,
+    generate_dockerfile,
     get_plugin_volumes,
     load_toml,
 )
@@ -148,7 +149,8 @@ class TestGenerateDevcontainerJson:
         import re
 
         output = generate_devcontainer_json(workspace_data, plugins_dir)
-        stripped = re.sub(r"//.*", "", output)
+        # Only strip line-level // comments to preserve URLs in values
+        stripped = re.sub(r"^\s*//.*$", "", output, flags=re.MULTILINE)
         # Should not raise
         json.loads(stripped)
 
@@ -238,3 +240,107 @@ class TestCLI:
             check=False,
         )
         assert result.returncode != 0
+
+
+class TestGenerateDockerfile:
+    """Test generate_dockerfile function."""
+
+    @pytest.fixture()
+    def workspace_root(self, tmp_path: Path, plugins_dir: str) -> str:
+        """Create a minimal workspace structure for Dockerfile generation."""
+        root = tmp_path / "workspace"
+        root.mkdir()
+
+        # Create Dockerfile template
+        templates = root / "templates"
+        templates.mkdir()
+        (templates / "Dockerfile.template").write_text(
+            "ARG UBUNTU_VERSION\nFROM ubuntu:${UBUNTU_VERSION}\n\n"
+            "RUN apt-get install -y \\\n"
+            "{{APT_BASE_PACKAGES}}\n"
+            "{{APT_EXTRA_PACKAGES}}\n"
+            "    && apt-get clean\n\n"
+            "{{CUSTOM_CERTIFICATES}}\n\n"
+            "{{PLUGIN_INSTALLS}}\n\n"
+            "WORKDIR /home/${USERNAME}\n"
+        )
+
+        # Create config
+        config = root / "config"
+        config.mkdir()
+        (config / "apt-base-packages.conf").write_text(
+            "# Base packages\ncurl\nwget\n"
+        )
+
+        # Create empty certs dir
+        (root / "certs").mkdir()
+
+        # Copy plugins
+        import shutil
+        plugins = root / "plugins"
+        shutil.copytree(plugins_dir, str(plugins))
+
+        return str(root)
+
+    def test_basic_generation(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u", "ubuntu_version": "24.04"},
+            "plugins": {"enable": ["test-plugin"]},
+            "ports": {"forward": [3000]},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        assert "FROM ubuntu:${UBUNTU_VERSION}" in output
+        assert "curl" in output
+        assert "RUN echo test" in output
+
+    def test_no_plugins(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        assert "FROM ubuntu:${UBUNTU_VERSION}" in output
+        assert "RUN echo test" not in output
+
+    def test_apt_extra_packages(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "apt": {"extra_packages": ["vim-nox", "tmux"]},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        assert "vim-nox" in output
+        assert "tmux" in output
+
+    def test_empty_placeholder_removed(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        assert "{{" not in output
+
+    def test_plugin_validation_warns_on_user_with_root(
+        self, workspace_root: str, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Plugin with requires_root=true and USER directive should warn."""
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        # Create a bad plugin
+        bad_plugin = Path(plugins_dir) / "bad-test.toml"
+        bad_plugin.write_text(
+            '[metadata]\nname = "Bad"\n\n[install]\nrequires_root = true\n'
+            'dockerfile = "USER root\\nRUN echo bad\\nUSER ${USERNAME}"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["bad-test"]},
+        }
+        generate_dockerfile(data, plugins_dir, workspace_root)
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        bad_plugin.unlink()

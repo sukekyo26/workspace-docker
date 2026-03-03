@@ -1,41 +1,29 @@
 services:
   snapshot-test:
-    container_name: ${CONTAINER_SERVICE_NAME}
+    container_name: "${CONTAINER_SERVICE_NAME}"
     build:
       context: .
       args:
-        - UBUNTU_VERSION=${UBUNTU_VERSION}
-        - USERNAME=${USERNAME}
-        - UID=${UID}
-        - GID=${GID}
-        - DOCKER_GID=${DOCKER_GID}
+      - "UBUNTU_VERSION=${UBUNTU_VERSION}"
+      - "USERNAME=${USERNAME}"
+      - "UID=${UID}"
+      - "GID=${GID}"
+      - "DOCKER_GID=${DOCKER_GID}"
     user: "${UID}:${GID}"
     environment:
-      - CONTAINER_SERVICE_NAME=${CONTAINER_SERVICE_NAME}
+    - "CONTAINER_SERVICE_NAME=${CONTAINER_SERVICE_NAME}"
     volumes:
-      # ワークスペース
-      - ..:/home/${USERNAME}/workspace
-
-      # 個人設定（ホストと同期）
-      - ~/.ssh:/home/${USERNAME}/.ssh
-
-      # .local（永続化）- pipx, uv等のユーザーインストールパッケージ
-      - local:/home/${USERNAME}/.local
-
-      # proto（永続化）
-      - proto:/home/${USERNAME}/.proto
-      # AWS CLI v2（永続化）
-      - aws:/home/${USERNAME}/.aws
-      # GitHub CLI（永続化）
-      - gh-config:/home/${USERNAME}/.config/gh
-      # GitHub Copilot CLI（永続化）
-      - copilot:/home/${USERNAME}/.copilot
-      # Claude Code（永続化）
-      - claude:/home/${USERNAME}/.claude
+    - "..:/home/${USERNAME}/workspace"
+    - "~/.ssh:/home/${USERNAME}/.ssh"
+    - "local:/home/${USERNAME}/.local"
+    - "proto:/home/${USERNAME}/.proto"
+    - "aws:/home/${USERNAME}/.aws"
+    - "gh-config:/home/${USERNAME}/.config/gh"
+    - "copilot:/home/${USERNAME}/.copilot"
+    - "claude:/home/${USERNAME}/.claude"
     ports:
-      - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
+    - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
     tty: true
-
 volumes:
   local:
     name: "${CONTAINER_SERVICE_NAME}_local"
@@ -49,4 +37,3 @@ volumes:
     name: "${CONTAINER_SERVICE_NAME}_copilot"
   claude:
     name: "${CONTAINER_SERVICE_NAME}_claude"
-

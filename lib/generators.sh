@@ -275,58 +275,14 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 EOF
 }
 
-# Function to generate Dockerfile from template using plugin system
+# Function to generate Dockerfile from template using plugin system (Python)
 # Usage: generate_dockerfile_from_template "template" "output" "workspace_toml"
 generate_dockerfile_from_template() {
-    local template_file="$1"
+    local _template_file="$1"
     local output_file="$2"
     local workspace_toml="$3"
+    local plugins_dir
+    plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
-    load_workspace_config "$workspace_toml"
-
-    local plugin_installs
-    plugin_installs=$(generate_plugin_installs "${WS_PLUGINS[@]}")
-
-    local certificate_install
-    certificate_install=$(generate_certificate_install)
-
-    # Build apt base packages from config file
-    local apt_base=""
-    local apt_conf
-    apt_conf="$(cd "$(dirname "$workspace_toml")" && pwd)/config/apt-base-packages.conf"
-    if [[ -f "$apt_conf" ]]; then
-        while IFS= read -r line; do
-            # Skip empty lines and comments
-            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            # Trim whitespace
-            line="${line#"${line%%[![:space:]]*}"}"
-            line="${line%"${line##*[![:space:]]}"}"
-            [[ -n "$line" ]] && apt_base="${apt_base}    ${line} \\
-"
-        done < "$apt_conf"
-    fi
-
-    # Build apt extra packages lines
-    local apt_extra=""
-    if [[ ${#WS_APT_EXTRA[@]} -gt 0 && -n "${WS_APT_EXTRA[0]}" ]]; then
-        for pkg in "${WS_APT_EXTRA[@]}"; do
-            apt_extra="${apt_extra}    ${pkg} \\
-"
-        done
-    fi
-
-    # Use awk for multiline placeholder replacement
-    # Note: awk -v interprets backslash escapes, so we use ENVIRON[] instead
-    # to preserve backslash-newline continuations in Dockerfile RUN commands
-    PLUGIN_INST="$plugin_installs" \
-    CERT_INST="$certificate_install" \
-    APT_BASE="$apt_base" \
-    APT_EXTRA="$apt_extra" \
-    awk '
-        /{{PLUGIN_INSTALLS}}/ { print ENVIRON["PLUGIN_INST"]; next }
-        /{{CUSTOM_CERTIFICATES}}/ { print ENVIRON["CERT_INST"]; next }
-        /{{APT_BASE_PACKAGES}}/ { if (ENVIRON["APT_BASE"] != "") printf "%s", ENVIRON["APT_BASE"]; next }
-        /{{APT_EXTRA_PACKAGES}}/ { if (ENVIRON["APT_EXTRA"] != "") printf "%s", ENVIRON["APT_EXTRA"]; next }
-        { print }
-    ' "$template_file" > "$output_file"
+    python3 "$GENERATORS_PY" dockerfile "$workspace_toml" "$plugins_dir" > "$output_file"
 }

@@ -19,6 +19,8 @@ import os
 import sys
 from typing import Any
 
+import yaml
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -64,6 +66,23 @@ def get_plugin_volumes(
 # docker-compose.yml generator
 # ============================================================
 
+# Custom YAML representer to output strings without unnecessary quoting
+# while preserving ${...} variable references as plain scalars
+def _str_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    """Represent strings using double quotes only when they contain YAML-special characters."""
+    # Use double quotes for strings that need it (e.g., containing ${...}:... patterns)
+    if any(c in data for c in ':{}\n'):
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+def _make_compose_dumper() -> type[yaml.SafeDumper]:
+    """Create a customized YAML dumper for docker-compose output."""
+    dumper: type[yaml.SafeDumper] = type('ComposeDumper', (yaml.SafeDumper,), {})
+    dumper.add_representer(str, _str_representer)  # type: ignore[arg-type]
+    return dumper
+
+
 def generate_compose(workspace_data: dict[str, Any], plugins_dir: str) -> str:
     """Generate docker-compose.yml content."""
     service_name = workspace_data.get("container", {}).get("service_name", "dev")
@@ -71,66 +90,59 @@ def generate_compose(workspace_data: dict[str, Any], plugins_dir: str) -> str:
     plugin_volumes = get_plugin_volumes(plugins_dir, enabled_plugins)
     custom_volumes = workspace_data.get("volumes", {})
 
-    lines = [
-        "services:",
-        f"  {service_name}:",
-        "    container_name: ${CONTAINER_SERVICE_NAME}",
-        "    build:",
-        "      context: .",
-        "      args:",
-        "        - UBUNTU_VERSION=${UBUNTU_VERSION}",
-        "        - USERNAME=${USERNAME}",
-        "        - UID=${UID}",
-        "        - GID=${GID}",
-        "        - DOCKER_GID=${DOCKER_GID}",
-        '    user: "${UID}:${GID}"',
-        "    environment:",
-        "      - CONTAINER_SERVICE_NAME=${CONTAINER_SERVICE_NAME}",
-        "    volumes:",
-        "      # ワークスペース",
-        "      - ..:/home/${USERNAME}/workspace",
-        "",
-        "      # 個人設定（ホストと同期）",
-        "      - ~/.ssh:/home/${USERNAME}/.ssh",
-        "",
-        "      # .local（永続化）- pipx, uv等のユーザーインストールパッケージ",
-        "      - local:/home/${USERNAME}/.local",
+    # Build volumes list for service
+    volume_mounts: list[str] = [
+        "..:/home/${USERNAME}/workspace",
+        "~/.ssh:/home/${USERNAME}/.ssh",
+        "local:/home/${USERNAME}/.local",
     ]
-
-    # Plugin volume mounts (blank line before first entry)
-    if plugin_volumes or custom_volumes:
-        lines.append("")
-    for plugin_name, vol_name, vol_path in plugin_volumes:
-        lines.append(f"      # {plugin_name}（永続化）")
-        lines.append(f"      - {vol_name}:{vol_path}")
-
-    # Custom volume mounts
+    for _, vol_name, vol_path in plugin_volumes:
+        volume_mounts.append(f"{vol_name}:{vol_path}")
     for vol_name, vol_path in custom_volumes.items():
-        lines.append("      # ユーザー定義ボリューム")
-        lines.append(f"      - {vol_name}:{vol_path}")
+        volume_mounts.append(f"{vol_name}:{vol_path}")
 
-    lines.extend([
-        "    ports:",
-        '      - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"',
-        "    tty: true",
-        "",
-        "volumes:",
-        "  local:",
-        '    name: "${CONTAINER_SERVICE_NAME}_local"',
-    ])
+    # Build service config
+    service: dict[str, Any] = {
+        "container_name": "${CONTAINER_SERVICE_NAME}",
+        "build": {
+            "context": ".",
+            "args": [
+                "UBUNTU_VERSION=${UBUNTU_VERSION}",
+                "USERNAME=${USERNAME}",
+                "UID=${UID}",
+                "GID=${GID}",
+                "DOCKER_GID=${DOCKER_GID}",
+            ],
+        },
+        "user": "${UID}:${GID}",
+        "environment": [
+            "CONTAINER_SERVICE_NAME=${CONTAINER_SERVICE_NAME}",
+        ],
+        "volumes": volume_mounts,
+        "ports": [
+            "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}",
+        ],
+        "tty": True,
+    }
 
-    # Plugin volume definitions
+    # Build top-level volume definitions
+    vol_defs: dict[str, dict[str, str]] = {
+        "local": {"name": "${CONTAINER_SERVICE_NAME}_local"},
+    }
     for _, vol_name, _ in plugin_volumes:
-        lines.append(f"  {vol_name}:")
-        lines.append(f'    name: "${{CONTAINER_SERVICE_NAME}}_{vol_name}"')
+        vol_defs[vol_name] = {"name": f"${{CONTAINER_SERVICE_NAME}}_{vol_name}"}
+    for vn in custom_volumes:
+        vol_defs[vn] = {"name": f"${{CONTAINER_SERVICE_NAME}}_{vn}"}
 
-    # Custom volume definitions
-    for vol_name in custom_volumes:
-        lines.append(f"  {vol_name}:")
-        lines.append(f'    name: "${{CONTAINER_SERVICE_NAME}}_{vol_name}"')
+    compose: dict[str, Any] = {
+        "services": {service_name: service},
+        "volumes": vol_defs,
+    }
 
-    lines.append("")  # trailing newline
-    return "\n".join(lines) + "\n"
+    dumper = _make_compose_dumper()
+    result: str = yaml.dump(compose, Dumper=dumper, default_flow_style=False,
+                            sort_keys=False, allow_unicode=True)
+    return result
 
 
 # ============================================================
@@ -213,11 +225,13 @@ def generate_devcontainer_json(workspace_data: dict[str, Any], _plugins_dir: str
 def generate_devcontainer_compose(workspace_data: dict[str, Any], _plugins_dir: str) -> str:
     """Generate .devcontainer/docker-compose.yml content."""
     service_name = workspace_data.get("container", {}).get("service_name", "dev")
+    # Quote service name for safe YAML key usage
+    safe_name = json.dumps(service_name) if any(c in service_name for c in ':{}[]#&*!|>%@, ') else service_name
 
     lines = [
         "services:",
         "  # Update this to the name of the service you want to work with in your docker-compose.yml file",
-        f"  {service_name}:",
+        f"  {safe_name}:",
         "    # Uncomment if you want to override the service's Dockerfile to one in the .devcontainer",
         "    # folder. Note that the path of the Dockerfile and context is relative to the *primary*",
         '    # docker-compose.yml file (the first in the devcontainer.json "dockerComposeFile"',
@@ -252,13 +266,200 @@ def generate_devcontainer_compose(workspace_data: dict[str, Any], _plugins_dir: 
 
 
 # ============================================================
+# Dockerfile generator
+# ============================================================
+
+def _read_apt_packages(config_dir: str) -> str:
+    """Read apt-base-packages.conf and return formatted Dockerfile lines."""
+    conf_file = os.path.join(config_dir, "apt-base-packages.conf")
+    if not os.path.exists(conf_file):
+        return ""
+    lines: list[str] = []
+    with open(conf_file) as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith('#'):
+                continue
+            lines.append(f"    {line} \\")
+    return "\n".join(lines) + "\n" if lines else ""
+
+
+def _generate_plugin_installs(plugins_dir: str, enabled_plugins: list[str]) -> str:
+    """Generate combined Dockerfile install snippets for enabled plugins."""
+    parts: list[str] = []
+    for plugin_id in enabled_plugins:
+        plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
+        if not os.path.exists(plugin_file):
+            continue
+        data = load_toml(plugin_file)
+
+        install = data.get("install", {})
+        snippet = install.get("dockerfile", "")
+        if not snippet:
+            continue
+
+        # Strip trailing newlines
+        snippet = snippet.rstrip("\n")
+
+        # Validate: requires_root should not have manual USER directives
+        requires_root = install.get("requires_root", False)
+        if requires_root and "USER " in snippet:
+            print(
+                f"WARNING: Plugin '{plugin_id}' has requires_root=true but "
+                "contains USER directive. USER wrapping is automatic.",
+                file=sys.stderr,
+            )
+
+        # Validate volume paths
+        volumes = data.get("volumes", {})
+        for vol_name, vol_path in volumes.items():
+            if not vol_path.startswith("/"):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has "
+                    f"non-absolute path: {vol_path}",
+                    file=sys.stderr,
+                )
+
+        # Replace {{VERSION}} with pinned version
+        version = data.get("version", {})
+        pin = version.get("pin", "")
+        if pin:
+            snippet = snippet.replace("{{VERSION}}", pin)
+
+        # Auto-wrap with USER directives for root-requiring plugins
+        if requires_root:
+            snippet = f"USER root\n{snippet}\nUSER ${{USERNAME}}"
+
+        parts.append(snippet)
+
+    return "\n".join(parts)
+
+
+def _generate_certificate_install(certs_dir: str) -> str:
+    """Generate certificate install block for Dockerfile."""
+    if not os.path.isdir(certs_dir):
+        return ""
+
+    crt_files = sorted(f for f in os.listdir(certs_dir) if f.endswith('.crt'))
+    if not crt_files:
+        return ""
+
+    # Validate PEM format
+    valid_certs: list[str] = []
+    for fname in crt_files:
+        filepath = os.path.join(certs_dir, fname)
+        with open(filepath) as f:
+            content = f.read()
+        if '-----BEGIN CERTIFICATE-----' in content and '-----END CERTIFICATE-----' in content:
+            valid_certs.append(fname)
+
+    if not valid_certs:
+        return ""
+
+    copy_lines = [f"COPY certs/{name} /tmp/certs/{name}" for name in valid_certs]
+    cp_parts = [
+        f"    cp /tmp/certs/{name} /usr/local/share/ca-certificates/{name}"
+        for name in valid_certs
+    ]
+
+    copy_block = "\n".join(copy_lines)
+    cp_block = " && \\\n".join(cp_parts)
+
+    return (
+        "# Install custom CA certificates for corporate proxy/VPN environments\n"
+        "USER root\n"
+        f"{copy_block}\n"
+        "RUN mkdir -p /usr/local/share/ca-certificates && \\\n"
+        f"{cp_block} && \\\n"
+        "    update-ca-certificates && \\\n"
+        "    rm -rf /tmp/certs && \\\n"
+        "    echo 'export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt'"
+        " >> /home/${USERNAME}/.bashrc && \\\n"
+        "    echo 'export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt'"
+        " >> /home/${USERNAME}/.bashrc && \\\n"
+        "    echo 'export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt'"
+        " >> /home/${USERNAME}/.bashrc && \\\n"
+        "    echo 'export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt'"
+        " >> /home/${USERNAME}/.bashrc\n"
+        "USER ${USERNAME}\n"
+        "\n"
+        "# Set certificate environment variables for various tools\n"
+        "ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt\n"
+        "ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt\n"
+        "ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt\n"
+        "ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt"
+    )
+
+
+def generate_dockerfile(
+    workspace_data: dict[str, Any], plugins_dir: str,
+    workspace_root: str | None = None,
+) -> str:
+    """Generate Dockerfile content from template and plugins.
+
+    Args:
+        workspace_data: Parsed workspace.toml data.
+        plugins_dir: Path to the plugins directory.
+        workspace_root: Root directory of the workspace (derived from plugins_dir parent if not given).
+    """
+    if workspace_root is None:
+        workspace_root = os.path.dirname(os.path.abspath(plugins_dir))
+
+    template_path = os.path.join(workspace_root, "templates", "Dockerfile.template")
+    config_dir = os.path.join(workspace_root, "config")
+    certs_dir = os.path.join(workspace_root, "certs")
+
+    # Read template
+    with open(template_path) as f:
+        template = f.read()
+
+    # Generate components
+    enabled_plugins: list[str] = workspace_data.get("plugins", {}).get("enable", [])
+    plugin_installs = _generate_plugin_installs(plugins_dir, enabled_plugins)
+    certificate_install = _generate_certificate_install(certs_dir)
+
+    apt_base = _read_apt_packages(config_dir)
+
+    apt_extra_pkgs: list[str] = workspace_data.get("apt", {}).get("extra_packages", [])
+    apt_extra = ""
+    for pkg in apt_extra_pkgs:
+        apt_extra += f"    {pkg} \\\n"
+
+    # Replace placeholders line-by-line
+    # When placeholder content is empty, the placeholder line is removed entirely
+    placeholders: dict[str, str] = {
+        "{{PLUGIN_INSTALLS}}": plugin_installs,
+        "{{CUSTOM_CERTIFICATES}}": certificate_install,
+        "{{APT_BASE_PACKAGES}}": apt_base.rstrip("\n") if apt_base else "",
+        "{{APT_EXTRA_PACKAGES}}": apt_extra.rstrip("\n") if apt_extra else "",
+    }
+
+    result_lines: list[str] = []
+    for line in template.split("\n"):
+        matched = False
+        for placeholder, content in placeholders.items():
+            if placeholder in line:
+                matched = True
+                if content:
+                    result_lines.append(content)
+                # If content is empty, skip line entirely
+                break
+        if not matched:
+            result_lines.append(line)
+
+    return "\n".join(result_lines)
+
+
+# ============================================================
 # CLI
 # ============================================================
 
-COMMANDS = {
+_GeneratorFn = Any  # Union of (dict, str) -> str and (dict, str, str|None) -> str
+COMMANDS: dict[str, _GeneratorFn] = {
     "compose": generate_compose,
     "devcontainer-json": generate_devcontainer_json,
     "devcontainer-compose": generate_devcontainer_compose,
+    "dockerfile": generate_dockerfile,
 }
 
 
