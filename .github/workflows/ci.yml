@@ -28,6 +28,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install Python linting and testing tools
+        run: pip install --break-system-packages mypy ruff pytest
+
       - name: Make test scripts executable
         run: chmod +x tests/run_all.sh && find tests -name 'test_*.sh' -exec chmod +x {} +
 
