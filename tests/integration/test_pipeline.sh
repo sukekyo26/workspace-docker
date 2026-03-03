@@ -78,7 +78,7 @@ test_e2e_pipeline() {
 
         # 2. Generate Dockerfile
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
 
         # 3. Generate devcontainer.json
         generate_devcontainer_json \

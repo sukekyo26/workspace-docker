@@ -189,9 +189,8 @@ bash tests/run_all.sh
 
 Each plugin TOML contains `[metadata]` (name, description, default), `[install]` (Dockerfile instructions), and `[version]` (pinned or latest).
 
-### Templates & Generators
-- `templates/Dockerfile.template` - Dockerfile template with placeholders
-- `lib/generators.py` - Programmatic YAML/JSON generator (docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml)
+### Generators
+- `lib/generators.py` - Programmatic generator for all output files (Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml)
 
 ### Libraries (`lib/`)
 - `lib/generators.sh` - Generator orchestration functions

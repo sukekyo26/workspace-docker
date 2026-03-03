@@ -30,10 +30,6 @@ WORK_DIR=""
 
 generate_all_files() {
     WORK_DIR=$(mktemp -d)
-
-    # Copy Dockerfile template
-    mkdir -p "$WORK_DIR/templates"
-    cp "$PROJECT_ROOT/templates/Dockerfile.template" "$WORK_DIR/templates/"
     mkdir -p "$WORK_DIR/.devcontainer"
 
     # Copy libs and plugins
@@ -55,7 +51,7 @@ generate_all_files() {
         load_workspace_config "workspace.toml"
 
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
 
         generate_compose \
             "docker-compose.yml" "workspace.toml"

@@ -31,5 +31,8 @@ ignore = [
     "RUF001",  # ambiguous unicode — Japanese full-width parentheses are intentional
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"lib/generators.py" = ["E501"]  # Dockerfile template constant contains long lines
+
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

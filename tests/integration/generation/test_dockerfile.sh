@@ -29,7 +29,7 @@ test_dockerfile_all_enabled() {
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
@@ -62,7 +62,7 @@ test_dockerfile_no_plugins() {
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
@@ -93,7 +93,7 @@ test_dockerfile_partial() {
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
@@ -120,7 +120,7 @@ test_dockerfile_structure() {
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
     )
 
     local dockerfile="$WORK_DIR/Dockerfile"
@@ -176,7 +176,7 @@ EOF
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
     )
 
     local dockerfile="$WORK_DIR/Dockerfile"
@@ -223,7 +223,7 @@ EOF
         cd "$WORK_DIR" || exit 1
         source lib/generators.sh
         generate_dockerfile_from_template \
-            "templates/Dockerfile.template" "Dockerfile" "workspace.toml"
+            "Dockerfile" "workspace.toml"
     )
 
     local dockerfile="$WORK_DIR/Dockerfile"

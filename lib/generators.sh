@@ -275,12 +275,11 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 EOF
 }
 
-# Function to generate Dockerfile from template using plugin system (Python)
-# Usage: generate_dockerfile_from_template "template" "output" "workspace_toml"
+# Function to generate Dockerfile using plugin system (Python)
+# Usage: generate_dockerfile_from_template "output" "workspace_toml"
 generate_dockerfile_from_template() {
-    local _template_file="$1"
-    local output_file="$2"
-    local workspace_toml="$3"
+    local output_file="$1"
+    local workspace_toml="$2"
     local plugins_dir
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 

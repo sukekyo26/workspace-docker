@@ -189,9 +189,8 @@ bash tests/run_all.sh
 
 各プラグインTOMLには`[metadata]`（名前、説明、デフォルト）、`[install]`（Dockerfile命令）、`[version]`（ピン留めまたはlatest）が含まれます。
 
-### テンプレート & ジェネレータ
-- `templates/Dockerfile.template` - プレースホルダー付きDockerfileテンプレート
-- `lib/generators.py` - YAML/JSONプログラマティックジェネレータ（docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml）
+### ジェネレータ
+- `lib/generators.py` - 全出力ファイルのプログラマティックジェネレータ（Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml）
 
 ### ライブラリ（`lib/`）
 - `lib/generators.sh` - ジェネレータオーケストレーション関数

@@ -391,11 +391,77 @@ def _generate_certificate_install(certs_dir: str) -> str:
     )
 
 
+_DOCKERFILE_TEMPLATE = """\
+ARG UBUNTU_VERSION
+FROM ubuntu:${UBUNTU_VERSION}
+
+ARG USERNAME
+ARG UID
+ARG GID
+
+RUN apt-get update && \\
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
+{{APT_BASE_PACKAGES}}
+{{APT_EXTRA_PACKAGES}}
+    && locale-gen en_US.UTF-8 \\
+    && apt-get clean \\
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
+RUN userdel -r ubuntu 2>/dev/null || true && \\
+    groupdel ubuntu 2>/dev/null || true && \\
+    groupadd -g ${GID} ${USERNAME} && \\
+    useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USERNAME} && \\
+    usermod -aG sudo ${USERNAME} && \\
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \\
+    chmod 0440 /etc/sudoers.d/${USERNAME}
+
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
+
+# Set locale environment variables
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+# Enable bash completion
+RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bashrc && \\
+    echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \\
+    echo 'fi' >> ~/.bashrc
+
+# Custom PS1 with Docker container name, user/host, working directory, and git status
+RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \\
+    echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \\
+    echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \\
+    echo 'PS1='"'"'\\\\[\\\\033[01;35m\\\\][Docker $CONTAINER_SERVICE_NAME]\\\\[\\\\033[00m\\\\] \\\\[\\\\033[01;32m\\\\]\\\\u@\\\\h:\\\\[\\\\033[01;34m\\\\]\\\\w\\\\[\\\\033[00m\\\\]$(__git_ps1 " \\\\[\\\\033[01;33m\\\\](%s)\\\\[\\\\033[00m\\\\]" 2>/dev/null) \\\\$ '"'"'' >> ~/.bashrc
+
+{{CUSTOM_CERTIFICATES}}
+
+{{PLUGIN_INSTALLS}}
+
+# create volume mount directories for permission
+RUN mkdir -p ~/.local
+
+# Setup persistent bash history
+RUN echo 'export HISTFILE=~/.local/state/.bash_history_docker' >> ~/.bashrc && \\
+    echo 'export HISTSIZE=10000' >> ~/.bashrc && \\
+    echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \\
+    mkdir -p ~/.local/state && touch ~/.local/state/.bash_history_docker
+
+# Custom configuration file support (workspace-docker/config/.bashrc_custom)
+RUN echo '' >> ~/.bashrc && \\
+    echo '# Load custom configuration from workspace-docker/config/.bashrc_custom' >> ~/.bashrc && \\
+    echo '[ -f "$HOME/workspace/workspace-docker/config/.bashrc_custom" ] && . "$HOME/workspace/workspace-docker/config/.bashrc_custom"' >> ~/.bashrc
+
+WORKDIR /home/${USERNAME}/workspace
+"""
+
+
 def generate_dockerfile(
     workspace_data: dict[str, Any], plugins_dir: str,
     workspace_root: str | None = None,
 ) -> str:
-    """Generate Dockerfile content from template and plugins.
+    """Generate Dockerfile content from inline template and plugins.
 
     Args:
         workspace_data: Parsed workspace.toml data.
@@ -405,13 +471,10 @@ def generate_dockerfile(
     if workspace_root is None:
         workspace_root = os.path.dirname(os.path.abspath(plugins_dir))
 
-    template_path = os.path.join(workspace_root, "templates", "Dockerfile.template")
     config_dir = os.path.join(workspace_root, "config")
     certs_dir = os.path.join(workspace_root, "certs")
 
-    # Read template
-    with open(template_path) as f:
-        template = f.read()
+    template = _DOCKERFILE_TEMPLATE
 
     # Generate components
     enabled_plugins: list[str] = workspace_data.get("plugins", {}).get("enable", [])

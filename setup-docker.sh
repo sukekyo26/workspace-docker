@@ -164,7 +164,7 @@ validate_no_duplicate_apt_packages \
     "$SCRIPT_DIR/config/apt-base-packages.conf" \
     "${WS_APT_EXTRA[@]}" || true
 
-validate_file_exists "templates/Dockerfile.template" "templates/Dockerfile.template" || exit 1
+
 
 # ============================================================
 # File generation
@@ -187,7 +187,6 @@ if has_valid_certificates; then
 fi
 
 generate_dockerfile_from_template \
-    "templates/Dockerfile.template" \
     "Dockerfile" \
     "$WORKSPACE_TOML"
 

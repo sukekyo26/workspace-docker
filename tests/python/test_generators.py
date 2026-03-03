@@ -251,20 +251,6 @@ class TestGenerateDockerfile:
         root = tmp_path / "workspace"
         root.mkdir()
 
-        # Create Dockerfile template
-        templates = root / "templates"
-        templates.mkdir()
-        (templates / "Dockerfile.template").write_text(
-            "ARG UBUNTU_VERSION\nFROM ubuntu:${UBUNTU_VERSION}\n\n"
-            "RUN apt-get install -y \\\n"
-            "{{APT_BASE_PACKAGES}}\n"
-            "{{APT_EXTRA_PACKAGES}}\n"
-            "    && apt-get clean\n\n"
-            "{{CUSTOM_CERTIFICATES}}\n\n"
-            "{{PLUGIN_INSTALLS}}\n\n"
-            "WORKDIR /home/${USERNAME}\n"
-        )
-
         # Create config
         config = root / "config"
         config.mkdir()

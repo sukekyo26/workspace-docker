@@ -19,7 +19,6 @@ echo "[ test_project_structure.sh ]"
 test_required_files() {
     section "Required files"
 
-    assert_file_exists "templates/Dockerfile.template" "$PROJECT_ROOT/templates/Dockerfile.template"
     assert_file_exists "lib/generators.py" "$PROJECT_ROOT/lib/generators.py"
     assert_file_exists "README.md" "$PROJECT_ROOT/README.md"
     assert_file_exists "LICENSE" "$PROJECT_ROOT/LICENSE"
@@ -90,12 +89,12 @@ test_syntax_check() {
 test_template_placeholders() {
     section "Template placeholders"
 
-    local tmpl
-
-    tmpl="$PROJECT_ROOT/templates/Dockerfile.template"
-    if [[ -f "$tmpl" ]]; then
-        assert_file_contains "Dockerfile.template: {{PLUGIN_INSTALLS}}" "$tmpl" '{{PLUGIN_INSTALLS}}'
-        assert_file_contains "Dockerfile.template: {{CUSTOM_CERTIFICATES}}" "$tmpl" '{{CUSTOM_CERTIFICATES}}'
+    # Dockerfile template is now inlined in lib/generators.py
+    # Verify the Python constant contains the required placeholders
+    local gen_py="$PROJECT_ROOT/lib/generators.py"
+    if [[ -f "$gen_py" ]]; then
+        assert_file_contains "generators.py: {{PLUGIN_INSTALLS}}" "$gen_py" '{{PLUGIN_INSTALLS}}'
+        assert_file_contains "generators.py: {{CUSTOM_CERTIFICATES}}" "$gen_py" '{{CUSTOM_CERTIFICATES}}'
     fi
 }
 

@@ -44,10 +44,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Check template files exist
+      - name: Check required files exist
         run: |
           files=(
-            "templates/Dockerfile.template"
             "lib/generators.py"
           )
           for file in "${files[@]}"; do
@@ -141,14 +140,13 @@ jobs:
           FORWARD_PORT=3000
           EOF
 
-      - name: Generate Dockerfile from template
+      - name: Generate Dockerfile
         run: |
           # Load generator functions
           source lib/generators.sh
 
           # Generate Dockerfile using plugin-based pipeline
           generate_dockerfile_from_template \
-            "templates/Dockerfile.template" \
             "Dockerfile" \
             "workspace.toml"
 
