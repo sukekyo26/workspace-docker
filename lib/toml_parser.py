@@ -116,13 +116,34 @@ def cmd_plugin(filepath: str) -> None:
     print_kv("PLUGIN_DEFAULT", metadata.get("default", False))
 
     install = data.get("install", {})
-    print_kv("PLUGIN_DOCKERFILE", install.get("dockerfile", ""))
-    print_kv("PLUGIN_REQUIRES_ROOT", install.get("requires_root", False))
+    dockerfile = install.get("dockerfile", "")
+    requires_root = install.get("requires_root", False)
+    print_kv("PLUGIN_DOCKERFILE", dockerfile)
+    print_kv("PLUGIN_REQUIRES_ROOT", requires_root)
+
+    # Validate: requires_root=true should not have USER directives in dockerfile
+    if requires_root and "USER " in dockerfile:
+        print(
+            f"WARNING: Plugin '{plugin_id}' has requires_root=true but contains "
+            "USER directive in dockerfile. USER wrapping is automatic — remove "
+            "manual USER directives.",
+            file=sys.stderr,
+        )
 
     # Volumes: name = path
     volumes = data.get("volumes", {})
     vol_names = list(volumes.keys())
     vol_paths = list(volumes.values())
+
+    # Validate volume paths
+    for vol_name, vol_path in volumes.items():
+        if not vol_path.startswith("/"):
+            print(
+                f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has "
+                f"non-absolute path: {vol_path}",
+                file=sys.stderr,
+            )
+
     print_kv("PLUGIN_VOLUME_NAMES", vol_names)
     print_kv("PLUGIN_VOLUME_PATHS", vol_paths)
 

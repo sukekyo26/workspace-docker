@@ -160,6 +160,84 @@ class TestCmdPlugin:
             finally:
                 os.unlink(f.name)
 
+    def test_requires_root_with_user_directive_warns(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """requires_root=true + manual USER directive should produce a warning."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="bad-plugin-"
+        ) as f:
+            f.write(
+                '[metadata]\nname = "Bad Plugin"\n\n[install]\nrequires_root = true\n'
+                'dockerfile = "USER root\\nRUN echo test\\nUSER ${USERNAME}"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                captured = capsys.readouterr()
+                assert "WARNING" in captured.err
+                assert "USER" in captured.err
+            finally:
+                os.unlink(f.name)
+
+    def test_requires_root_without_user_no_warning(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """requires_root=true without USER directive should NOT produce a warning."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="good-plugin-"
+        ) as f:
+            f.write(
+                '[metadata]\nname = "Good Plugin"\n\n[install]\nrequires_root = true\n'
+                'dockerfile = "RUN apt-get install -y curl"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                captured = capsys.readouterr()
+                assert "WARNING" not in captured.err
+            finally:
+                os.unlink(f.name)
+
+    def test_non_absolute_volume_path_warns(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Non-absolute volume paths should produce a warning."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="relpath-plugin-"
+        ) as f:
+            f.write(
+                '[metadata]\nname = "RelPath Plugin"\n\n[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo test"\n\n[volumes]\ndata = "relative/path"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                captured = capsys.readouterr()
+                assert "WARNING" in captured.err
+                assert "non-absolute" in captured.err
+            finally:
+                os.unlink(f.name)
+
+    def test_absolute_volume_path_no_warning(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Absolute volume paths should NOT produce a warning."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="abspath-plugin-"
+        ) as f:
+            f.write(
+                '[metadata]\nname = "AbsPath Plugin"\n\n[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo test"\n\n[volumes]\ndata = "/home/user/.data"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                captured = capsys.readouterr()
+                assert "WARNING" not in captured.err
+            finally:
+                os.unlink(f.name)
+
 
 class TestCLI:
     """Test CLI invocation via subprocess."""
