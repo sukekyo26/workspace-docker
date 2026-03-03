@@ -225,6 +225,7 @@ DOCKER_GID=$docker_gid
 UBUNTU_VERSION=$WS_UBUNTU_VERSION
 FORWARD_PORT=${WS_FORWARD_PORTS[0]:-3000}
 EOF
+chmod 600 ".env"
 
 # Copy .bashrc_custom skeleton if not exists
 if [[ ! -f "config/.bashrc_custom" && -f "config/.bashrc_custom.example" ]]; then

@@ -93,6 +93,11 @@ EOF
     val=$(grep '^FORWARD_PORT=' "$tmpdir/.env" | cut -d= -f2)
     assert_eq ".env FORWARD_PORT" "8080" "$val"
 
+    # Verify .env file permission is 600
+    local perm
+    perm=$(stat -c '%a' "$tmpdir/.env")
+    assert_eq ".env permission is 600" "600" "$perm"
+
     # Verify Dockerfile has correct plugins
     assert_file_contains "Docker CLI in Dockerfile" "$tmpdir/Dockerfile" 'Docker CLI'
     assert_file_contains "GitHub CLI in Dockerfile" "$tmpdir/Dockerfile" 'GitHub CLI'
