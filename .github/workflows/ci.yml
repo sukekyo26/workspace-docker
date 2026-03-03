@@ -105,6 +105,9 @@ jobs:
 
           [ports]
           forward = [3000]
+
+          [vscode]
+          extensions = ["ms-python.python"]
           EOF
 
       - name: Create test .env file
@@ -156,5 +159,6 @@ jobs:
             USERNAME=testuser
             UID=1000
             GID=1000
+            DOCKER_GID=999
           cache-from: type=gha
           cache-to: type=gha,mode=max
