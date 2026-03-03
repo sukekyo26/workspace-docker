@@ -47,12 +47,16 @@ extra_packages = ["ripgrep", "fd-find"]
 [ports]
 forward = [3000]
 
+# Optional: VSCode extensions for Dev Container
+[vscode]
+extensions = ["ms-python.python", "eamodio.gitlens"]
+
 # Optional: custom persistent volumes (volume-name = "/container/path")
 [volumes]
 my-data = "/home/devuser/.my-tool"
 ```
 
-Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `zig` (defined in `plugins/*.toml`)
+Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `uv`, `zig` (defined in `plugins/*.toml`)
 
 ### Starting the Development Environment
 

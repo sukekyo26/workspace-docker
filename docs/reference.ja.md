@@ -12,6 +12,7 @@
 - **GitHub CLI** (`github-cli`) — リポジトリ管理、プルリクエスト、Issue、ワークフロー操作のためのCLI
 - **GitHub Copilot CLI** (`copilot-cli`) — AIパワードのコマンドラインアシスタント
 - **Claude Code** (`claude-code`) — AnthropicのAIコーディングアシスタント
+- **uv** (`uv`) — Astral製の高速Pythonパッケージ・プロジェクトマネージャー
 - **Zig** (`zig`) — cargo-lambdaのクロスコンパイルに必要なZigコンパイラ（x86_64とaarch64をサポート）
 
 各プラグインは`plugins/`ディレクトリ内の自己完結型TOMLファイルで、メタデータ、Dockerfile命令、バージョン情報を含みます。新しいツールを追加するには、`plugins/<name>.toml`ファイルを作成するだけです。
@@ -173,7 +174,7 @@ bash tests/run_all.sh
 - `generate-workspace.sh` - マルチルートワークスペース生成スクリプト
 
 ### 設定
-- `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、カスタムボリューム）
+- `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、VSCode拡張機能、カスタムボリューム）
 
 ### プラグイン（`plugins/`）
 - `plugins/proto.toml` - protoバージョンマネージャープラグイン（デフォルト: on）
@@ -183,6 +184,7 @@ bash tests/run_all.sh
 - `plugins/copilot-cli.toml` - GitHub Copilot CLIプラグイン
 - `plugins/docker-cli.toml` - Docker CLIプラグイン（デフォルト: on）
 - `plugins/github-cli.toml` - GitHub CLIプラグイン
+- `plugins/uv.toml` - uvパッケージマネージャープラグイン
 - `plugins/zig.toml` - Zigコンパイラプラグイン
 
 各プラグインTOMLには`[metadata]`（名前、説明、デフォルト）、`[install]`（Dockerfile命令）、`[version]`（ピン留めまたはlatest）が含まれます。

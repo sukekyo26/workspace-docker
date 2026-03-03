@@ -12,6 +12,7 @@
 - **GitHub CLI** (`github-cli`) — GitHub command-line interface for repository management and workflows
 - **GitHub Copilot CLI** (`copilot-cli`) — AI-powered command-line assistant
 - **Claude Code** (`claude-code`) — AI-powered coding assistant by Anthropic
+- **uv** (`uv`) — Fast Python package and project manager by Astral
 - **Zig** (`zig`) — Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
 
 Each plugin is a self-contained TOML file in `plugins/` with metadata, Dockerfile instructions, and version info. To add a new tool, create a new `plugins/<name>.toml` file.
@@ -173,7 +174,7 @@ bash tests/run_all.sh
 - `generate-workspace.sh` - Multi-root workspace generator
 
 ### Configuration
-- `workspace.toml` - User configuration (container name, username, plugins, ports, custom volumes)
+- `workspace.toml` - User configuration (container name, username, plugins, ports, vscode extensions, custom volumes)
 
 ### Plugins (`plugins/`)
 - `plugins/proto.toml` - proto version manager plugin (default: on)
@@ -183,6 +184,7 @@ bash tests/run_all.sh
 - `plugins/copilot-cli.toml` - GitHub Copilot CLI plugin
 - `plugins/docker-cli.toml` - Docker CLI plugin (default: on)
 - `plugins/github-cli.toml` - GitHub CLI plugin
+- `plugins/uv.toml` - uv package manager plugin
 - `plugins/zig.toml` - Zig compiler plugin
 
 Each plugin TOML contains `[metadata]` (name, description, default), `[install]` (Dockerfile instructions), and `[version]` (pinned or latest).

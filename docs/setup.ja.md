@@ -64,6 +64,14 @@ extra_packages = ["ripgrep", "fd-find"]  # オプション
 [ports]
 forward = [3000]
 
+# オプション: Dev Containerにインストールする VSCode 拡張機能
+[vscode]
+extensions = [
+    "MS-CEINTL.vscode-language-pack-ja",
+    "ms-python.python",
+    "eamodio.gitlens",
+]
+
 # オプション: カスタム永続ボリューム (ボリューム名 = "/コンテナ内パス")
 [volumes]
 my-data = "/home/devuser/.my-tool"
@@ -77,6 +85,7 @@ my-data = "/home/devuser/.my-tool"
 - `copilot-cli` — GitHub Copilot CLI
 - `docker-cli` — Docker CLI（ソケットマウント経由でホストDockerを利用、デフォルト: on）
 - `github-cli` — GitHub CLI
+- `uv` — uv（Astral製の高速Pythonパッケージマネージャー）
 - `zig` — Zigコンパイラ（cargo-lambdaのクロスコンパイル用）
 
 ## カスタムボリュームマウント

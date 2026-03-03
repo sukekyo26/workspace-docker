@@ -47,12 +47,16 @@ extra_packages = ["ripgrep", "fd-find"]
 [ports]
 forward = [3000]
 
+# オプション: Dev ContainerのVSCode拡張機能
+[vscode]
+extensions = ["ms-python.python", "eamodio.gitlens"]
+
 # オプション: カスタム永続ボリューム
 [volumes]
 my-data = "/home/devuser/.my-tool"
 ```
 
-利用可能なプラグイン: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `zig`（`plugins/*.toml`で定義）
+利用可能なプラグイン: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `uv`, `zig`（`plugins/*.toml`で定義）
 
 ### 開発環境の起動
 

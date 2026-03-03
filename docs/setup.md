@@ -64,6 +64,14 @@ extra_packages = ["ripgrep", "fd-find"]  # optional
 [ports]
 forward = [3000]
 
+# Optional: VSCode extensions to install in Dev Container
+[vscode]
+extensions = [
+    "MS-CEINTL.vscode-language-pack-ja",
+    "ms-python.python",
+    "eamodio.gitlens",
+]
+
 # Optional: custom persistent volumes (volume-name = "/container/path")
 # Use this to persist paths not covered by plugins.
 # e.g., proto-managed tool data, project-specific caches
@@ -79,6 +87,7 @@ Available plugins are defined in `plugins/*.toml`. Each plugin is a self-contain
 - `copilot-cli` — GitHub Copilot CLI
 - `docker-cli` — Docker CLI (host Docker via socket mount, default: on)
 - `github-cli` — GitHub CLI
+- `uv` — uv (fast Python package manager by Astral)
 - `zig` — Zig compiler (for cargo-lambda cross-compilation)
 
 ## Custom Volume Mounts
