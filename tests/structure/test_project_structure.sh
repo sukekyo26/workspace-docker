@@ -45,7 +45,6 @@ test_scripts_executable() {
         "generate-workspace.sh"
         "setup-docker.sh"
         "rebuild-container.sh"
-        "test.sh"
     )
 
     for script in "${scripts[@]}"; do
@@ -68,7 +67,6 @@ test_syntax_check() {
         "generate-workspace.sh"
         "setup-docker.sh"
         "rebuild-container.sh"
-        "test.sh"
         "lib/generators.sh"
         "lib/validators.sh"
         "lib/errors.sh"

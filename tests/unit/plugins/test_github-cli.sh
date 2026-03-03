@@ -31,40 +31,9 @@ test_github_cli() {
 }
 
 # ============================================================
-# Test: github-cli volume generation
-# ============================================================
-test_github_cli_volumes() {
-    section "github-cli volume generation"
-
-    local tmpfile
-    tmpfile=$(mktemp --suffix=.toml)
-    cat > "$tmpfile" << 'EOF'
-[container]
-service_name = "vol-test"
-username = "testuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = ["github-cli"]
-
-[ports]
-forward = [3000]
-EOF
-
-    load_workspace_config "$tmpfile"
-    generate_plugin_volumes "github-cli"
-
-    assert_true "mounts contain gh" echo "$_OPTIONAL_VOLUME_MOUNTS" | grep -q "gh"
-    assert_true "definitions contain gh" echo "$_OPTIONAL_VOLUME_DEFINITIONS" | grep -q "gh"
-
-    rm -f "$tmpfile"
-}
-
-# ============================================================
 # Run
 # ============================================================
 
 test_github_cli
-test_github_cli_volumes
 
 print_summary

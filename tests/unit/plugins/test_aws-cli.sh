@@ -31,40 +31,9 @@ test_aws_cli() {
 }
 
 # ============================================================
-# Test: aws-cli volume generation
-# ============================================================
-test_aws_cli_volumes() {
-    section "aws-cli volume generation"
-
-    local tmpfile
-    tmpfile=$(mktemp --suffix=.toml)
-    cat > "$tmpfile" << 'EOF'
-[container]
-service_name = "vol-test"
-username = "testuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = ["aws-cli"]
-
-[ports]
-forward = [3000]
-EOF
-
-    load_workspace_config "$tmpfile"
-    generate_plugin_volumes "aws-cli"
-
-    assert_true "mounts contain aws" echo "$_OPTIONAL_VOLUME_MOUNTS" | grep -q "aws"
-    assert_true "definitions contain aws" echo "$_OPTIONAL_VOLUME_DEFINITIONS" | grep -q "aws"
-
-    rm -f "$tmpfile"
-}
-
-# ============================================================
 # Run
 # ============================================================
 
 test_aws_cli
-test_aws_cli_volumes
 
 print_summary

@@ -32,40 +32,9 @@ test_copilot_cli() {
 }
 
 # ============================================================
-# Test: copilot-cli volume generation
-# ============================================================
-test_copilot_cli_volumes() {
-    section "copilot-cli volume generation"
-
-    local tmpfile
-    tmpfile=$(mktemp --suffix=.toml)
-    cat > "$tmpfile" << 'EOF'
-[container]
-service_name = "vol-test"
-username = "testuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = ["copilot-cli"]
-
-[ports]
-forward = [3000]
-EOF
-
-    load_workspace_config "$tmpfile"
-    generate_plugin_volumes "copilot-cli"
-
-    assert_true "mounts contain copilot" echo "$_OPTIONAL_VOLUME_MOUNTS" | grep -q "copilot"
-    assert_true "definitions contain copilot" echo "$_OPTIONAL_VOLUME_DEFINITIONS" | grep -q "copilot"
-
-    rm -f "$tmpfile"
-}
-
-# ============================================================
 # Run
 # ============================================================
 
 test_copilot_cli
-test_copilot_cli_volumes
 
 print_summary

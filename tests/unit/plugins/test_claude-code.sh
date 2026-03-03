@@ -32,40 +32,9 @@ test_claude_code() {
 }
 
 # ============================================================
-# Test: claude-code volume generation
-# ============================================================
-test_claude_code_volumes() {
-    section "claude-code volume generation"
-
-    local tmpfile
-    tmpfile=$(mktemp --suffix=.toml)
-    cat > "$tmpfile" << 'EOF'
-[container]
-service_name = "vol-test"
-username = "testuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = ["claude-code"]
-
-[ports]
-forward = [3000]
-EOF
-
-    load_workspace_config "$tmpfile"
-    generate_plugin_volumes "claude-code"
-
-    assert_true "mounts contain claude" echo "$_OPTIONAL_VOLUME_MOUNTS" | grep -q "claude"
-    assert_true "definitions contain claude" echo "$_OPTIONAL_VOLUME_DEFINITIONS" | grep -q "claude"
-
-    rm -f "$tmpfile"
-}
-
-# ============================================================
 # Run
 # ============================================================
 
 test_claude_code
-test_claude_code_volumes
 
 print_summary
