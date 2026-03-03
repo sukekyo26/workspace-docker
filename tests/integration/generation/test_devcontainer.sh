@@ -91,8 +91,12 @@ test_devcontainer_json_validity() {
     local dcjson="$WORK_DIR/.devcontainer/devcontainer.json"
 
     # Strip // comments for JSON parsing (jsonc -> json)
+    # Only strip lines starting with optional whitespace + // to preserve URLs in values
     local clean_json
-    clean_json=$(sed 's|//.*||' "$dcjson")
+    clean_json=$(python3 -c "
+import re, sys
+print(re.sub(r'^\s*//.*$', '', open(sys.argv[1]).read(), flags=re.MULTILINE))
+" "$dcjson")
 
     if echo "$clean_json" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
         assert_eq "devcontainer.json is valid JSON" "valid" "valid"
