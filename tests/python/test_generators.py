@@ -1,4 +1,4 @@
-"""Tests for lib/generators.py."""
+"""Tests for lib/generators.py — class-based generator architecture."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -16,14 +15,13 @@ LIB_DIR = Path(__file__).resolve().parent.parent.parent / "lib"
 sys.path.insert(0, str(LIB_DIR))
 
 from generators import (
-    _collect_plugin_apt_packages,
-    generate_compose,
-    generate_devcontainer_compose,
-    generate_devcontainer_json,
-    generate_dockerfile,
-    get_plugin_volumes,
-    load_toml,
+    ComposeGenerator,
+    DevcontainerComposeGenerator,
+    DevcontainerJsonGenerator,
+    DockerfileGenerator,
+    Generator,
 )
+from toml_parser import load_toml
 
 
 @pytest.fixture()
@@ -84,11 +82,33 @@ class TestLoadToml:
             load_toml("/nonexistent/path.toml")
 
 
+class TestGeneratorBase:
+    """Test Generator base class properties and methods."""
+
+    def test_service_name(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        gen = ComposeGenerator(workspace_data, plugins_dir)
+        assert gen.service_name == "test-svc"
+
+    def test_username(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        gen = ComposeGenerator(workspace_data, plugins_dir)
+        assert gen.username == "testuser"
+
+    def test_enabled_plugins(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        gen = ComposeGenerator(workspace_data, plugins_dir)
+        assert gen.enabled_plugins == ["test-plugin"]
+
+    def test_defaults(self, plugins_dir: str) -> None:
+        gen = ComposeGenerator({}, plugins_dir)
+        assert gen.service_name == "dev"
+        assert gen.username == "developer"
+        assert gen.enabled_plugins == []
+
+
 class TestGetPluginVolumes:
-    """Test get_plugin_volumes function."""
+    """Test Generator.get_plugin_volumes static method."""
 
     def test_with_volumes(self, plugins_dir: str) -> None:
-        vols = get_plugin_volumes(plugins_dir, ["test-plugin"])
+        vols = Generator.get_plugin_volumes(plugins_dir, ["test-plugin"])
         assert len(vols) == 1
         name, vol_name, vol_path = vols[0]
         assert name == "Test Plugin"
@@ -96,28 +116,28 @@ class TestGetPluginVolumes:
         assert "${USERNAME}" in vol_path
 
     def test_without_volumes(self, plugins_dir: str) -> None:
-        vols = get_plugin_volumes(plugins_dir, ["no-vol"])
+        vols = Generator.get_plugin_volumes(plugins_dir, ["no-vol"])
         assert len(vols) == 0
 
     def test_nonexistent_plugin(self, plugins_dir: str) -> None:
-        vols = get_plugin_volumes(plugins_dir, ["does-not-exist"])
+        vols = Generator.get_plugin_volumes(plugins_dir, ["does-not-exist"])
         assert len(vols) == 0
 
 
-class TestGenerateCompose:
-    """Test generate_compose function."""
+class TestComposeGenerator:
+    """Test ComposeGenerator."""
 
     def test_basic_structure(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_compose(workspace_data, plugins_dir)
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
         assert "services:" in output
         assert "test-svc:" in output
         assert "volumes:" in output
         assert "UBUNTU_VERSION" in output
 
     def test_plugin_volumes_included(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_compose(workspace_data, plugins_dir)
-        assert "test-data:" in output  # volume mount
-        assert "CONTAINER_SERVICE_NAME}_test-data" in output  # volume definition
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "test-data:" in output
+        assert "CONTAINER_SERVICE_NAME}_test-data" in output
 
     def test_custom_volumes(self, plugins_dir: str) -> None:
         data: dict[str, object] = {
@@ -126,64 +146,83 @@ class TestGenerateCompose:
             "ports": {"forward": [8080]},
             "volumes": {"mydata": "/home/user/data"},
         }
-        output = generate_compose(data, plugins_dir)
+        output = ComposeGenerator(data, plugins_dir).generate()
         assert "mydata:" in output
 
     def test_trailing_newline(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_compose(workspace_data, plugins_dir)
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
         assert output.endswith("\n")
 
 
-class TestGenerateDevcontainerJson:
-    """Test generate_devcontainer_json function."""
+class TestDevcontainerJsonGenerator:
+    """Test DevcontainerJsonGenerator."""
 
     def test_basic_structure(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_json(workspace_data, plugins_dir)
+        output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
         assert '"name"' in output
         assert '"service"' in output
         assert '"test-svc"' in output
         assert '"forwardPorts"' in output
 
     def test_extensions(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_json(workspace_data, plugins_dir)
+        output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
         assert '"ms-python.python"' in output
 
     def test_jsonc_with_comments(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_json(workspace_data, plugins_dir)
+        output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
         assert "//" in output  # JSONC comments
 
     def test_json_valid_after_stripping_comments(
-        self, workspace_data: dict[str, object], plugins_dir: str
+        self, workspace_data: dict[str, object], plugins_dir: str,
     ) -> None:
         """JSONC should be valid JSON after stripping // comments."""
         import re
 
-        output = generate_devcontainer_json(workspace_data, plugins_dir)
+        output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
         # Only strip line-level // comments to preserve URLs in values
         stripped = re.sub(r"^\s*//.*$", "", output, flags=re.MULTILINE)
         # Should not raise
         json.loads(stripped)
 
     def test_workspace_folder(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_json(workspace_data, plugins_dir)
+        output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
         assert '"/home/testuser/workspace"' in output
 
+    def test_empty_extensions(self, plugins_dir: str) -> None:
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "vscode": {"extensions": []},
+        }
+        output = DevcontainerJsonGenerator(data, plugins_dir).generate()
+        assert '"extensions": []' in output
 
-class TestGenerateDevcontainerCompose:
-    """Test generate_devcontainer_compose function."""
+    def test_build_config_dict(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        """Verify _build_config returns a proper dict (not string concatenation)."""
+        gen = DevcontainerJsonGenerator(workspace_data, plugins_dir)
+        config = gen._build_config()
+        assert isinstance(config, dict)
+        assert config["service"] == "test-svc"
+        assert config["forwardPorts"] == [3000]
+        assert config["customizations"]["vscode"]["extensions"] == ["ms-python.python"]
+
+
+class TestDevcontainerComposeGenerator:
+    """Test DevcontainerComposeGenerator."""
 
     def test_basic_structure(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_compose(workspace_data, plugins_dir)
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
         assert "services:" in output
         assert "test-svc:" in output
         assert "sleep infinity" in output
 
     def test_docker_socket_mount(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_compose(workspace_data, plugins_dir)
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
         assert "/var/run/docker.sock" in output
 
     def test_docker_gid(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
-        output = generate_devcontainer_compose(workspace_data, plugins_dir)
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
         assert "DOCKER_GID" in output
 
 
@@ -251,9 +290,21 @@ class TestCLI:
         )
         assert result.returncode != 0
 
+    def test_error_handling_file_not_found(self, plugins_dir: str) -> None:
+        """FileNotFoundError should produce user-friendly message, not stack trace."""
+        result = subprocess.run(
+            [sys.executable, str(LIB_DIR / "generators.py"), "compose", "/nonexistent.toml", plugins_dir],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "ERROR" in result.stderr
+        assert "Traceback" not in result.stderr
 
-class TestGenerateDockerfile:
-    """Test generate_dockerfile function."""
+
+class TestDockerfileGenerator:
+    """Test DockerfileGenerator."""
 
     @pytest.fixture()
     def workspace_root(self, tmp_path: Path, plugins_dir: str) -> str:
@@ -285,7 +336,7 @@ class TestGenerateDockerfile:
             "plugins": {"enable": ["test-plugin"]},
             "ports": {"forward": [3000]},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "FROM ubuntu:${UBUNTU_VERSION}" in output
         assert "curl" in output
         assert "RUN echo test" in output
@@ -296,7 +347,7 @@ class TestGenerateDockerfile:
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": []},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "FROM ubuntu:${UBUNTU_VERSION}" in output
         assert "RUN echo test" not in output
 
@@ -307,7 +358,7 @@ class TestGenerateDockerfile:
             "plugins": {"enable": []},
             "apt": {"extra_packages": ["vim-nox", "tmux"]},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "vim-nox" in output
         assert "tmux" in output
 
@@ -317,15 +368,14 @@ class TestGenerateDockerfile:
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": []},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "{{" not in output
 
     def test_plugin_validation_warns_on_user_with_root(
-        self, workspace_root: str, capsys: pytest.CaptureFixture[str]
+        self, workspace_root: str, capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Plugin with requires_root=true and USER directive should warn."""
         plugins_dir = os.path.join(workspace_root, "plugins")
-        # Create a bad plugin
         bad_plugin = Path(plugins_dir) / "bad-test.toml"
         bad_plugin.write_text(
             '[metadata]\nname = "Bad"\n\n[install]\nrequires_root = true\n'
@@ -336,27 +386,27 @@ class TestGenerateDockerfile:
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": ["bad-test"]},
         }
-        generate_dockerfile(data, plugins_dir, workspace_root)
+        DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         captured = capsys.readouterr()
         assert "WARNING" in captured.err
         bad_plugin.unlink()
 
 
 class TestCollectPluginAptPackages:
-    """Test _collect_plugin_apt_packages function."""
+    """Test DockerfileGenerator.collect_plugin_apt_packages static method."""
 
     def test_collects_packages(self, plugins_dir: str) -> None:
-        result = _collect_plugin_apt_packages(plugins_dir, ["apt-plugin"], set())
+        result = DockerfileGenerator.collect_plugin_apt_packages(plugins_dir, ["apt-plugin"], set())
         assert "libfoo-dev" in result
         assert "libbar-dev" in result
 
     def test_empty_when_no_apt_section(self, plugins_dir: str) -> None:
-        result = _collect_plugin_apt_packages(plugins_dir, ["test-plugin"], set())
+        result = DockerfileGenerator.collect_plugin_apt_packages(plugins_dir, ["test-plugin"], set())
         assert result == ""
 
     def test_deduplicates_with_base(self, plugins_dir: str) -> None:
-        result = _collect_plugin_apt_packages(
-            plugins_dir, ["apt-plugin"], {"libfoo-dev"}
+        result = DockerfileGenerator.collect_plugin_apt_packages(
+            plugins_dir, ["apt-plugin"], {"libfoo-dev"},
         )
         assert "libfoo-dev" not in result
         assert "libbar-dev" in result
@@ -372,14 +422,13 @@ class TestCollectPluginAptPackages:
             '[metadata]\nname = "B"\n\n[apt]\npackages = ["pkg2", "pkg3"]\n\n'
             '[install]\nrequires_root = false\ndockerfile = "RUN echo b"\n'
         )
-        result = _collect_plugin_apt_packages(str(plugins), ["a", "b"], set())
-        # pkg2 should appear only once
+        result = DockerfileGenerator.collect_plugin_apt_packages(str(plugins), ["a", "b"], set())
         assert result.count("pkg2") == 1
         assert "pkg1" in result
         assert "pkg3" in result
 
     def test_nonexistent_plugin(self, plugins_dir: str) -> None:
-        result = _collect_plugin_apt_packages(plugins_dir, ["does-not-exist"], set())
+        result = DockerfileGenerator.collect_plugin_apt_packages(plugins_dir, ["does-not-exist"], set())
         assert result == ""
 
 
@@ -406,7 +455,7 @@ class TestDockerfilePluginApt:
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": ["apt-plugin"]},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "libfoo-dev" in output
         assert "libbar-dev" in output
 
@@ -416,19 +465,16 @@ class TestDockerfilePluginApt:
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": ["test-plugin"]},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "libfoo-dev" not in output
         assert "libbar-dev" not in output
 
     def test_plugin_apt_dedup_with_base(self, workspace_root: str) -> None:
         plugins_dir = os.path.join(workspace_root, "plugins")
-        # apt-plugin has libfoo-dev and libbar-dev; base has curl and wget
-        # No overlap, so both should appear
         data: dict[str, object] = {
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": ["apt-plugin"]},
         }
-        output = generate_dockerfile(data, plugins_dir, workspace_root)
-        # Count occurrences — each should appear only once
+        output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert output.count("libfoo-dev") == 1
         assert output.count("curl") == 1
