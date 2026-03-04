@@ -17,35 +17,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `[plugins]` section for tool selection
   - `[apt]` section for extra system packages
   - `[ports]` section for port forwarding
+  - `[devcontainer]` section for devcontainer.json key overrides and deep merge
+- `setup-docker.sh --yes` flag for non-interactive setup with default values
+- SHA256 checksum verification for zig plugin downloads
+- TLS enforcement (`--proto '=https' --tlsv1.2`) for curl|sh plugins (claude-code, uv, proto, copilot-cli)
+- `.dockerignore` to exclude `.git/`, `tests/`, `docs/`, `agent/`, `.env` from build context
+- `uv` plugin for fast Python package management
+- Per-plugin apt dependency packages via `[apt].packages` in plugin TOML
+- Plugin TOML validation for `requires_root` and volume path consistency
+- Auto-inject `USER root` / `USER ${USERNAME}` for `requires_root` plugins
+- VSCode extensions managed via `workspace.toml` `[vscode].extensions`
+- Per-language `tabSize` overrides for Python and Dockerfile
+- Auto-create `.devcontainer/` output directory in generator functions
 - Extra apt packages support via `workspace.toml` `[apt].extra_packages`
 - Configurable port forwarding via `workspace.toml` `[ports].forward`
 - Conditional Docker volume generation based on enabled plugins
 - Auto-copy `.bashrc_custom` skeleton from example on first setup
 - Externalized base apt packages into `config/apt-base-packages.conf`
-- New plugins: `copilot-cli` (GitHub Copilot CLI), `claude-code` (Anthropic Claude Code)
 - Curl security hardening: eliminated curl-pipe-sh patterns and added `-f` flag to all curl calls
-- `uuid-runtime` package to default system utilities
-- `python3`, `python3-pip`, `python3-venv`, `file`, `patch`, `gettext-base` to system packages
+- `uuid-runtime`, `python3`, `python3-pip`, `python3-venv`, `file`, `patch`, `gettext-base` to system packages
 - Interactive workspace generator script (`generate-workspace.sh`)
 - DevContainer management scripts (`rebuild-container.sh`, `lib/devcontainer.sh`)
+- Python type annotations, `pytest` tests, `mypy` strict, `ruff`, `pyright` strict static analysis
 - Snapshot regression tests comparing generated files against expected output
 - Structural validity tests for generated Dockerfile, YAML, and JSON files
 - Execution-based tests replacing source-grep approach for more reliable validation
 - Integration tests for end-to-end file generation pipeline
 - Plugin TOML structure validation test suite
+- Duplicate apt package detection with unit tests
+- `.env` file permission set to 600 after generation
 
 ### Changed
 - **BREAKING**: Rewritten `setup-docker.sh` with plugin-based architecture
 - **BREAKING**: Rewritten `generators.sh` with plugin-based generation pipeline
 - **BREAKING**: Removed `switch-env.sh` and `.envs/` multi-environment management
-- Simplified `Dockerfile.template` to use single plugin placeholder (`{{PLUGIN_INSTALLS}}`)
-- Migrated proto from hardcoded Dockerfile.template to plugin system (`plugins/proto.toml`)
-- Moved hardcoded apt packages from `Dockerfile.template` to `config/apt-base-packages.conf`
-- Minimized `Dockerfile.template` to 62 lines (from ~120 lines) with placeholders and base infrastructure only
+- Redesigned `generators.py` with `Generator` ABC and 4 subclasses (Compose, DevcontainerJson, DevcontainerCompose, Dockerfile)
+- Redesigned `toml_parser.py` with `TomlCommand` ABC, `ShellEncoder`, and Command pattern
+- Replaced `eval` with `declare`/`printf -v` (nameref) for secure TOML output parsing
+- Migrated Compose and Dockerfile generation to Python with PyYAML
+- Inlined Dockerfile template into `generators.py` (removed `templates/` directory)
+- Simplified devcontainer.json generator by removing JSONC template comments
+- Split `lib/` into focused modules with consistent naming
+- Migrated Python dev dependencies to `uv` with lockfile
+- Tests reorganized into genre-based subdirectories (`unit/`, `integration/`, `structure/`, `e2e/`)
+- `ARG DOCKER_GID` conditional on docker-cli plugin enablement
 - Default tools changed to minimal set (proto + Docker CLI only)
-- Template substitution unified to awk (removed sed-based approach)
-- Rewritten test suite for plugin-based architecture
-- CI workflow updated for plugin-based architecture and Hadolint on generated Dockerfile
 - All ShellCheck style-level warnings resolved with `.shellcheckrc` configuration
 - README completely rewritten for plugin architecture and workspace.toml configuration
 - README split into compact Quick Start (root) with detailed guides in `docs/`
@@ -53,20 +69,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/usage.md` / `docs/usage.ja.md` — Development workflows, commands, mounted dirs
   - `docs/reference.md` / `docs/reference.ja.md` — Pre-installed software, project files
 - Replaced pyenv references with proto in Python configuration examples
+- `generators.sh` uses `trap` for safe temporary file cleanup on Python failure
 
 ### Removed
 - `switch-env.sh` multi-environment switcher
 - `.envs/` directory for environment profiles
 - `test.sh` wrapper script (replaced by `tests/run_all.sh`)
-- Dead code: `validate_package_manager` function
+- `[environment]` section dead code from `toml_parser.py` and `plugins.sh`
+- Dead code: `validate_package_manager`, `confirm`, `generate_plugin_volumes`
+- `templates/` directory (Dockerfile template inlined into `generators.py`)
 - Deprecated version field from template substitution
 - Non-functional `chat.instructionsFilesLocations` configuration
 
 ### Fixed
+- `forwardPorts` now uses full `ports.forward` array in devcontainer.json
+- JSONC comment stripping replaced with Python regex to preserve URLs
+- `USER` double-wrap fix in `github-cli.toml`
+- `check_python3 --check` logic corrected
+- `pyright` `represent_scalar` Unknown type error resolved
 - Removed GID 999 fallback in Docker GID detection
 - APT_EXTRA_PACKAGES placeholder replacement handling leading whitespace
 - Locale-gen restoration after APT_EXTRA_PACKAGES placeholder replacement
 - CI template validation YAML parsing errors
+
+### Security
+- SHA256 checksum verification for zig plugin binary downloads
+- TLS 1.2+ enforcement for curl|sh plugin installers
+- `eval` completely removed from TOML output parsing pipeline
 
 ## [3.1.0] - 2026-01-19
 
