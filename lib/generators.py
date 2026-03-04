@@ -68,10 +68,12 @@ def get_plugin_volumes(
 
 # Custom YAML representer to output strings without unnecessary quoting
 # while preserving ${...} variable references as plain scalars
+_YAML_SPECIAL_CHARS = frozenset(':{}#&*!|>%@`\'"[]?,\n')
+
+
 def _str_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
     """Represent strings using double quotes only when they contain YAML-special characters."""
-    # Use double quotes for strings that need it (e.g., containing ${...}:... patterns)
-    if any(c in data for c in ':{}\n'):
+    if any(c in _YAML_SPECIAL_CHARS for c in data):
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
     return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
