@@ -187,6 +187,11 @@ class DevcontainerJsonGenerator(Generator):
 
     Uses json.dumps for clean, machine-readable output.
     A header comment marks the file as auto-generated.
+
+    Users can add a ``[devcontainer]`` section in workspace.toml to inject
+    arbitrary devcontainer.json properties.  Values are deep-merged into the
+    base config so that, e.g., ``[devcontainer.customizations.vscode]``
+    ``settings = { ... }`` coexists with ``[vscode].extensions``.
     """
 
     _HEADER = "// Auto-generated from workspace.toml — do not edit directly.\n"
@@ -201,7 +206,7 @@ class DevcontainerJsonGenerator(Generator):
         forward_ports = self._data.get("ports", {}).get("forward", [3000])
         extensions = self._data.get("vscode", {}).get("extensions", [])
 
-        return {
+        base: dict[str, Any] = {
             "name": "Existing Docker Compose (Extend)",
             "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
             "service": self.service_name,
@@ -214,6 +219,25 @@ class DevcontainerJsonGenerator(Generator):
                 },
             },
         }
+
+        overrides = self._data.get("devcontainer", {})
+        if overrides:
+            self._deep_merge(base, overrides)
+
+        return base
+
+    @staticmethod
+    def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
+        """Recursively merge *override* into *base* in place.
+
+        - dict values are merged recursively.
+        - All other types (lists, scalars) in *override* replace *base*.
+        """
+        for key, val in override.items():
+            if key in base and isinstance(base[key], dict) and isinstance(val, dict):
+                DevcontainerJsonGenerator._deep_merge(base[key], val)
+            else:
+                base[key] = val
 
 
 # ============================================================

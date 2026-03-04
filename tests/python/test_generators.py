@@ -330,6 +330,75 @@ class TestDevcontainerJsonGenerator:
         config = gen._build_config()
         assert config["forwardPorts"] == [3000, 8080, 5432]
 
+    def test_devcontainer_section_adds_new_keys(self, plugins_dir: str) -> None:
+        """[devcontainer] section adds new top-level properties."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "vscode": {"extensions": []},
+            "devcontainer": {
+                "postCreateCommand": "echo hello",
+                "remoteUser": "devcontainer",
+            },
+        }
+        config = DevcontainerJsonGenerator(data, plugins_dir)._build_config()
+        assert config["postCreateCommand"] == "echo hello"
+        assert config["remoteUser"] == "devcontainer"
+
+    def test_devcontainer_section_overrides_existing(self, plugins_dir: str) -> None:
+        """[devcontainer] can override base config values."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "vscode": {"extensions": []},
+            "devcontainer": {"shutdownAction": "none"},
+        }
+        config = DevcontainerJsonGenerator(data, plugins_dir)._build_config()
+        assert config["shutdownAction"] == "none"
+
+    def test_devcontainer_deep_merge_preserves_extensions(self, plugins_dir: str) -> None:
+        """Deep merge: vscode.settings coexists with vscode.extensions."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "vscode": {"extensions": ["ms-python.python"]},
+            "devcontainer": {
+                "customizations": {
+                    "vscode": {
+                        "settings": {"editor.fontSize": 14},
+                    },
+                },
+            },
+        }
+        config = DevcontainerJsonGenerator(data, plugins_dir)._build_config()
+        assert config["customizations"]["vscode"]["extensions"] == ["ms-python.python"]
+        assert config["customizations"]["vscode"]["settings"] == {"editor.fontSize": 14}
+
+    def test_no_devcontainer_section_unchanged(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        """Without [devcontainer], output is identical to base config."""
+        config = DevcontainerJsonGenerator(workspace_data, plugins_dir)._build_config()
+        assert "postCreateCommand" not in config
+        assert "remoteUser" not in config
+
+    def test_devcontainer_features(self, plugins_dir: str) -> None:
+        """[devcontainer.features] adds features to the config."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "vscode": {"extensions": []},
+            "devcontainer": {
+                "features": {
+                    "ghcr.io/devcontainers/features/node:1": {},
+                },
+            },
+        }
+        config = DevcontainerJsonGenerator(data, plugins_dir)._build_config()
+        assert config["features"] == {"ghcr.io/devcontainers/features/node:1": {}}
+
 
 class TestDevcontainerComposeGenerator:
     """Test DevcontainerComposeGenerator."""
