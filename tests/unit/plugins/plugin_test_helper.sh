@@ -27,13 +27,6 @@ generate_plugin_installs() {
 # Returns: "true" or "false"
 get_plugin_default() {
     local plugin_id="$1"
-    python3 -c "
-import sys, pathlib
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib
-data = tomllib.loads(pathlib.Path('$PROJECT_ROOT/plugins/${plugin_id}.toml').read_text())
-print(str(data['metadata']['default']).lower())
-"
+    python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/${plugin_id}.toml" \
+        | grep '^S:PLUGIN_DEFAULT=' | sed 's/^S:PLUGIN_DEFAULT=//'
 }
