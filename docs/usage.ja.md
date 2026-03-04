@@ -1,67 +1,5 @@
 # 使い方ガイド
 
-## 開発の流れ
-
-### Python開発の例
-
-```bash
-# proto経由でPythonとuvをインストール
-proto install python 3.13
-proto install uv
-
-# プロジェクト作成
-uv init my-python-project
-cd my-python-project
-
-# 依存関係追加
-uv add requests pandas
-uv add --dev pytest black ruff
-
-# スクリプト実行
-uv run python main.py
-
-# テスト実行
-uv run pytest
-```
-
-### Node.js開発の例
-
-```bash
-# proto経由でNode.jsとpnpmをインストール
-proto install node 22
-proto install pnpm
-
-# プロジェクト作成
-pnpm init
-pnpm add express
-
-# 開発依存関係
-pnpm add -D typescript @types/node
-
-# スクリプト実行
-pnpm start
-
-# または直接実行
-node app.js
-```
-
-### protoでその他の言語を使う
-
-```bash
-# その他のランタイムをインストール
-proto install bun
-proto install deno
-proto install go
-proto install rust
-
-# インストール済みツールの一覧
-proto list
-
-# プロジェクト用にツールバージョンを固定（.prototoolsファイルを作成）
-proto pin node 22
-proto pin python 3.13
-```
-
 ## よく使うコマンド集
 
 ### セットアップと再設定
@@ -155,7 +93,7 @@ docker compose up -d
 ### テストと検証
 
 ```bash
-# 全テストスイートを実行（8スイート）
+# 全テストスイートを実行
 bash tests/run_all.sh
 
 # 生成ファイルの確認
@@ -181,44 +119,6 @@ docker compose down --volumes
 docker compose down --volumes --rmi all
 ```
 
-## マウントされているフォルダ
-
-### ワークスペース
-
-| ホスト | コンテナ内 | 用途 |
-|--------|------------|------|
-| `..` (親ディレクトリ) | `/home/<username>/workspace` | 開発プロジェクト群 |
-
-### 永続化ボリューム
-
-| ボリューム名 | マウント先 | 用途 |
-|--------------|------------|------|
-| `proto` | `~/.proto` | protoインストール済みツールとバージョン |
-| `aws` | `~/.aws` | AWS CLI認証情報・設定 |
-| `gh-config` | `~/.config/gh` | GitHub CLI設定と認証情報 |
-| `cargo` | `~/.cargo` | Rust/Cargoツールとパッケージ |
-| `rustup` | `~/.rustup` | Rustツールチェーン管理 |
-| `deno` | `~/.deno` | Denoランタイムとキャッシュモジュール |
-| `bun` | `~/.bun` | Bunランタイムとパッケージ |
-| `go` | `~/go` | Goワークスペース（GOPATH） |
-| `local` | `~/.local` | ユーザーインストールパッケージ（pipx、uv等）、bash履歴 |
-
-### ホスト同期マウント
-
-| ホスト | コンテナ内 | 用途 |
-|--------|------------|------|
-| `~/.ssh` | `~/.ssh` | SSH キー（Git認証等に使用） |
-
-> **注記**: これらのファイルはホストと同期されており、コンテナ内での変更がホストに永続化され、その逆も同様です。
->
-> **カスタマイズ**: 特定のSSH鍵のみマウントしたい場合は、`docker-compose.yml`で個別に指定できます（例: `~/.ssh/id_ed25519:/home/${USERNAME}/.ssh/id_ed25519`）
-
-### Dev Container専用
-
-| ホスト | コンテナ内 | 用途 |
-|--------|------------|------|
-| `/var/run/docker.sock` | `/var/run/docker.sock` | ホストDocker接続 |
-
 ## 注意事項
 
 ### セキュリティ
@@ -228,16 +128,3 @@ docker compose down --volumes --rmi all
 - **機密情報**: 生成された `.env` にはユーザー情報（UID/GID/Docker GID）が含まれます
 
 > **注意**: `~/.ssh`ディレクトリ全体がコンテナ内からアクセス可能です。コンテナ内のプロセスはこれらのファイルを読み取りおよび変更できます。信頼できないコードを実行する場合は注意してください。
-
-### ファイル管理
-
-- **テンプレートファイル必須**: `*.template` ファイルが必要です
-- **生成ファイル**: `Dockerfile`、`docker-compose.yml`、`.devcontainer/devcontainer.json`、`.devcontainer/docker-compose.yml`、`.env` は自動生成 — Git管理から除外推奨
-- **設定**: `workspace.toml`が唯一の設定ファイル — これを編集して`setup-docker.sh`を再実行
-- **永続化データ**: Docker ボリュームのデータは `docker compose down --volumes` で削除されます
-
-### 開発環境
-
-- **proto**: Python、Node.js、および100以上のツールを管理する統合バージョンマネージャー
-- **プラグインツール**: `workspace.toml`で設定、`plugins/*.toml`で定義
-- **ポート**: `workspace.toml`で設定可能（デフォルト: 3000）
