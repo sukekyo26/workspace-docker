@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """TOML parser helper for workspace-docker.
 
-Parses workspace.toml and plugin TOML files, outputting shell-safe key=value pairs.
+Parses workspace.toml and plugin TOML files, outputting shell-safe key=value
+pairs using the Command pattern for extensible subcommand dispatch.
+
+Architecture:
+    ShellEncoder        - Encodes values for safe shell parsing
+    TomlCommand (ABC)   - Base class for TOML parsing commands
+    ├── WorkspaceCommand  - Parses workspace.toml
+    ├── PluginCommand     - Parses plugin TOML files
+    └── ListPluginsCommand - Lists all plugins in a directory
 
 Usage:
     python3 lib/toml_parser.py workspace <file>
@@ -15,6 +23,7 @@ from __future__ import annotations
 
 import os
 import sys
+from abc import ABC, abstractmethod
 from typing import Any
 
 try:
@@ -32,8 +41,9 @@ except ModuleNotFoundError:
         sys.exit(1)
 
 
-# Unit separator (U+001F) used as array element delimiter
-_UNIT_SEP = "\x1f"
+# ============================================================
+# TOML loader
+# ============================================================
 
 
 def load_toml(filepath: str) -> dict[str, Any]:
@@ -42,193 +52,261 @@ def load_toml(filepath: str) -> dict[str, Any]:
         return tomllib.load(f)
 
 
-def encode_value(value: Any) -> str:
-    """Encode a value for safe shell parsing without eval.
+# ============================================================
+# Shell-safe value encoder
+# ============================================================
+
+
+class ShellEncoder:
+    """Encodes values for safe shell parsing without eval.
 
     Uses printf %b compatible encoding for escape sequences.
-    Backslash → \\\\, Newline → \\n, Tab → \\t, CR → \\r.
-    Arrays: elements joined by U+001F (unit separator).
+    Arrays use U+001F (unit separator) as element delimiter.
+    Output format: S:KEY=scalar or A:KEY=elem1\\x1felem2
     """
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, list):
-        return _UNIT_SEP.join(encode_value(v) for v in value)
-    s = str(value)
-    # Escape for printf %b compatibility (order matters: backslash first)
-    s = s.replace("\\", "\\\\")
-    s = s.replace("\n", "\\n")
-    s = s.replace("\r", "\\r")
-    s = s.replace("\t", "\\t")
-    return s
+
+    UNIT_SEP = "\x1f"
+
+    @classmethod
+    def encode(cls, value: Any) -> str:
+        """Encode a value for safe shell parsing.
+
+        Backslash → \\\\, Newline → \\n, Tab → \\t, CR → \\r.
+        Arrays: elements joined by U+001F (unit separator).
+        """
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, list):
+            return cls.UNIT_SEP.join(cls.encode(v) for v in value)
+        s = str(value)
+        # Escape for printf %b compatibility (order matters: backslash first)
+        s = s.replace("\\", "\\\\")
+        s = s.replace("\n", "\\n")
+        s = s.replace("\r", "\\r")
+        s = s.replace("\t", "\\t")
+        return s
+
+    @classmethod
+    def print_kv(cls, key: str, value: Any) -> None:
+        """Print a type-prefixed key=value pair for safe shell parsing.
+
+        Format:
+            S:KEY=encoded_scalar   (scalar value)
+            A:KEY=elem1\\x1felem2  (array, elements separated by U+001F)
+        """
+        if isinstance(value, list):
+            encoded_elements = [cls.encode(v) for v in value]
+            print(f"A:{key}={cls.UNIT_SEP.join(encoded_elements)}")
+        else:
+            print(f"S:{key}={cls.encode(value)}")
 
 
-def print_kv(key: str, value: Any) -> None:
-    """Print a type-prefixed key=value pair for safe shell parsing.
-
-    Format:
-        S:KEY=encoded_scalar   (scalar value)
-        A:KEY=elem1\\x1felem2  (array, elements separated by U+001F)
-    """
-    if isinstance(value, list):
-        encoded_elements = [encode_value(v) for v in value]
-        print(f"A:{key}={_UNIT_SEP.join(encoded_elements)}")
-    else:
-        print(f"S:{key}={encode_value(value)}")
+# ============================================================
+# Command pattern for TOML parsing
+# ============================================================
 
 
-def cmd_workspace(filepath: str) -> None:
+class TomlCommand(ABC):
+    """Base class for TOML parsing commands."""
+
+    @abstractmethod
+    def execute(self, target: str) -> None:
+        """Execute the command on the given target (file or directory)."""
+
+
+class WorkspaceCommand(TomlCommand):
     """Parse workspace.toml and output shell variables."""
-    data = load_toml(filepath)
 
-    container = data.get("container", {})
-    print_kv("WS_SERVICE_NAME", container.get("service_name", "dev"))
-    print_kv("WS_USERNAME", container.get("username", "developer"))
-    print_kv("WS_UBUNTU_VERSION", container.get("ubuntu_version", "24.04"))
+    def execute(self, filepath: str) -> None:
+        data = load_toml(filepath)
+        kv = ShellEncoder.print_kv
 
-    plugins = data.get("plugins", {})
-    print_kv("WS_PLUGINS", plugins.get("enable", []))
+        container = data.get("container", {})
+        kv("WS_SERVICE_NAME", container.get("service_name", "dev"))
+        kv("WS_USERNAME", container.get("username", "developer"))
+        kv("WS_UBUNTU_VERSION", container.get("ubuntu_version", "24.04"))
 
-    ports = data.get("ports", {})
-    forward = ports.get("forward", [3000])
-    print_kv("WS_FORWARD_PORTS", forward)
+        plugins = data.get("plugins", {})
+        kv("WS_PLUGINS", plugins.get("enable", []))
 
-    apt = data.get("apt", {})
-    print_kv("WS_APT_EXTRA", apt.get("extra_packages", []))
+        ports = data.get("ports", {})
+        kv("WS_FORWARD_PORTS", ports.get("forward", [3000]))
 
-    # Custom volumes: name = path
-    volumes = data.get("volumes", {})
-    vol_names = list(volumes.keys())
-    vol_paths = list(volumes.values())
-    print_kv("WS_VOLUME_NAMES", vol_names)
-    print_kv("WS_VOLUME_PATHS", vol_paths)
+        apt = data.get("apt", {})
+        kv("WS_APT_EXTRA", apt.get("extra_packages", []))
 
-    # Environment variables
-    env = data.get("environment", {})
-    env_keys = list(env.keys())
-    env_vals = list(str(v) for v in env.values())
-    print_kv("WS_ENV_KEYS", env_keys)
-    print_kv("WS_ENV_VALS", env_vals)
+        # Custom volumes: name = path
+        volumes = data.get("volumes", {})
+        kv("WS_VOLUME_NAMES", list(volumes.keys()))
+        kv("WS_VOLUME_PATHS", list(volumes.values()))
 
-    # VSCode extensions
-    vscode = data.get("vscode", {})
-    print_kv("WS_VSCODE_EXTENSIONS", vscode.get("extensions", []))
+        # Environment variables
+        env = data.get("environment", {})
+        kv("WS_ENV_KEYS", list(env.keys()))
+        kv("WS_ENV_VALS", [str(v) for v in env.values()])
+
+        # VSCode extensions
+        vscode = data.get("vscode", {})
+        kv("WS_VSCODE_EXTENSIONS", vscode.get("extensions", []))
 
 
-def cmd_plugin(filepath: str) -> None:
+class PluginCommand(TomlCommand):
     """Parse a plugin TOML file and output shell variables."""
-    data = load_toml(filepath)
 
-    # Plugin ID from filename (e.g., plugins/aws-cli.toml -> aws-cli)
-    plugin_id = os.path.splitext(os.path.basename(filepath))[0]
-    print_kv("PLUGIN_ID", plugin_id)
+    def execute(self, filepath: str) -> None:
+        data = load_toml(filepath)
+        kv = ShellEncoder.print_kv
 
-    metadata = data.get("metadata", {})
-    print_kv("PLUGIN_NAME", metadata.get("name", plugin_id))
-    print_kv("PLUGIN_DESCRIPTION", metadata.get("description", ""))
-    print_kv("PLUGIN_DEFAULT", metadata.get("default", False))
+        # Plugin ID from filename
+        plugin_id = os.path.splitext(os.path.basename(filepath))[0]
+        kv("PLUGIN_ID", plugin_id)
 
-    install = data.get("install", {})
-    dockerfile = install.get("dockerfile", "")
-    requires_root = install.get("requires_root", False)
-    print_kv("PLUGIN_DOCKERFILE", dockerfile)
-    print_kv("PLUGIN_REQUIRES_ROOT", requires_root)
+        metadata = data.get("metadata", {})
+        kv("PLUGIN_NAME", metadata.get("name", plugin_id))
+        kv("PLUGIN_DESCRIPTION", metadata.get("description", ""))
+        kv("PLUGIN_DEFAULT", metadata.get("default", False))
 
-    # apt packages
-    apt = data.get("apt", {})
-    print_kv("PLUGIN_APT_PACKAGES", apt.get("packages", []))
+        install = data.get("install", {})
+        dockerfile = install.get("dockerfile", "")
+        requires_root = install.get("requires_root", False)
+        kv("PLUGIN_DOCKERFILE", dockerfile)
+        kv("PLUGIN_REQUIRES_ROOT", requires_root)
 
-    # Validate: requires_root=true should not have USER directives in dockerfile
-    if requires_root and "USER " in dockerfile:
-        print(
-            f"WARNING: Plugin '{plugin_id}' has requires_root=true but contains "
-            "USER directive in dockerfile. USER wrapping is automatic — remove "
-            "manual USER directives.",
-            file=sys.stderr,
-        )
+        apt = data.get("apt", {})
+        kv("PLUGIN_APT_PACKAGES", apt.get("packages", []))
 
-    # Volumes: name = path
-    volumes = data.get("volumes", {})
-    vol_names = list(volumes.keys())
-    vol_paths = list(volumes.values())
-
-    # Validate volume paths
-    for vol_name, vol_path in volumes.items():
-        if not vol_path.startswith("/"):
+        # Validate: requires_root=true should not have USER directives
+        if requires_root and "USER " in dockerfile:
             print(
-                f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has "
-                f"non-absolute path: {vol_path}",
+                f"WARNING: Plugin '{plugin_id}' has requires_root=true but "
+                "contains USER directive in dockerfile. USER wrapping is "
+                "automatic — remove manual USER directives.",
                 file=sys.stderr,
             )
 
-    print_kv("PLUGIN_VOLUME_NAMES", vol_names)
-    print_kv("PLUGIN_VOLUME_PATHS", vol_paths)
+        # Volumes: name = path
+        volumes = data.get("volumes", {})
+        for vol_name, vol_path in volumes.items():
+            if not vol_path.startswith("/"):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has "
+                    f"non-absolute path: {vol_path}",
+                    file=sys.stderr,
+                )
+        kv("PLUGIN_VOLUME_NAMES", list(volumes.keys()))
+        kv("PLUGIN_VOLUME_PATHS", list(volumes.values()))
 
-    version = data.get("version", {})
-    print_kv("PLUGIN_VERSION_PIN", version.get("pin", ""))
-    print_kv("PLUGIN_VERSION_STRATEGY", version.get("strategy", "latest"))
+        version = data.get("version", {})
+        kv("PLUGIN_VERSION_PIN", version.get("pin", ""))
+        kv("PLUGIN_VERSION_STRATEGY", version.get("strategy", "latest"))
 
 
-def cmd_list_plugins(dirpath: str) -> None:
+class ListPluginsCommand(TomlCommand):
     """List all plugin TOML files with their metadata."""
-    if not os.path.isdir(dirpath):
-        print(f"ERROR: Directory not found: {dirpath}", file=sys.stderr)
-        sys.exit(1)
 
-    plugins = []
-    for fname in sorted(os.listdir(dirpath)):
-        if not fname.endswith(".toml"):
-            continue
-        filepath = os.path.join(dirpath, fname)
-        try:
-            data = load_toml(filepath)
-            plugin_id = os.path.splitext(fname)[0]
-            metadata = data.get("metadata", {})
-            plugins.append(
-                {
-                    "id": plugin_id,
-                    "name": metadata.get("name", plugin_id),
-                    "description": metadata.get("description", ""),
-                    "default": metadata.get("default", False),
-                }
-            )
-        except Exception as e:
-            print(f"WARNING: Failed to parse {fname}: {e}", file=sys.stderr)
+    def execute(self, dirpath: str) -> None:
+        if not os.path.isdir(dirpath):
+            print(f"ERROR: Directory not found: {dirpath}", file=sys.stderr)
+            sys.exit(1)
 
-    # Output as parallel arrays for bash
-    ids = [p["id"] for p in plugins]
-    names = [p["name"] for p in plugins]
-    descriptions = [p["description"] for p in plugins]
-    defaults = [p["default"] for p in plugins]
+        plugins: list[dict[str, Any]] = []
+        for fname in sorted(os.listdir(dirpath)):
+            if not fname.endswith(".toml"):
+                continue
+            filepath = os.path.join(dirpath, fname)
+            try:
+                data = load_toml(filepath)
+                plugin_id = os.path.splitext(fname)[0]
+                metadata = data.get("metadata", {})
+                plugins.append(
+                    {
+                        "id": plugin_id,
+                        "name": metadata.get("name", plugin_id),
+                        "description": metadata.get("description", ""),
+                        "default": metadata.get("default", False),
+                    }
+                )
+            except Exception as e:
+                print(
+                    f"WARNING: Failed to parse {fname}: {e}",
+                    file=sys.stderr,
+                )
 
-    print_kv("PLUGIN_IDS", ids)
-    print_kv("PLUGIN_NAMES", names)
-    print_kv("PLUGIN_DESCRIPTIONS", descriptions)
-    print_kv("PLUGIN_DEFAULTS", defaults)
+        kv = ShellEncoder.print_kv
+        kv("PLUGIN_IDS", [p["id"] for p in plugins])
+        kv("PLUGIN_NAMES", [p["name"] for p in plugins])
+        kv("PLUGIN_DESCRIPTIONS", [p["description"] for p in plugins])
+        kv("PLUGIN_DEFAULTS", [p["default"] for p in plugins])
 
 
-def main() -> None:
+# ============================================================
+# Command registry
+# ============================================================
+
+COMMANDS: dict[str, TomlCommand] = {
+    "workspace": WorkspaceCommand(),
+    "plugin": PluginCommand(),
+    "list-plugins": ListPluginsCommand(),
+}
+
+
+# Backward-compatible aliases for external imports
+encode_value = ShellEncoder.encode
+print_kv = ShellEncoder.print_kv
+
+
+def cmd_workspace(filepath: str) -> None:
+    """Backward-compatible wrapper for WorkspaceCommand."""
+    WorkspaceCommand().execute(filepath)
+
+
+def cmd_plugin(filepath: str) -> None:
+    """Backward-compatible wrapper for PluginCommand."""
+    PluginCommand().execute(filepath)
+
+
+# ============================================================
+# CLI
+# ============================================================
+
+
+def _run_cli() -> None:
+    """Parse CLI arguments and dispatch to the appropriate command."""
     if len(sys.argv) >= 2 and sys.argv[1] == "--check":
-        # If we reach here, Python and TOML library are available
-        # (tomllib import at module level would have failed otherwise)
         sys.exit(0)
 
     if len(sys.argv) < 3:
-        print(f"Usage: {sys.argv[0]} <workspace|plugin|list-plugins> <file|dir>", file=sys.stderr)
+        cmds = "|".join(COMMANDS)
+        print(
+            f"Usage: {sys.argv[0]} <{cmds}> <file|dir>",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    command = sys.argv[1]
+    command_name = sys.argv[1]
     target = sys.argv[2]
 
-    if command == "workspace":
-        cmd_workspace(target)
-    elif command == "plugin":
-        cmd_plugin(target)
-    elif command == "list-plugins":
-        cmd_list_plugins(target)
-    else:
-        print(f"Unknown command: {command}", file=sys.stderr)
+    if command_name not in COMMANDS:
+        print(f"Unknown command: {command_name}", file=sys.stderr)
+        sys.exit(1)
+
+    COMMANDS[command_name].execute(target)
+
+
+def main() -> None:
+    """Entry point with user-friendly error handling."""
+    try:
+        _run_cli()
+    except FileNotFoundError as e:
+        print(
+            f"ERROR: File not found: {e.filename or e}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)
 
 

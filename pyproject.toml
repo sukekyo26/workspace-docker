@@ -34,7 +34,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "lib/generators.py" = ["E501"]  # Dockerfile template constant contains long lines
-"tests/python/*.py" = ["E402"]  # sys.path manipulation required before imports
+"tests/python/*.py" = ["E402", "TCH"]  # sys.path manipulation; pytest import at runtime
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

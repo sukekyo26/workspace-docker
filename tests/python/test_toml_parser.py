@@ -1,4 +1,4 @@
-"""Tests for lib/toml_parser.py."""
+"""Tests for lib/toml_parser.py — ShellEncoder, Command pattern, and CLI."""
 
 from __future__ import annotations
 
@@ -14,64 +14,88 @@ import pytest
 LIB_DIR = Path(__file__).resolve().parent.parent.parent / "lib"
 sys.path.insert(0, str(LIB_DIR))
 
-from toml_parser import cmd_plugin, cmd_workspace, encode_value
+from toml_parser import (
+    PluginCommand,
+    ShellEncoder,
+    WorkspaceCommand,
+    cmd_plugin,
+    cmd_workspace,
+)
 
 
-class TestEncodeValue:
-    """Test encode_value function."""
+class TestShellEncoder:
+    """Test ShellEncoder.encode() — value encoding for shell safety."""
 
     def test_simple_string(self) -> None:
-        result = encode_value("hello")
-        assert result == "hello"
+        assert ShellEncoder.encode("hello") == "hello"
 
     def test_string_with_backslash(self) -> None:
-        result = encode_value("path\\to")
-        assert result == "path\\\\to"
+        assert ShellEncoder.encode("path\\to") == "path\\\\to"
 
     def test_string_with_newline(self) -> None:
-        result = encode_value("line1\nline2")
-        assert result == "line1\\nline2"
+        assert ShellEncoder.encode("line1\nline2") == "line1\\nline2"
 
     def test_string_with_tab(self) -> None:
-        result = encode_value("col1\tcol2")
-        assert result == "col1\\tcol2"
+        assert ShellEncoder.encode("col1\tcol2") == "col1\\tcol2"
 
     def test_string_with_carriage_return(self) -> None:
-        result = encode_value("line1\rline2")
-        assert result == "line1\\rline2"
+        assert ShellEncoder.encode("line1\rline2") == "line1\\rline2"
 
     def test_boolean_true(self) -> None:
-        assert encode_value(True) == "true"
+        assert ShellEncoder.encode(True) == "true"
 
     def test_boolean_false(self) -> None:
-        assert encode_value(False) == "false"
+        assert ShellEncoder.encode(False) == "false"
 
     def test_integer(self) -> None:
-        assert encode_value(42) == "42"
+        assert ShellEncoder.encode(42) == "42"
 
     def test_float(self) -> None:
-        assert encode_value(3.14) == "3.14"
+        assert ShellEncoder.encode(3.14) == "3.14"
 
     def test_list(self) -> None:
-        result = encode_value(["a", "b", "c"])
+        result = ShellEncoder.encode(["a", "b", "c"])
         assert result == "a\x1fb\x1fc"
 
     def test_empty_list(self) -> None:
-        assert encode_value([]) == ""
+        assert ShellEncoder.encode([]) == ""
 
     def test_empty_string(self) -> None:
-        assert encode_value("") == ""
+        assert ShellEncoder.encode("") == ""
 
     def test_multiline_dockerfile(self) -> None:
         """Multi-line Dockerfile content must be single-line output."""
         content = "RUN apt-get update && \\\n    apt-get install -y curl"
-        result = encode_value(content)
+        result = ShellEncoder.encode(content)
         assert "\n" not in result
         assert "\\n" in result
 
+    def test_unit_separator_constant(self) -> None:
+        assert ShellEncoder.UNIT_SEP == "\x1f"
 
-class TestCmdWorkspace:
-    """Test cmd_workspace function (workspace.toml parsing)."""
+
+class TestShellEncoderPrintKv:
+    """Test ShellEncoder.print_kv() — type-prefixed output."""
+
+    def test_scalar_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        ShellEncoder.print_kv("KEY", "value")
+        assert capsys.readouterr().out == "S:KEY=value\n"
+
+    def test_boolean_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        ShellEncoder.print_kv("FLAG", True)
+        assert capsys.readouterr().out == "S:FLAG=true\n"
+
+    def test_array_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        ShellEncoder.print_kv("LIST", ["a", "b"])
+        assert capsys.readouterr().out == "A:LIST=a\x1fb\n"
+
+    def test_empty_array_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        ShellEncoder.print_kv("EMPTY", [])
+        assert capsys.readouterr().out == "A:EMPTY=\n"
+
+
+class TestWorkspaceCommand:
+    """Test WorkspaceCommand (workspace.toml parsing)."""
 
     def test_basic_workspace(self, capsys: pytest.CaptureFixture[str]) -> None:
         with tempfile.NamedTemporaryFile(suffix=".toml", mode="w", delete=False) as f:
@@ -82,7 +106,7 @@ class TestCmdWorkspace:
             )
             f.flush()
             try:
-                cmd_workspace(f.name)
+                WorkspaceCommand().execute(f.name)
                 output = capsys.readouterr().out
                 assert "S:WS_SERVICE_NAME=" in output
                 assert "S:WS_USERNAME=" in output
@@ -95,10 +119,10 @@ class TestCmdWorkspace:
             f.write("")  # Empty TOML
             f.flush()
             try:
-                cmd_workspace(f.name)
+                WorkspaceCommand().execute(f.name)
                 output = capsys.readouterr().out
-                assert "S:WS_SERVICE_NAME=dev" in output  # default service_name
-                assert "S:WS_USERNAME=developer" in output  # default username
+                assert "S:WS_SERVICE_NAME=dev" in output
+                assert "S:WS_USERNAME=developer" in output
             finally:
                 os.unlink(f.name)
 
@@ -106,24 +130,36 @@ class TestCmdWorkspace:
         with tempfile.NamedTemporaryFile(suffix=".toml", mode="w", delete=False) as f:
             f.write(
                 '[container]\nservice_name = "test"\n\n'
-                "[volumes]\ndata = \"/home/dev/data\"\n"
+                '[volumes]\ndata = "/home/dev/data"\n'
             )
             f.flush()
             try:
-                cmd_workspace(f.name)
+                WorkspaceCommand().execute(f.name)
                 output = capsys.readouterr().out
                 assert "A:WS_VOLUME_NAMES=" in output
                 assert "A:WS_VOLUME_PATHS=" in output
             finally:
                 os.unlink(f.name)
 
+    def test_backward_compat_wrapper(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """cmd_workspace() should delegate to WorkspaceCommand."""
+        with tempfile.NamedTemporaryFile(suffix=".toml", mode="w", delete=False) as f:
+            f.write('[container]\nservice_name = "compat"\n')
+            f.flush()
+            try:
+                cmd_workspace(f.name)
+                output = capsys.readouterr().out
+                assert "S:WS_SERVICE_NAME=compat" in output
+            finally:
+                os.unlink(f.name)
 
-class TestCmdPlugin:
-    """Test cmd_plugin function (plugin TOML parsing)."""
+
+class TestPluginCommand:
+    """Test PluginCommand (plugin TOML parsing)."""
 
     def test_plugin_parsing(self, capsys: pytest.CaptureFixture[str]) -> None:
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="test-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="test-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "Test Plugin"\ndescription = "A test"\n'
@@ -132,7 +168,7 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 output = capsys.readouterr().out
                 assert "S:PLUGIN_NAME=Test Plugin" in output
                 assert "S:PLUGIN_REQUIRES_ROOT=false" in output
@@ -142,7 +178,7 @@ class TestCmdPlugin:
 
     def test_plugin_with_volumes(self, capsys: pytest.CaptureFixture[str]) -> None:
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="vol-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="vol-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
@@ -150,18 +186,17 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 output = capsys.readouterr().out
                 assert "A:PLUGIN_VOLUME_NAMES=data" in output
             finally:
                 os.unlink(f.name)
 
     def test_requires_root_with_user_directive_warns(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """requires_root=true + manual USER directive should produce a warning."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="bad-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="bad-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "Bad Plugin"\n\n[install]\nrequires_root = true\n'
@@ -169,7 +204,7 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 captured = capsys.readouterr()
                 assert "WARNING" in captured.err
                 assert "USER" in captured.err
@@ -177,11 +212,10 @@ class TestCmdPlugin:
                 os.unlink(f.name)
 
     def test_requires_root_without_user_no_warning(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """requires_root=true without USER directive should NOT produce a warning."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="good-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="good-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "Good Plugin"\n\n[install]\nrequires_root = true\n'
@@ -189,18 +223,17 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 captured = capsys.readouterr()
                 assert "WARNING" not in captured.err
             finally:
                 os.unlink(f.name)
 
     def test_non_absolute_volume_path_warns(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """Non-absolute volume paths should produce a warning."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="relpath-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="relpath-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "RelPath Plugin"\n\n[install]\nrequires_root = false\n'
@@ -208,7 +241,7 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 captured = capsys.readouterr()
                 assert "WARNING" in captured.err
                 assert "non-absolute" in captured.err
@@ -216,11 +249,10 @@ class TestCmdPlugin:
                 os.unlink(f.name)
 
     def test_absolute_volume_path_no_warning(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """Absolute volume paths should NOT produce a warning."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="abspath-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="abspath-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "AbsPath Plugin"\n\n[install]\nrequires_root = false\n'
@@ -228,18 +260,17 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 captured = capsys.readouterr()
                 assert "WARNING" not in captured.err
             finally:
                 os.unlink(f.name)
 
     def test_plugin_with_apt_packages(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """Plugin with [apt] packages should output PLUGIN_APT_PACKAGES."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="apt-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="apt-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "Apt Plugin"\n\n'
@@ -249,7 +280,7 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 output = capsys.readouterr().out
                 assert "A:PLUGIN_APT_PACKAGES=libssl-dev" in output
                 assert "build-essential" in output
@@ -257,11 +288,10 @@ class TestCmdPlugin:
                 os.unlink(f.name)
 
     def test_plugin_without_apt_packages(
-        self, capsys: pytest.CaptureFixture[str]
+        self, capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """Plugin without [apt] section should output empty PLUGIN_APT_PACKAGES."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="noapt-plugin-"
+            suffix=".toml", mode="w", delete=False, prefix="noapt-plugin-",
         ) as f:
             f.write(
                 '[metadata]\nname = "NoApt Plugin"\n\n'
@@ -270,9 +300,27 @@ class TestCmdPlugin:
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 output = capsys.readouterr().out
                 assert "A:PLUGIN_APT_PACKAGES=" in output
+            finally:
+                os.unlink(f.name)
+
+    def test_backward_compat_wrapper(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """cmd_plugin() should delegate to PluginCommand."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="compat-plugin-",
+        ) as f:
+            f.write(
+                '[metadata]\nname = "Compat"\n\n'
+                '[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo compat"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                output = capsys.readouterr().out
+                assert "S:PLUGIN_NAME=Compat" in output
             finally:
                 os.unlink(f.name)
 
@@ -312,3 +360,25 @@ class TestCLI:
             check=False,
         )
         assert result.returncode != 0
+
+    def test_error_handling_file_not_found(self) -> None:
+        """FileNotFoundError should produce user-friendly message, not stack trace."""
+        result = subprocess.run(
+            [sys.executable, str(LIB_DIR / "toml_parser.py"), "workspace", "/nonexistent.toml"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "ERROR" in result.stderr
+        assert "Traceback" not in result.stderr
+
+    def test_check_flag(self) -> None:
+        """--check should exit 0 without output."""
+        result = subprocess.run(
+            [sys.executable, str(LIB_DIR / "toml_parser.py"), "--check"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert result.returncode == 0
