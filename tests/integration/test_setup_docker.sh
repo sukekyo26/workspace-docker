@@ -160,6 +160,62 @@ test_regenerate_no_plugins() {
 }
 
 # ============================================================
+# Test: Non-interactive setup with --init --yes
+# ============================================================
+test_init_with_yes_flag() {
+    section "--init --yes non-interactive setup"
+
+    local tmpdir
+    tmpdir=$(setup_test_dir)
+
+    # Should not prompt for input — uses defaults
+    (cd "$tmpdir" && bash setup-docker.sh --init --yes 2>/dev/null)
+    local exit_code=$?
+
+    assert_eq "setup-docker.sh --init --yes exits 0" "0" "$exit_code"
+
+    # workspace.toml should be generated
+    assert_file_exists "workspace.toml generated" "$tmpdir/workspace.toml"
+
+    # Verify default values
+    assert_file_contains "default service name" "$tmpdir/workspace.toml" 'service_name = "dev"'
+    assert_file_contains "default port" "$tmpdir/workspace.toml" 'forward = \[3000\]'
+
+    # Verify generated files
+    assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
+    assert_file_exists "docker-compose.yml generated" "$tmpdir/docker-compose.yml"
+    assert_file_exists ".env generated" "$tmpdir/.env"
+    assert_file_exists "devcontainer.json generated" "$tmpdir/.devcontainer/devcontainer.json"
+
+    # Default plugins (docker-cli, proto) should be enabled
+    assert_file_contains "docker-cli enabled" "$tmpdir/workspace.toml" 'docker-cli'
+    assert_file_contains "proto enabled" "$tmpdir/workspace.toml" 'proto'
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: --yes without --init is ignored (regenerate mode)
+# ============================================================
+test_yes_flag_with_existing_toml() {
+    section "--yes with existing workspace.toml"
+
+    local tmpdir
+    tmpdir=$(setup_test_dir)
+
+    create_test_workspace_toml "$tmpdir" "existing-svc" "testuser" 8080 "github-cli"
+
+    (cd "$tmpdir" && bash setup-docker.sh --yes 2>/dev/null)
+    local exit_code=$?
+
+    assert_eq "exits 0" "0" "$exit_code"
+    # workspace.toml should NOT be overwritten
+    assert_file_contains "service preserved" "$tmpdir/workspace.toml" 'service_name = "existing-svc"'
+
+    rm -rf "$tmpdir"
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -167,5 +223,7 @@ test_script_basics
 test_regenerate_from_toml
 test_regenerate_all_plugins
 test_regenerate_no_plugins
+test_init_with_yes_flag
+test_yes_flag_with_existing_toml
 
 print_summary

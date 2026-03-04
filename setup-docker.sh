@@ -23,9 +23,11 @@ source "$SCRIPT_DIR/lib/generators.sh"
 # Parse arguments
 # ============================================================
 FORCE_INIT=false
+AUTO_YES=false
 for arg in "$@"; do
     case "$arg" in
         --init) FORCE_INIT=true ;;
+        --yes|-y) AUTO_YES=true ;;
         *) die "Unknown argument: $arg" ;;
     esac
 done
@@ -54,23 +56,31 @@ else
     # ============================================================
     section_header "Generate Dockerfile for Ubuntu on Docker"
 
-    # Set container service name
-    while true; do
-        read -rp "Enter container service name: " container_service_name
+    if [[ "$AUTO_YES" = true ]]; then
+        # Non-interactive: use sensible defaults
+        container_service_name="dev"
+        username="$(whoami)"
+        info "Service name: $container_service_name (default)"
+        info "Username: $username (current user)"
+    else
+        # Set container service name
+        while true; do
+            read -rp "Enter container service name: " container_service_name
 
-        if validate_service_name "$container_service_name" 2>&1; then
-            break
-        fi
-    done
+            if validate_service_name "$container_service_name" 2>&1; then
+                break
+            fi
+        done
 
-    # Set username
-    while true; do
-        read -rp "Enter Ubuntu on Docker username: " username
+        # Set username
+        while true; do
+            read -rp "Enter Ubuntu on Docker username: " username
 
-        if validate_username "$username" 2>&1; then
-            break
-        fi
-    done
+            if validate_username "$username" 2>&1; then
+                break
+            fi
+        done
+    fi
 
     # Software installation selection
     subsection_header "Software Installation Selection"
@@ -80,41 +90,60 @@ else
     list_available_plugins
     local_enabled_plugins=()
 
-    for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
-        plugin_id="${PLUGIN_IDS[$i]}"
-        plugin_name="${PLUGIN_NAMES[$i]}"
-        plugin_default="${PLUGIN_DEFAULTS[$i]}"
-
-        if [[ "$plugin_default" == "true" ]]; then
-            prompt_default="Y/n"
-            default_choice="Y"
-        else
-            prompt_default="y/N"
-            default_choice="N"
-        fi
-
-        while true; do
-            read -rp "Install ${plugin_name}? [${prompt_default}]: " choice
-            choice=${choice:-$default_choice}
-            case $choice in
-                [Yy]*) local_enabled_plugins+=("$plugin_id"); break ;;
-                [Nn]*) break ;;
-                *) error "Please enter Y or n" ;;
-            esac
+    if [[ "$AUTO_YES" = true ]]; then
+        # Non-interactive: select plugins marked as default
+        for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+            plugin_id="${PLUGIN_IDS[$i]}"
+            plugin_default="${PLUGIN_DEFAULTS[$i]}"
+            if [[ "$plugin_default" == "true" ]]; then
+                local_enabled_plugins+=("$plugin_id")
+                info "  ${plugin_id}: enabled (default)"
+            else
+                info "  ${plugin_id}: skipped"
+            fi
         done
-    done
+    else
+        for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+            plugin_id="${PLUGIN_IDS[$i]}"
+            plugin_name="${PLUGIN_NAMES[$i]}"
+            plugin_default="${PLUGIN_DEFAULTS[$i]}"
+
+            if [[ "$plugin_default" == "true" ]]; then
+                prompt_default="Y/n"
+                default_choice="Y"
+            else
+                prompt_default="y/N"
+                default_choice="N"
+            fi
+
+            while true; do
+                read -rp "Install ${plugin_name}? [${prompt_default}]: " choice
+                choice=${choice:-$default_choice}
+                case $choice in
+                    [Yy]*) local_enabled_plugins+=("$plugin_id"); break ;;
+                    [Nn]*) break ;;
+                    *) error "Please enter Y or n" ;;
+                esac
+            done
+        done
+    fi
 
     # Port forwarding
-    subsection_header "Port Configuration"
-    while true; do
-        read -rp "Forward port [3000]: " forward_port
-        forward_port=${forward_port:-3000}
-        if [[ "$forward_port" =~ ^[0-9]+$ ]] && [ "$forward_port" -ge 1 ] && [ "$forward_port" -le 65535 ]; then
-            break
-        else
-            error "Please enter a valid port number (1-65535)"
-        fi
-    done
+    if [[ "$AUTO_YES" = true ]]; then
+        forward_port=3000
+        info "Forward port: $forward_port (default)"
+    else
+        subsection_header "Port Configuration"
+        while true; do
+            read -rp "Forward port [3000]: " forward_port
+            forward_port=${forward_port:-3000}
+            if [[ "$forward_port" =~ ^[0-9]+$ ]] && [ "$forward_port" -ge 1 ] && [ "$forward_port" -le 65535 ]; then
+                break
+            else
+                error "Please enter a valid port number (1-65535)"
+            fi
+        done
+    fi
 
     # Generate workspace.toml
     echo "Generating workspace.toml..."
@@ -268,3 +297,4 @@ echo ""
 echo "To reconfigure:"
 echo -e "  Edit ${YELLOW}workspace.toml${NC} and run ${YELLOW}./setup-docker.sh${NC}"
 echo -e "  Or run ${YELLOW}./setup-docker.sh --init${NC} for interactive setup"
+echo -e "  Or run ${YELLOW}./setup-docker.sh --init --yes${NC} for non-interactive setup with defaults"
