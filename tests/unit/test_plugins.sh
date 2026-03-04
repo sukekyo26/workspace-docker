@@ -66,7 +66,7 @@ EOF
     assert_eq "exit code 0" "0" "$?"
 
     # Eval via whitelist
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
         WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
         WS_VOLUME_NAMES WS_VOLUME_PATHS \
@@ -115,7 +115,7 @@ TOML
     output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$tmpfile")
     assert_eq "exit code 0" "0" "$?"
 
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
         PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT \
         PLUGIN_APT_PACKAGES \

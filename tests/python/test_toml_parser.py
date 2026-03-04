@@ -14,62 +14,58 @@ import pytest
 LIB_DIR = Path(__file__).resolve().parent.parent.parent / "lib"
 sys.path.insert(0, str(LIB_DIR))
 
-from toml_parser import cmd_plugin, cmd_workspace, shell_quote
+from toml_parser import cmd_plugin, cmd_workspace, encode_value
 
 
-class TestShellQuote:
-    """Test shell_quote function."""
+class TestEncodeValue:
+    """Test encode_value function."""
 
     def test_simple_string(self) -> None:
-        result = shell_quote("hello")
-        assert result == "$'hello'"
-
-    def test_string_with_single_quote(self) -> None:
-        result = shell_quote("it's")
-        assert result == "$'it\\'s'"
+        result = encode_value("hello")
+        assert result == "hello"
 
     def test_string_with_backslash(self) -> None:
-        result = shell_quote("path\\to")
-        assert result == "$'path\\\\to'"
+        result = encode_value("path\\to")
+        assert result == "path\\\\to"
 
     def test_string_with_newline(self) -> None:
-        result = shell_quote("line1\nline2")
-        assert result == "$'line1\\nline2'"
+        result = encode_value("line1\nline2")
+        assert result == "line1\\nline2"
 
     def test_string_with_tab(self) -> None:
-        result = shell_quote("col1\tcol2")
-        assert result == "$'col1\\tcol2'"
+        result = encode_value("col1\tcol2")
+        assert result == "col1\\tcol2"
 
     def test_string_with_carriage_return(self) -> None:
-        result = shell_quote("line1\rline2")
-        assert result == "$'line1\\rline2'"
+        result = encode_value("line1\rline2")
+        assert result == "line1\\rline2"
 
     def test_boolean_true(self) -> None:
-        assert shell_quote(True) == "true"
+        assert encode_value(True) == "true"
 
     def test_boolean_false(self) -> None:
-        assert shell_quote(False) == "false"
+        assert encode_value(False) == "false"
 
     def test_integer(self) -> None:
-        assert shell_quote(42) == "42"
+        assert encode_value(42) == "42"
 
     def test_float(self) -> None:
-        assert shell_quote(3.14) == "3.14"
+        assert encode_value(3.14) == "3.14"
 
     def test_list(self) -> None:
-        result = shell_quote(["a", "b", "c"])
-        assert result == "($'a' $'b' $'c')"
+        result = encode_value(["a", "b", "c"])
+        assert result == "a\x1fb\x1fc"
 
     def test_empty_list(self) -> None:
-        assert shell_quote([]) == "()"
+        assert encode_value([]) == ""
 
     def test_empty_string(self) -> None:
-        assert shell_quote("") == "$''"
+        assert encode_value("") == ""
 
     def test_multiline_dockerfile(self) -> None:
         """Multi-line Dockerfile content must be single-line output."""
         content = "RUN apt-get update && \\\n    apt-get install -y curl"
-        result = shell_quote(content)
+        result = encode_value(content)
         assert "\n" not in result
         assert "\\n" in result
 
@@ -88,9 +84,9 @@ class TestCmdWorkspace:
             try:
                 cmd_workspace(f.name)
                 output = capsys.readouterr().out
-                assert "WS_SERVICE_NAME=" in output
-                assert "WS_USERNAME=" in output
-                assert "WS_PLUGINS=" in output
+                assert "S:WS_SERVICE_NAME=" in output
+                assert "S:WS_USERNAME=" in output
+                assert "A:WS_PLUGINS=" in output
             finally:
                 os.unlink(f.name)
 
@@ -101,8 +97,8 @@ class TestCmdWorkspace:
             try:
                 cmd_workspace(f.name)
                 output = capsys.readouterr().out
-                assert "$'dev'" in output  # default service_name
-                assert "$'developer'" in output  # default username
+                assert "S:WS_SERVICE_NAME=dev" in output  # default service_name
+                assert "S:WS_USERNAME=developer" in output  # default username
             finally:
                 os.unlink(f.name)
 
@@ -116,8 +112,8 @@ class TestCmdWorkspace:
             try:
                 cmd_workspace(f.name)
                 output = capsys.readouterr().out
-                assert "WS_VOLUME_NAMES=" in output
-                assert "WS_VOLUME_PATHS=" in output
+                assert "A:WS_VOLUME_NAMES=" in output
+                assert "A:WS_VOLUME_PATHS=" in output
             finally:
                 os.unlink(f.name)
 
@@ -138,9 +134,9 @@ class TestCmdPlugin:
             try:
                 cmd_plugin(f.name)
                 output = capsys.readouterr().out
-                assert "PLUGIN_NAME=$'Test Plugin'" in output
-                assert "PLUGIN_REQUIRES_ROOT=false" in output
-                assert "PLUGIN_DOCKERFILE=" in output
+                assert "S:PLUGIN_NAME=Test Plugin" in output
+                assert "S:PLUGIN_REQUIRES_ROOT=false" in output
+                assert "S:PLUGIN_DOCKERFILE=" in output
             finally:
                 os.unlink(f.name)
 
@@ -156,7 +152,7 @@ class TestCmdPlugin:
             try:
                 cmd_plugin(f.name)
                 output = capsys.readouterr().out
-                assert "PLUGIN_VOLUME_NAMES=($'data')" in output
+                assert "A:PLUGIN_VOLUME_NAMES=data" in output
             finally:
                 os.unlink(f.name)
 
@@ -255,7 +251,8 @@ class TestCmdPlugin:
             try:
                 cmd_plugin(f.name)
                 output = capsys.readouterr().out
-                assert "PLUGIN_APT_PACKAGES=($'libssl-dev' $'build-essential')" in output
+                assert "A:PLUGIN_APT_PACKAGES=libssl-dev" in output
+                assert "build-essential" in output
             finally:
                 os.unlink(f.name)
 
@@ -275,7 +272,7 @@ class TestCmdPlugin:
             try:
                 cmd_plugin(f.name)
                 output = capsys.readouterr().out
-                assert "PLUGIN_APT_PACKAGES=()" in output
+                assert "A:PLUGIN_APT_PACKAGES=" in output
             finally:
                 os.unlink(f.name)
 
@@ -294,7 +291,7 @@ class TestCLI:
                     text=True,
                     check=True,
                 )
-                assert "WS_SERVICE_NAME=$'cli-test'" in result.stdout
+                assert "S:WS_SERVICE_NAME=cli-test" in result.stdout
             finally:
                 os.unlink(f.name)
 

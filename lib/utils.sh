@@ -3,29 +3,42 @@
 # lib/utils.sh - General-purpose utility functions
 # ============================================================
 # Provides: read_env_var, validate_symlink, detect_docker_gid,
-#           _safe_eval_toml_output
+#           _parse_toml_output
 # ============================================================
 
 # ============================================================
-# Safe eval with variable name whitelist
+# TOML output parser (eval-free)
 # ============================================================
 
-# Evaluate TOML parser output safely with variable name whitelist
-# Usage: _safe_eval_toml_output "$output" VAR1 VAR2 ...
-# Only evaluates lines whose variable name is in the whitelist
-_safe_eval_toml_output() {
+# Parse TOML parser output safely using declare/printf (no eval).
+#
+# Input format (from toml_parser.py):
+#   S:KEY=encoded_value     (scalar, printf %b encoded)
+#   A:KEY=elem1\x1felem2    (array, elements separated by U+001F)
+#
+# Usage: _parse_toml_output "$output" VAR1 VAR2 ...
+# Only processes lines whose variable name is in the whitelist.
+_parse_toml_output() {
     local output="$1"
     shift
     local -a allowed_keys=("$@")
 
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
-        local key="${line%%=*}"
-        # Reject variable names with non-alphanumeric/underscore characters
+
+        # Extract type prefix and key=value
+        local type="${line:0:2}"
+        local rest="${line:2}"
+        local key="${rest%%=*}"
+        local value="${rest#*=}"
+
+        # Validate variable name (strict alphanumeric + underscore)
         if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
             echo "ERROR: Invalid variable name in TOML output: $key" >&2
             return 1
         fi
+
+        # Whitelist check
         local allowed=false
         for k in "${allowed_keys[@]}"; do
             if [[ "$key" == "$k" ]]; then
@@ -37,7 +50,44 @@ _safe_eval_toml_output() {
             echo "ERROR: Unexpected variable in TOML output: $key" >&2
             return 1
         fi
-        eval "$line"
+
+        if [[ "$type" == "A:" ]]; then
+            # Array value
+            if [[ -z "$value" ]]; then
+                # Empty array — use nameref to assign without eval
+                # shellcheck disable=SC2178,SC2034
+                declare -n _arr_ref="$key"
+                _arr_ref=()
+                unset -n _arr_ref
+            else
+                # Split on unit separator (U+001F)
+                local -a _raw_elems
+                IFS=$'\x1f' read -ra _raw_elems <<< "$value"
+
+                # Decode printf %b escapes in each element
+                local -a _decoded_elems=()
+                local _elem
+                for _elem in "${_raw_elems[@]}"; do
+                    local _d
+                    printf -v _d '%b' "$_elem"
+                    _decoded_elems+=("$_d")
+                done
+
+                # Assign array via nameref (no eval)
+                # shellcheck disable=SC2178,SC2034
+                declare -n _arr_ref="$key"
+                _arr_ref=("${_decoded_elems[@]}")
+                unset -n _arr_ref
+            fi
+        elif [[ "$type" == "S:" ]]; then
+            # Scalar value — decode and assign via printf -v (no eval)
+            local _decoded_val
+            printf -v _decoded_val '%b' "$value"
+            printf -v "$key" '%s' "$_decoded_val"
+        else
+            echo "ERROR: Unknown type prefix in TOML output: ${type}" >&2
+            return 1
+        fi
     done <<< "$output"
 }
 

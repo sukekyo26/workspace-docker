@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # tests/unit/lib/test_safe_eval.sh
-# Security tests for _safe_eval_toml_output whitelist mechanism
+# Security tests for _parse_toml_output whitelist mechanism
 # ============================================================
 
 set -uo pipefail
@@ -23,8 +23,8 @@ source "$PROJECT_ROOT/lib/utils.sh"
 test_allowed_variables() {
     section "Allowed variables accepted"
 
-    local output=$'MY_VAR=hello\nMY_OTHER=world'
-    _safe_eval_toml_output "$output" MY_VAR MY_OTHER
+    local output=$'S:MY_VAR=hello\nS:MY_OTHER=world'
+    _parse_toml_output "$output" MY_VAR MY_OTHER
     assert_eq "allowed MY_VAR" "hello" "$MY_VAR"
     assert_eq "allowed MY_OTHER" "world" "$MY_OTHER"
 }
@@ -35,9 +35,9 @@ test_allowed_variables() {
 test_unknown_variable_rejected() {
     section "Unknown variable rejected"
 
-    local output=$'ALLOWED=ok\nUNKNOWN=bad'
+    local output=$'S:ALLOWED=ok\nS:UNKNOWN=bad'
     local result
-    result=$(_safe_eval_toml_output "$output" ALLOWED 2>&1) || true
+    result=$(_parse_toml_output "$output" ALLOWED 2>&1) || true
     assert_true "rejects unknown variable" test -n "$(echo "$result" | grep "Unexpected variable")"
 }
 
@@ -50,19 +50,19 @@ test_invalid_variable_name() {
     # Variable name with command substitution
     local result
     # shellcheck disable=SC2016
-    result=$(_safe_eval_toml_output '$(whoami)=pwned' '$(whoami)' 2>&1) || true
+    result=$(_parse_toml_output 'S:$(whoami)=pwned' '$(whoami)' 2>&1) || true
     assert_true "rejects command substitution in name" test -n "$(echo "$result" | grep "Invalid variable name")"
 
     # Variable name with spaces
-    result=$(_safe_eval_toml_output 'MY VAR=value' 'MY VAR' 2>&1) || true
+    result=$(_parse_toml_output 'S:MY VAR=value' 'MY VAR' 2>&1) || true
     assert_true "rejects spaces in name" test -n "$(echo "$result" | grep "Invalid variable name")"
 
     # Variable name starting with number
-    result=$(_safe_eval_toml_output '1VAR=value' '1VAR' 2>&1) || true
+    result=$(_parse_toml_output 'S:1VAR=value' '1VAR' 2>&1) || true
     assert_true "rejects number-prefixed name" test -n "$(echo "$result" | grep "Invalid variable name")"
 
     # Variable name with semicolon (injection attempt)
-    result=$(_safe_eval_toml_output 'VAR;rm -rf /=value' 'VAR;rm -rf /' 2>&1) || true
+    result=$(_parse_toml_output 'S:VAR;rm -rf /=value' 'VAR;rm -rf /' 2>&1) || true
     assert_true "rejects semicolon injection" test -n "$(echo "$result" | grep "Invalid variable name")"
 }
 
@@ -72,7 +72,7 @@ test_invalid_variable_name() {
 test_empty_input() {
     section "Empty input handled"
 
-    _safe_eval_toml_output "" ANYTHING
+    _parse_toml_output "" ANYTHING
     assert_eq "empty input succeeds" "0" "$?"
 }
 
@@ -84,7 +84,7 @@ test_backtick_injection() {
 
     local result
     # shellcheck disable=SC2016
-    result=$(_safe_eval_toml_output '`whoami`=pwned' '`whoami`' 2>&1) || true
+    result=$(_parse_toml_output 'S:`whoami`=pwned' '`whoami`' 2>&1) || true
     assert_true "rejects backtick in name" test -n "$(echo "$result" | grep "Invalid variable name")"
 }
 
@@ -96,8 +96,60 @@ test_whitelist_exact_match() {
 
     # Prefix match should NOT work
     local result
-    result=$(_safe_eval_toml_output 'MY_VAR_EXTRA=bad' MY_VAR 2>&1) || true
+    result=$(_parse_toml_output 'S:MY_VAR_EXTRA=bad' MY_VAR 2>&1) || true
     assert_true "rejects prefix match" test -n "$(echo "$result" | grep "Unexpected variable")"
+}
+
+# ============================================================
+# Test: Unknown type prefix is rejected
+# ============================================================
+test_unknown_type_prefix() {
+    section "Unknown type prefix rejected"
+
+    local result
+    result=$(_parse_toml_output 'X:MY_VAR=bad' MY_VAR 2>&1) || true
+    assert_true "rejects unknown type prefix" test -n "$(echo "$result" | grep "Unknown type prefix")"
+}
+
+# ============================================================
+# Test: Array parsing
+# ============================================================
+test_array_parsing() {
+    section "Array parsing"
+
+    # Array with elements (using unit separator \x1f)
+    local output
+    output=$(printf 'A:MY_ARR=one\x1ftwo\x1fthree')
+    _parse_toml_output "$output" MY_ARR
+    assert_eq "array count" "3" "${#MY_ARR[@]}"
+    assert_eq "array[0]" "one" "${MY_ARR[0]}"
+    assert_eq "array[1]" "two" "${MY_ARR[1]}"
+    assert_eq "array[2]" "three" "${MY_ARR[2]}"
+
+    # Empty array
+    _parse_toml_output "A:EMPTY_ARR=" EMPTY_ARR
+    assert_eq "empty array count" "0" "${#EMPTY_ARR[@]}"
+}
+
+# ============================================================
+# Test: Escape sequence decoding
+# ============================================================
+test_escape_decoding() {
+    section "Escape sequence decoding"
+
+    # Scalar with encoded newline
+    _parse_toml_output 'S:MULTI_LINE=line1\nline2' MULTI_LINE
+    local expected=$'line1\nline2'
+    assert_eq "newline decoded" "$expected" "$MULTI_LINE"
+
+    # Scalar with encoded backslash (encode_value: \ → \\)
+    _parse_toml_output 'S:BS_VAR=path\\to' BS_VAR
+    assert_eq "backslash decoded" 'path\to' "$BS_VAR"
+
+    # Scalar with encoded tab (encode_value: tab → \t)
+    _parse_toml_output 'S:TAB_VAR=col1\tcol2' TAB_VAR
+    local expected_tab=$'col1\tcol2'
+    assert_eq "tab decoded" "$expected_tab" "$TAB_VAR"
 }
 
 # ============================================================
@@ -124,7 +176,7 @@ EOF
     local output
     output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmpfile")
     # Should succeed with the standard whitelist
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
         WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
         WS_VOLUME_NAMES WS_VOLUME_PATHS \
@@ -143,9 +195,10 @@ test_real_plugin_output() {
 
     local output
     output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/proto.toml")
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
         PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT \
+        PLUGIN_APT_PACKAGES \
         PLUGIN_VOLUME_NAMES PLUGIN_VOLUME_PATHS \
         PLUGIN_VERSION_PIN PLUGIN_VERSION_STRATEGY
     assert_eq "real plugin parsed" "proto" "$PLUGIN_NAME"
@@ -161,6 +214,9 @@ test_invalid_variable_name
 test_empty_input
 test_backtick_injection
 test_whitelist_exact_match
+test_unknown_type_prefix
+test_array_parsing
+test_escape_decoding
 test_real_workspace_output
 test_real_plugin_output
 

@@ -13,7 +13,7 @@
 PLUGIN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOML_PARSER="$PLUGIN_LIB_DIR/toml_parser.py"
 
-# Load utility functions (_safe_eval_toml_output)
+# Load utility functions (_parse_toml_output)
 # shellcheck source=utils.sh
 source "$PLUGIN_LIB_DIR/utils.sh"
 
@@ -70,7 +70,7 @@ load_workspace_config() {
 
     local output
     output=$(python3 "$TOML_PARSER" workspace "$config_file") || return 1
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
         WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
         WS_VOLUME_NAMES WS_VOLUME_PATHS \
@@ -102,7 +102,7 @@ list_available_plugins() {
 
     local output
     output=$(python3 "$TOML_PARSER" list-plugins "$plugins_dir") || return 1
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         PLUGIN_IDS PLUGIN_NAMES PLUGIN_DESCRIPTIONS PLUGIN_DEFAULTS
 }
 
@@ -125,7 +125,7 @@ load_plugin() {
 
     local output
     output=$(python3 "$TOML_PARSER" plugin "$plugin_file") || return 1
-    _safe_eval_toml_output "$output" \
+    _parse_toml_output "$output" \
         PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
         PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT \
         PLUGIN_APT_PACKAGES \

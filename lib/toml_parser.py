@@ -32,34 +32,44 @@ except ModuleNotFoundError:
         sys.exit(1)
 
 
-def shell_quote(value: Any) -> str:
-    """Quote a value for safe use in shell eval (single-line output).
+# Unit separator (U+001F) used as array element delimiter
+_UNIT_SEP = "\x1f"
 
-    Uses $'...' quoting to encode newlines, backslashes, and single quotes
-    as escape sequences, ensuring each key=value pair is exactly one line.
+
+def encode_value(value: Any) -> str:
+    """Encode a value for safe shell parsing without eval.
+
+    Uses printf %b compatible encoding for escape sequences.
+    Backslash → \\\\, Newline → \\n, Tab → \\t, CR → \\r.
+    Arrays: elements joined by U+001F (unit separator).
     """
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, (int, float)):
         return str(value)
     if isinstance(value, list):
-        # Output as space-separated, parenthesized bash array
-        items = " ".join(shell_quote(v) for v in value)
-        return f"({items})"
+        return _UNIT_SEP.join(encode_value(v) for v in value)
     s = str(value)
-    # Use $'...' quoting for guaranteed single-line output
-    # Order matters: escape backslashes first
+    # Escape for printf %b compatibility (order matters: backslash first)
     s = s.replace("\\", "\\\\")
-    s = s.replace("'", "\\'")
     s = s.replace("\n", "\\n")
     s = s.replace("\r", "\\r")
     s = s.replace("\t", "\\t")
-    return "$'" + s + "'"
+    return s
 
 
 def print_kv(key: str, value: Any) -> None:
-    """Print a shell-safe key=value pair."""
-    print(f"{key}={shell_quote(value)}")
+    """Print a type-prefixed key=value pair for safe shell parsing.
+
+    Format:
+        S:KEY=encoded_scalar   (scalar value)
+        A:KEY=elem1\\x1felem2  (array, elements separated by U+001F)
+    """
+    if isinstance(value, list):
+        encoded_elements = [encode_value(v) for v in value]
+        print(f"A:{key}={_UNIT_SEP.join(encoded_elements)}")
+    else:
+        print(f"S:{key}={encode_value(value)}")
 
 
 def cmd_workspace(filepath: str) -> None:
