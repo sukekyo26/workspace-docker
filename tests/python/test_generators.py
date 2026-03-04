@@ -320,6 +320,18 @@ class TestDevcontainerJsonGenerator:
         assert config["forwardPorts"] == [3000]
         assert config["customizations"]["vscode"]["extensions"] == ["ms-python.python"]
 
+    def test_forward_ports_multiple(self, plugins_dir: str) -> None:
+        """All ports from ports.forward should be included, not just the first."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000, 8080, 5432]},
+            "vscode": {"extensions": []},
+        }
+        gen = DevcontainerJsonGenerator(data, plugins_dir)
+        config = gen._build_config()
+        assert config["forwardPorts"] == [3000, 8080, 5432]
+
 
 class TestDevcontainerComposeGenerator:
     """Test DevcontainerComposeGenerator."""

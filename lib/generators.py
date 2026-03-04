@@ -277,7 +277,6 @@ class DevcontainerJsonGenerator(Generator):
     def _build_config(self) -> dict[str, Any]:
         """Build the devcontainer.json configuration dictionary."""
         forward_ports = self._data.get("ports", {}).get("forward", [3000])
-        forward_port = forward_ports[0] if forward_ports else 3000
         extensions = self._data.get("vscode", {}).get("extensions", [])
 
         return {
@@ -285,7 +284,7 @@ class DevcontainerJsonGenerator(Generator):
             "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
             "service": self.service_name,
             "workspaceFolder": f"/home/{self.username}/workspace",
-            "forwardPorts": [forward_port],
+            "forwardPorts": forward_ports,
             "shutdownAction": "stopCompose",
             "customizations": {
                 "vscode": {
