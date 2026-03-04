@@ -31,7 +31,7 @@ test_required_files() {
     assert_dir_exists "workspaces/ directory" "$PROJECT_ROOT/workspaces"
     assert_file_exists "workspaces/.gitkeep" "$PROJECT_ROOT/workspaces/.gitkeep"
     assert_file_exists "lib/toml_parser.py" "$PROJECT_ROOT/lib/toml_parser.py"
-    assert_file_exists "lib/plugin.sh" "$PROJECT_ROOT/lib/plugin.sh"
+    assert_file_exists "lib/plugins.sh" "$PROJECT_ROOT/lib/plugins.sh"
 }
 
 # ============================================================
@@ -68,9 +68,11 @@ test_syntax_check() {
         "rebuild-container.sh"
         "lib/generators.sh"
         "lib/validators.sh"
-        "lib/errors.sh"
+        "lib/logging.sh"
         "lib/devcontainer.sh"
-        "lib/plugin.sh"
+        "lib/plugins.sh"
+        "lib/utils.sh"
+        "lib/certificates.sh"
     )
 
     for script in "${scripts[@]}"; do

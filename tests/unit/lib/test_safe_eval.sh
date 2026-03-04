@@ -14,8 +14,8 @@ echo ""
 echo "[ test_safe_eval.sh ]"
 
 # Source the module under test
-source "$PROJECT_ROOT/lib/errors.sh"
-source "$PROJECT_ROOT/lib/generators.sh"
+source "$PROJECT_ROOT/lib/logging.sh"
+source "$PROJECT_ROOT/lib/utils.sh"
 
 # ============================================================
 # Test: Allowed variables are accepted

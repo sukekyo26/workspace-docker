@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # tests/unit/lib/test_generators.sh
-# Tests for lib/generators.sh
+# Tests for lib/utils.sh and lib/certificates.sh
 # ============================================================
 
 set -uo pipefail
@@ -13,7 +13,8 @@ source "$TESTS_DIR/test_helper.sh"
 echo ""
 echo "[ test_generators.sh ]"
 
-source "$PROJECT_ROOT/lib/generators.sh"
+source "$PROJECT_ROOT/lib/utils.sh"
+source "$PROJECT_ROOT/lib/certificates.sh"
 
 # ============================================================
 # Test: read_env_var

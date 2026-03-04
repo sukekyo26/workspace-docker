@@ -1,11 +1,13 @@
 #!/bin/bash
-# Error handling and logging functions
-# This library provides consistent error messages and logging
+# ============================================================
+# lib/logging.sh - Error handling and logging functions
+# ============================================================
+# Provides consistent error messages and logging
 
 # Load shared color constants
-_ERRORS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_LOGGING_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=colors.sh
-source "$_ERRORS_LIB_DIR/colors.sh"
+source "$_LOGGING_LIB_DIR/colors.sh"
 
 # Log levels (exported for external use)
 export LOG_LEVEL_ERROR=0

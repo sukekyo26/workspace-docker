@@ -12,5 +12,5 @@ TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../.. && pwd)"
 source "$TESTS_DIR/test_helper.sh"
 
 # Source libraries needed for plugin tests
-source "$PROJECT_ROOT/lib/errors.sh"
+source "$PROJECT_ROOT/lib/logging.sh"
 source "$PROJECT_ROOT/lib/generators.sh"

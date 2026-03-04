@@ -8,12 +8,16 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load shared libraries
-# shellcheck source=lib/generators.sh
-source "$SCRIPT_DIR/lib/generators.sh"
+# shellcheck source=lib/logging.sh
+source "$SCRIPT_DIR/lib/logging.sh"
+# shellcheck source=lib/utils.sh
+source "$SCRIPT_DIR/lib/utils.sh"
+# shellcheck source=lib/certificates.sh
+source "$SCRIPT_DIR/lib/certificates.sh"
 # shellcheck source=lib/validators.sh
 source "$SCRIPT_DIR/lib/validators.sh"
-# shellcheck source=lib/errors.sh
-source "$SCRIPT_DIR/lib/errors.sh"
+# shellcheck source=lib/generators.sh
+source "$SCRIPT_DIR/lib/generators.sh"
 
 # ============================================================
 # Parse arguments

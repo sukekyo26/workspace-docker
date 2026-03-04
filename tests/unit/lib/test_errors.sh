@@ -13,7 +13,7 @@ source "$TESTS_DIR/test_helper.sh"
 echo ""
 echo "[ test_errors.sh ]"
 
-source "$PROJECT_ROOT/lib/errors.sh"
+source "$PROJECT_ROOT/lib/logging.sh"
 
 # ============================================================
 # Test: logging functions

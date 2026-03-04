@@ -23,6 +23,7 @@ test_env_roundtrip() {
     section ".env file round-trip"
 
     setup_workspace
+    source "$PROJECT_ROOT/lib/utils.sh"
     source "$PROJECT_ROOT/lib/generators.sh"
 
     local service_name="roundtrip-svc"
@@ -121,11 +122,11 @@ test_e2e_pipeline() {
 test_detect_docker_gid() {
     section "detect_docker_gid (no GID 999 fallback)"
 
-    source "$PROJECT_ROOT/lib/generators.sh"
+    source "$PROJECT_ROOT/lib/utils.sh"
 
     # Verify the function no longer contains GID 999 fallback
     assert_file_not_contains "no GID 999 fallback in source" \
-        "$PROJECT_ROOT/lib/generators.sh" 'echo "999"'
+        "$PROJECT_ROOT/lib/utils.sh" 'echo "999"'
 
     # In this environment, Docker socket may not be available (e.g. inside a container)
     if [[ -S /var/run/docker.sock ]] || getent group docker &>/dev/null; then

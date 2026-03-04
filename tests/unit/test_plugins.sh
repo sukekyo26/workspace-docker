@@ -15,7 +15,7 @@ echo ""
 echo "[ test_plugins.sh ]"
 
 # Source libraries needed for tests
-source "$PROJECT_ROOT/lib/errors.sh"
+source "$PROJECT_ROOT/lib/logging.sh"
 source "$PROJECT_ROOT/lib/generators.sh"
 
 # ============================================================
@@ -25,9 +25,9 @@ test_plugin_files() {
     section "Plugin infrastructure files"
 
     assert_file_exists "toml_parser.py exists" "$PROJECT_ROOT/lib/toml_parser.py"
-    assert_file_exists "plugin.sh exists" "$PROJECT_ROOT/lib/plugin.sh"
+    assert_file_exists "plugins.sh exists" "$PROJECT_ROOT/lib/plugins.sh"
     assert_dir_exists "plugins/ directory exists" "$PROJECT_ROOT/plugins"
-    assert_true "plugin.sh syntax valid" bash -n "$PROJECT_ROOT/lib/plugin.sh"
+    assert_true "plugins.sh syntax valid" bash -n "$PROJECT_ROOT/lib/plugins.sh"
 }
 
 # ============================================================

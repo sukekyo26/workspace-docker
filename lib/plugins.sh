@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# lib/plugin.sh - Plugin loading and generation functions
+# lib/plugins.sh - Plugin loading and generation functions
 # ============================================================
 # Provides functions for parsing workspace.toml and plugin TOML
 # files, and generating Dockerfile/docker-compose.yml content
@@ -13,40 +13,9 @@
 PLUGIN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TOML_PARSER="$PLUGIN_LIB_DIR/toml_parser.py"
 
-# ============================================================
-# Safe eval with variable name whitelist
-# ============================================================
-
-# Evaluate TOML parser output safely with variable name whitelist
-# Usage: _safe_eval_toml_output "$output" VAR1 VAR2 ...
-# Only evaluates lines whose variable name is in the whitelist
-_safe_eval_toml_output() {
-    local output="$1"
-    shift
-    local -a allowed_keys=("$@")
-
-    while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-        local key="${line%%=*}"
-        # Reject variable names with non-alphanumeric/underscore characters
-        if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
-            echo "ERROR: Invalid variable name in TOML output: $key" >&2
-            return 1
-        fi
-        local allowed=false
-        for k in "${allowed_keys[@]}"; do
-            if [[ "$key" == "$k" ]]; then
-                allowed=true
-                break
-            fi
-        done
-        if [[ "$allowed" != true ]]; then
-            echo "ERROR: Unexpected variable in TOML output: $key" >&2
-            return 1
-        fi
-        eval "$line"
-    done <<< "$output"
-}
+# Load utility functions (_safe_eval_toml_output)
+# shellcheck source=utils.sh
+source "$PLUGIN_LIB_DIR/utils.sh"
 
 # ============================================================
 # Python/TOML Prerequisites
