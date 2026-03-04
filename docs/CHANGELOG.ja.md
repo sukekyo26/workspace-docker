@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-03-04
+
 ### 追加
 - **プラグインアーキテクチャ**: `plugins/*.toml` TOMLファイルによる拡張可能なツール選択
   - TOMLパーサーヘルパー（`lib/toml_parser.py`）— Python 3.11+ `tomllib`使用
