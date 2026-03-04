@@ -162,12 +162,12 @@ USER root
 # Install Zig (required for cargo-lambda cross-compilation)
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
-        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="473ec26806133cf4d1918caf1a410f8403a13d979726a9045b421b685031a982" ;; \
-        arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="ab64e3ea277f6fc5f3d723dcd95d9ce1ab282c8ed0f431b4de880d30df891e4f" ;; \
-        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="473ec26806133cf4d1918caf1a410f8403a13d979726a9045b421b685031a982" ;; \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL "https://ziglang.org/builds/zig-${DOWNLOAD_ARCH}-linux-0.14.0.tar.xz" -o /tmp/zig.tar.xz && \
+    curl -fsSL "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
     echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
     mkdir -p /usr/local/zig && \
     tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
