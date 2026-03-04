@@ -18,6 +18,7 @@ GENERATORS_PY="$_LIB_DIR/generators.py"
 
 # Run Python generator safely with atomic write
 # Usage: _run_generator "subcommand" "output_file" "workspace_toml"
+# Note: Does NOT use trap to avoid overwriting caller's EXIT trap (ARCH-01)
 _run_generator() {
     local subcommand="$1"
     local output_file="$2"
@@ -28,17 +29,14 @@ _run_generator() {
     mkdir -p "$(dirname "$output_file")"
     local tmp
     tmp=$(mktemp "${output_file}.XXXXXX")
-    trap 'rm -f "$tmp"' EXIT
 
     if ! python3 "$GENERATORS_PY" "$subcommand" "$workspace_toml" "$plugins_dir" > "$tmp"; then
         rm -f "$tmp"
-        trap - EXIT
         echo "ERROR: Failed to generate $output_file ($subcommand)" >&2
         return 1
     fi
 
     mv "$tmp" "$output_file"
-    trap - EXIT
 }
 
 # Generate docker-compose.yml programmatically
