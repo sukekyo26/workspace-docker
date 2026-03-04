@@ -15,6 +15,7 @@ LIB_DIR = Path(__file__).resolve().parent.parent.parent / "lib"
 sys.path.insert(0, str(LIB_DIR))
 
 from toml_parser import (
+    ListPluginsCommand,
     PluginCommand,
     ShellEncoder,
     WorkspaceCommand,
@@ -323,6 +324,109 @@ class TestPluginCommand:
                 assert "S:PLUGIN_NAME=Compat" in output
             finally:
                 os.unlink(f.name)
+
+
+class TestListPluginsCommand:
+    """Test ListPluginsCommand — lists plugin metadata from a directory."""
+
+    def test_lists_plugin_metadata(self, capsys: pytest.CaptureFixture[str]) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "alpha.toml").write_text(
+                '[metadata]\nname = "Alpha"\ndescription = "First"\ndefault = true\n'
+                '[install]\nrequires_root = false\ndockerfile = "RUN echo a"\n'
+            )
+            Path(d, "beta.toml").write_text(
+                '[metadata]\nname = "Beta"\ndescription = "Second"\ndefault = false\n'
+                '[install]\nrequires_root = false\ndockerfile = "RUN echo b"\n'
+            )
+            ListPluginsCommand().execute(d)
+            out = capsys.readouterr().out
+            assert "A:PLUGIN_IDS=alpha" in out
+            assert "beta" in out
+            assert "A:PLUGIN_NAMES=Alpha" in out
+            assert "Beta" in out
+            assert "A:PLUGIN_DESCRIPTIONS=First" in out
+            assert "Second" in out
+            assert "A:PLUGIN_DEFAULTS=true" in out
+            assert "false" in out
+
+    def test_empty_directory(self, capsys: pytest.CaptureFixture[str]) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            ListPluginsCommand().execute(d)
+            out = capsys.readouterr().out
+            assert "A:PLUGIN_IDS=\n" in out
+            assert "A:PLUGIN_NAMES=\n" in out
+
+    def test_nonexistent_directory(self) -> None:
+        with pytest.raises(SystemExit):
+            ListPluginsCommand().execute("/nonexistent/path")
+
+    def test_skips_non_toml_files(self, capsys: pytest.CaptureFixture[str]) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "readme.md").write_text("# Readme")
+            Path(d, "tool.toml").write_text(
+                '[metadata]\nname = "Tool"\n[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo t"\n'
+            )
+            ListPluginsCommand().execute(d)
+            out = capsys.readouterr().out
+            assert "A:PLUGIN_IDS=tool\n" in out
+
+    def test_malformed_toml_warns(self, capsys: pytest.CaptureFixture[str]) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "bad.toml").write_text("not valid toml [[[")
+            Path(d, "good.toml").write_text(
+                '[metadata]\nname = "Good"\n[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo g"\n'
+            )
+            ListPluginsCommand().execute(d)
+            captured = capsys.readouterr()
+            assert "WARNING" in captured.err
+            assert "bad.toml" in captured.err
+            assert "A:PLUGIN_IDS=good\n" in captured.out
+
+    def test_missing_metadata_uses_defaults(self, capsys: pytest.CaptureFixture[str]) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "minimal.toml").write_text(
+                '[install]\nrequires_root = false\ndockerfile = "RUN echo m"\n'
+            )
+            ListPluginsCommand().execute(d)
+            out = capsys.readouterr().out
+            assert "A:PLUGIN_IDS=minimal\n" in out
+            assert "A:PLUGIN_NAMES=minimal\n" in out
+            assert "A:PLUGIN_DEFAULTS=false\n" in out
+
+    def test_sorted_output(self, capsys: pytest.CaptureFixture[str]) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "zzz.toml").write_text(
+                '[metadata]\nname = "Zzz"\n[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo z"\n'
+            )
+            Path(d, "aaa.toml").write_text(
+                '[metadata]\nname = "Aaa"\n[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo a"\n'
+            )
+            ListPluginsCommand().execute(d)
+            out = capsys.readouterr().out
+            ids_line = [l for l in out.splitlines() if l.startswith("A:PLUGIN_IDS=")][0]
+            assert "aaa" in ids_line
+            # aaa should come before zzz
+            assert ids_line.index("aaa") < ids_line.index("zzz")
+
+    def test_cli_invocation(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "cli-test.toml").write_text(
+                '[metadata]\nname = "CLI Test"\ndefault = true\n'
+                '[install]\nrequires_root = false\ndockerfile = "RUN echo cli"\n'
+            )
+            result = subprocess.run(
+                [sys.executable, str(LIB_DIR / "toml_parser.py"), "list-plugins", d],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            assert "A:PLUGIN_IDS=cli-test" in result.stdout
+            assert "A:PLUGIN_NAMES=CLI Test" in result.stdout
 
 
 class TestCLI:
