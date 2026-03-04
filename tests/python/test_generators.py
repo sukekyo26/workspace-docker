@@ -16,6 +16,7 @@ LIB_DIR = Path(__file__).resolve().parent.parent.parent / "lib"
 sys.path.insert(0, str(LIB_DIR))
 
 from generators import (
+    _collect_plugin_apt_packages,
     generate_compose,
     generate_devcontainer_compose,
     generate_devcontainer_json,
@@ -44,6 +45,15 @@ def plugins_dir(tmp_path: Path) -> str:
     (plugins / "no-vol.toml").write_text(
         '[metadata]\nname = "No Vol"\n\n[install]\nrequires_root = false\n'
         'dockerfile = "RUN echo novol"\n\n[version]\nstrategy = "latest"\n'
+    )
+
+    # Plugin with apt packages
+    (plugins / "apt-plugin.toml").write_text(
+        '[metadata]\nname = "Apt Plugin"\n\n'
+        '[apt]\npackages = ["libfoo-dev", "libbar-dev"]\n\n'
+        '[install]\nrequires_root = false\n'
+        'dockerfile = "RUN echo apt-plugin"\n\n'
+        '[version]\nstrategy = "latest"\n'
     )
     return str(plugins)
 
@@ -330,3 +340,95 @@ class TestGenerateDockerfile:
         captured = capsys.readouterr()
         assert "WARNING" in captured.err
         bad_plugin.unlink()
+
+
+class TestCollectPluginAptPackages:
+    """Test _collect_plugin_apt_packages function."""
+
+    def test_collects_packages(self, plugins_dir: str) -> None:
+        result = _collect_plugin_apt_packages(plugins_dir, ["apt-plugin"], set())
+        assert "libfoo-dev" in result
+        assert "libbar-dev" in result
+
+    def test_empty_when_no_apt_section(self, plugins_dir: str) -> None:
+        result = _collect_plugin_apt_packages(plugins_dir, ["test-plugin"], set())
+        assert result == ""
+
+    def test_deduplicates_with_base(self, plugins_dir: str) -> None:
+        result = _collect_plugin_apt_packages(
+            plugins_dir, ["apt-plugin"], {"libfoo-dev"}
+        )
+        assert "libfoo-dev" not in result
+        assert "libbar-dev" in result
+
+    def test_deduplicates_across_plugins(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins2"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n[apt]\npackages = ["pkg1", "pkg2"]\n\n'
+            '[install]\nrequires_root = false\ndockerfile = "RUN echo a"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n[apt]\npackages = ["pkg2", "pkg3"]\n\n'
+            '[install]\nrequires_root = false\ndockerfile = "RUN echo b"\n'
+        )
+        result = _collect_plugin_apt_packages(str(plugins), ["a", "b"], set())
+        # pkg2 should appear only once
+        assert result.count("pkg2") == 1
+        assert "pkg1" in result
+        assert "pkg3" in result
+
+    def test_nonexistent_plugin(self, plugins_dir: str) -> None:
+        result = _collect_plugin_apt_packages(plugins_dir, ["does-not-exist"], set())
+        assert result == ""
+
+
+class TestDockerfilePluginApt:
+    """Test plugin apt packages in Dockerfile generation."""
+
+    @pytest.fixture()
+    def workspace_root(self, tmp_path: Path, plugins_dir: str) -> str:
+        """Create a minimal workspace structure for Dockerfile generation."""
+        root = tmp_path / "workspace"
+        root.mkdir()
+        config = root / "config"
+        config.mkdir()
+        (config / "apt-base-packages.conf").write_text("# Base\ncurl\nwget\n")
+        (root / "certs").mkdir()
+        import shutil
+        plugins = root / "plugins"
+        shutil.copytree(plugins_dir, str(plugins))
+        return str(root)
+
+    def test_plugin_apt_in_dockerfile(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["apt-plugin"]},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        assert "libfoo-dev" in output
+        assert "libbar-dev" in output
+
+    def test_no_plugin_apt_when_disabled(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["test-plugin"]},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        assert "libfoo-dev" not in output
+        assert "libbar-dev" not in output
+
+    def test_plugin_apt_dedup_with_base(self, workspace_root: str) -> None:
+        plugins_dir = os.path.join(workspace_root, "plugins")
+        # apt-plugin has libfoo-dev and libbar-dev; base has curl and wget
+        # No overlap, so both should appear
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["apt-plugin"]},
+        }
+        output = generate_dockerfile(data, plugins_dir, workspace_root)
+        # Count occurrences — each should appear only once
+        assert output.count("libfoo-dev") == 1
+        assert output.count("curl") == 1

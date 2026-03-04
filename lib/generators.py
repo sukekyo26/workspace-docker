@@ -284,6 +284,32 @@ def _read_apt_packages(config_dir: str) -> str:
     return "\n".join(lines) + "\n" if lines else ""
 
 
+def _collect_plugin_apt_packages(
+    plugins_dir: str, enabled_plugins: list[str], base_packages: set[str],
+) -> str:
+    """Collect apt packages from enabled plugins and return formatted Dockerfile lines.
+
+    Packages already present in base_packages are silently deduplicated.
+    Duplicates across plugins are also silently deduplicated.
+    """
+    seen: set[str] = set()
+    packages: list[str] = []
+    for plugin_id in enabled_plugins:
+        plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
+        if not os.path.exists(plugin_file):
+            continue
+        data = load_toml(plugin_file)
+        apt_pkgs: list[str] = data.get("apt", {}).get("packages", [])
+        for pkg in apt_pkgs:
+            if pkg not in seen and pkg not in base_packages:
+                seen.add(pkg)
+                packages.append(pkg)
+    if not packages:
+        return ""
+    lines = [f"    {pkg} \\" for pkg in packages]
+    return "\n".join(lines) + "\n"
+
+
 def _generate_plugin_installs(plugins_dir: str, enabled_plugins: list[str]) -> str:
     """Generate combined Dockerfile install snippets for enabled plugins."""
     parts: list[str] = []
@@ -402,6 +428,7 @@ ARG GID
 RUN apt-get update && \\
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\
 {{APT_BASE_PACKAGES}}
+{{APT_PLUGIN_PACKAGES}}
 {{APT_EXTRA_PACKAGES}}
     && locale-gen en_US.UTF-8 \\
     && apt-get clean \\
@@ -483,6 +510,16 @@ def generate_dockerfile(
 
     apt_base = _read_apt_packages(config_dir)
 
+    # Parse base package names for deduplication
+    base_pkg_names: set[str] = set()
+    if apt_base:
+        for line in apt_base.split("\n"):
+            stripped = line.strip().rstrip("\\").strip()
+            if stripped:
+                base_pkg_names.add(stripped)
+
+    apt_plugin = _collect_plugin_apt_packages(plugins_dir, enabled_plugins, base_pkg_names)
+
     apt_extra_pkgs: list[str] = workspace_data.get("apt", {}).get("extra_packages", [])
     apt_extra = ""
     for pkg in apt_extra_pkgs:
@@ -494,6 +531,7 @@ def generate_dockerfile(
         "{{PLUGIN_INSTALLS}}": plugin_installs,
         "{{CUSTOM_CERTIFICATES}}": certificate_install,
         "{{APT_BASE_PACKAGES}}": apt_base.rstrip("\n") if apt_base else "",
+        "{{APT_PLUGIN_PACKAGES}}": apt_plugin.rstrip("\n") if apt_plugin else "",
         "{{APT_EXTRA_PACKAGES}}": apt_extra.rstrip("\n") if apt_extra else "",
     }
 

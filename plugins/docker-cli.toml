@@ -3,6 +3,9 @@ name = "Docker CLI"
 description = "Docker CLI client for using host Docker daemon via socket mount"
 default = true
 
+[apt]
+packages = ["lsb-release"]
+
 [install]
 requires_root = true
 dockerfile = '''

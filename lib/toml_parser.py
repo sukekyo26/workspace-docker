@@ -121,6 +121,10 @@ def cmd_plugin(filepath: str) -> None:
     print_kv("PLUGIN_DOCKERFILE", dockerfile)
     print_kv("PLUGIN_REQUIRES_ROOT", requires_root)
 
+    # apt packages
+    apt = data.get("apt", {})
+    print_kv("PLUGIN_APT_PACKAGES", apt.get("packages", []))
+
     # Validate: requires_root=true should not have USER directives in dockerfile
     if requires_root and "USER " in dockerfile:
         print(

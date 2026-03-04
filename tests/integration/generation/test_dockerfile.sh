@@ -202,6 +202,70 @@ EOF
 }
 
 # ============================================================
+# Test: Plugin apt packages insertion
+# ============================================================
+test_plugin_apt_packages() {
+    section "Plugin apt packages in Dockerfile"
+
+    setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "apt-test" "testuser" "proto"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_dockerfile_from_template \
+            "Dockerfile" "workspace.toml"
+    )
+
+    local dockerfile="$WORK_DIR/Dockerfile"
+
+    # Proto's apt packages should appear in the apt-get install block
+    assert_file_contains "build-essential in Dockerfile" "$dockerfile" 'build-essential'
+    assert_file_contains "libssl-dev in Dockerfile" "$dockerfile" 'libssl-dev'
+
+    # Packages should appear before locale-gen
+    local pkg_line locale_line
+    pkg_line=$(grep -n 'build-essential' "$dockerfile" | head -1 | cut -d: -f1)
+    locale_line=$(grep -n 'locale-gen' "$dockerfile" | head -1 | cut -d: -f1)
+    if [[ -n "$pkg_line" && -n "$locale_line" && "$pkg_line" -lt "$locale_line" ]]; then
+        assert_eq "plugin apt packages before locale-gen" "yes" "yes"
+    else
+        assert_eq "plugin apt packages before locale-gen" "yes" "no"
+    fi
+
+    # No unreplaced placeholder
+    assert_file_not_contains "no APT_PLUGIN placeholder" "$dockerfile" '{{APT_PLUGIN_PACKAGES}}'
+
+    teardown_workspace
+}
+
+# ============================================================
+# Test: Plugin apt packages absent when plugin disabled
+# ============================================================
+test_plugin_apt_absent_when_disabled() {
+    section "Plugin apt packages absent when disabled"
+
+    setup_workspace
+    create_test_workspace_toml "$WORK_DIR" "apt-test" "testuser"
+
+    (
+        cd "$WORK_DIR" || exit 1
+        source lib/generators.sh
+        generate_dockerfile_from_template \
+            "Dockerfile" "workspace.toml"
+    )
+
+    local dockerfile="$WORK_DIR/Dockerfile"
+
+    # Proto's apt packages should NOT appear when proto is disabled
+    assert_file_not_contains "build-essential absent" "$dockerfile" 'build-essential'
+    assert_file_not_contains "libssl-dev absent" "$dockerfile" 'libssl-dev'
+    assert_file_not_contains "lsb-release absent" "$dockerfile" 'lsb-release'
+
+    teardown_workspace
+}
+
+# ============================================================
 # Test: Certificate section structure
 # ============================================================
 test_certificate_section() {
@@ -254,6 +318,8 @@ test_dockerfile_no_plugins
 test_dockerfile_partial
 test_dockerfile_structure
 test_apt_extra_packages
+test_plugin_apt_packages
+test_plugin_apt_absent_when_disabled
 test_certificate_section
 
 print_summary

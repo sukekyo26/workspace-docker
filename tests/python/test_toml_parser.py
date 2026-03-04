@@ -238,6 +238,47 @@ class TestCmdPlugin:
             finally:
                 os.unlink(f.name)
 
+    def test_plugin_with_apt_packages(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Plugin with [apt] packages should output PLUGIN_APT_PACKAGES."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="apt-plugin-"
+        ) as f:
+            f.write(
+                '[metadata]\nname = "Apt Plugin"\n\n'
+                '[apt]\npackages = ["libssl-dev", "build-essential"]\n\n'
+                '[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo test"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                output = capsys.readouterr().out
+                assert "PLUGIN_APT_PACKAGES=($'libssl-dev' $'build-essential')" in output
+            finally:
+                os.unlink(f.name)
+
+    def test_plugin_without_apt_packages(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Plugin without [apt] section should output empty PLUGIN_APT_PACKAGES."""
+        with tempfile.NamedTemporaryFile(
+            suffix=".toml", mode="w", delete=False, prefix="noapt-plugin-"
+        ) as f:
+            f.write(
+                '[metadata]\nname = "NoApt Plugin"\n\n'
+                '[install]\nrequires_root = false\n'
+                'dockerfile = "RUN echo test"\n'
+            )
+            f.flush()
+            try:
+                cmd_plugin(f.name)
+                output = capsys.readouterr().out
+                assert "PLUGIN_APT_PACKAGES=()" in output
+            finally:
+                os.unlink(f.name)
+
 
 class TestCLI:
     """Test CLI invocation via subprocess."""
