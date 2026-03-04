@@ -5,6 +5,7 @@ default = false
 
 [install]
 requires_root = true
+user_dirs = ["/home/${USERNAME}/.config/gh"]
 dockerfile = '''
 # Install GitHub CLI
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
@@ -15,7 +16,6 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN mkdir -p /home/${USERNAME}/.config/gh && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.config /home/${USERNAME}/.config/gh
 '''
 
 [volumes]

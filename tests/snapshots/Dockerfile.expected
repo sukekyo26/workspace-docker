@@ -89,13 +89,17 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
 
 
+# Prepare plugin directories with correct ownership
+USER root
+RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto && \
+    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto
+USER ${USERNAME}
 # proto (multi-language version manager)
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
     bash /tmp/install-proto.sh --no-profile --yes && \
     rm -f /tmp/install-proto.sh && \
     echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \
-    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc && \
-    mkdir -p ~/.proto
+    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc
 ENV PROTO_HOME="/home/${USERNAME}/.proto"
 ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
 USER root
@@ -122,8 +126,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     curl -fsSL --proto '=https' --tlsv1.2 "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     sudo ./aws/install && \
-    rm -rf aws awscliv2.zip && \
-    mkdir -p ~/.aws
+    rm -rf aws awscliv2.zip
 # Install AWS SAM CLI
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
@@ -146,18 +149,15 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN mkdir -p /home/${USERNAME}/.config/gh && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.config /home/${USERNAME}/.config/gh
 USER ${USERNAME}
 # Install GitHub Copilot CLI
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
     bash /tmp/install-copilot.sh && \
-    rm -f /tmp/install-copilot.sh && \
-    mkdir -p ~/.copilot
+    rm -f /tmp/install-copilot.sh
 # Install Claude Code
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/install-claude.sh && \
     bash /tmp/install-claude.sh && \
-    rm -f /tmp/install-claude.sh && \
-    mkdir -p ~/.claude
+    rm -f /tmp/install-claude.sh
 USER root
 # Install Zig (required for cargo-lambda cross-compilation)
 RUN ARCH="$(dpkg --print-architecture)" && \

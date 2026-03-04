@@ -5,12 +5,12 @@ default = false
 
 [install]
 requires_root = false
+user_dirs = ["/home/${USERNAME}/.claude"]
 dockerfile = '''
 # Install Claude Code
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/install-claude.sh && \
     bash /tmp/install-claude.sh && \
-    rm -f /tmp/install-claude.sh && \
-    mkdir -p ~/.claude
+    rm -f /tmp/install-claude.sh
 '''
 
 [volumes]

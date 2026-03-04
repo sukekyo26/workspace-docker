@@ -34,6 +34,7 @@ packages = ["libfoo-dev"]         # Optional: apt dependencies
 
 [install]
 requires_root = false             # true = runs as root (USER switch is automatic)
+user_dirs = ["/home/${USERNAME}/.tool"]  # Optional: dirs to create with user ownership
 dockerfile = '''
 # Dockerfile RUN instructions to install the tool
 RUN curl -fsSL https://example.com/install.sh | sh
@@ -50,6 +51,7 @@ pin = ""                          # Version string when strategy = "pin"
 ### Key rules
 
 - **`requires_root`**: When `true`, the generator automatically wraps the dockerfile block with `USER root` / `USER ${USERNAME}`. Do **not** include manual `USER` directives — a validation warning is emitted if both are present.
+- **`user_dirs`**: Directories that need to exist with user ownership before installation. All enabled plugins' directories are merged and created in a single `USER root` block before any plugin installs. Intermediate parent directories are automatically included.
 - **`${USERNAME}`**: Use this variable in volume paths and dockerfile instructions. It is substituted at build time with the value from `workspace.toml`.
 - **`[apt].packages`**: Dependencies are only installed when the plugin is enabled. Duplicates with the base package list (`config/apt-base-packages.conf`) are automatically detected.
 - **`[volumes]`**: Paths must be absolute. The volume name is prefixed with the service name in docker-compose.yml. Mount target directories are created with user permissions in the Dockerfile.

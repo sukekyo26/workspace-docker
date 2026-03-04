@@ -34,6 +34,7 @@ packages = ["libfoo-dev"]         # オプション: apt依存パッケージ
 
 [install]
 requires_root = false             # true = root権限で実行（USER切替は自動）
+user_dirs = ["/home/${USERNAME}/.tool"]  # オプション: ユーザー所有で作成するディレクトリ
 dockerfile = '''
 # ツールをインストールするDockerfile RUN命令
 RUN curl -fsSL https://example.com/install.sh | sh
@@ -50,6 +51,7 @@ pin = ""                          # strategy = "pin" 時のバージョン文字
 ### 重要なルール
 
 - **`requires_root`**: `true` の場合、ジェネレータが自動的に `USER root` / `USER ${USERNAME}` でラップします。手動で `USER` ディレクティブを含めないでください — 両方が存在する場合は検証警告が出力されます。
+- **`user_dirs`**: インストール前にユーザー所有で存在する必要があるディレクトリ。有効な全プラグインのディレクトリがマージされ、プラグインインストール前に `USER root` ブロックで一括作成されます。中間の親ディレクトリは自動的に含まれます。
 - **`${USERNAME}`**: ボリュームパスやdockerfile命令でこの変数を使用します。ビルド時に `workspace.toml` の値で置換されます。
 - **`[apt].packages`**: プラグインが有効な場合のみインストールされます。ベースパッケージリスト（`config/apt-base-packages.conf`）との重複は自動検知されます。
 - **`[volumes]`**: パスは絶対パスでなければなりません。ボリューム名はdocker-compose.ymlでサービス名がプレフィックスとして付与されます。マウント先ディレクトリはDockerfile内でユーザー権限で作成されます。

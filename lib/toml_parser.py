@@ -152,8 +152,10 @@ class PluginCommand(TomlCommand):
         install = data.get("install", {})
         dockerfile = install.get("dockerfile", "")
         requires_root = install.get("requires_root", False)
+        user_dirs: list[str] = install.get("user_dirs", [])
         kv("PLUGIN_DOCKERFILE", dockerfile)
         kv("PLUGIN_REQUIRES_ROOT", requires_root)
+        kv("PLUGIN_USER_DIRS", user_dirs)
 
         apt = data.get("apt", {})
         kv("PLUGIN_APT_PACKAGES", apt.get("packages", []))

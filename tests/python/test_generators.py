@@ -670,3 +670,65 @@ class TestDockerfilePluginApt:
         output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert output.count("libfoo-dev") == 1
         assert output.count("curl") == 1
+
+
+class TestUserDirs:
+    """Test user_dirs feature for plugin directory ownership."""
+
+    def test_generate_user_dirs_block_empty(self) -> None:
+        result = DockerfileGenerator._generate_user_dirs_block([])
+        assert result == ""
+
+    def test_generate_user_dirs_block_single(self) -> None:
+        result = DockerfileGenerator._generate_user_dirs_block(
+            ["/home/${USERNAME}/.config/gh"],
+        )
+        assert "USER root" in result
+        assert "mkdir -p" in result
+        assert "/home/${USERNAME}/.config " in result
+        assert "/home/${USERNAME}/.config/gh" in result
+        assert "chown ${USERNAME}:${USERNAME}" in result
+        assert result.endswith("USER ${USERNAME}")
+
+    def test_generate_user_dirs_block_multiple(self) -> None:
+        result = DockerfileGenerator._generate_user_dirs_block(
+            ["/home/${USERNAME}/.config/gh", "/home/${USERNAME}/.aws"],
+        )
+        assert "/home/${USERNAME}/.aws" in result
+        assert "/home/${USERNAME}/.config" in result
+        assert "/home/${USERNAME}/.config/gh" in result
+
+    def test_generate_user_dirs_block_deduplicates_prefixes(self) -> None:
+        result = DockerfileGenerator._generate_user_dirs_block(
+            ["/home/${USERNAME}/.config/gh", "/home/${USERNAME}/.config/fish"],
+        )
+        # .config should appear only once in mkdir and chown
+        assert result.count("/home/${USERNAME}/.config ") == 2  # once in mkdir, once in chown
+
+    def test_plugin_with_user_dirs_in_dockerfile(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "dir-plugin.toml").write_text(
+            '[metadata]\nname = "Dir Plugin"\n\n'
+            "[install]\nrequires_root = false\n"
+            'user_dirs = ["/home/${USERNAME}/.mydir"]\n'
+            'dockerfile = "RUN echo install"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["dir-plugin"])
+        assert "Prepare plugin directories" in result
+        assert "/home/${USERNAME}/.mydir" in result
+        assert "RUN echo install" in result
+
+    def test_no_user_dirs_no_block(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "simple.toml").write_text(
+            '[metadata]\nname = "Simple"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo simple"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["simple"])
+        assert "Prepare plugin directories" not in result
+        assert "RUN echo simple" in result

@@ -446,7 +446,24 @@ WORKDIR /home/${USERNAME}/workspace
         enabled_plugins: list[str],
     ) -> str:
         """Generate combined Dockerfile install snippets for enabled plugins."""
+        # Phase 1: Collect user_dirs from all enabled plugins
+        all_user_dirs: list[str] = []
+        for plugin_id in enabled_plugins:
+            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
+            if not os.path.exists(plugin_file):
+                continue
+            data = load_toml(plugin_file)
+            user_dirs: list[str] = data.get("install", {}).get("user_dirs", [])
+            all_user_dirs.extend(user_dirs)
+
+        # Phase 2: Generate directory setup block
+        dir_block = DockerfileGenerator._generate_user_dirs_block(all_user_dirs)
+
+        # Phase 3: Generate plugin install snippets
         parts: list[str] = []
+        if dir_block:
+            parts.append(dir_block)
+
         for plugin_id in enabled_plugins:
             plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
             if not os.path.exists(plugin_file):
@@ -493,6 +510,40 @@ WORKDIR /home/${USERNAME}/workspace
             parts.append(snippet)
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _generate_user_dirs_block(user_dirs: list[str]) -> str:
+        """Generate a USER root block to create and chown all user directories.
+
+        Computes all intermediate path prefixes between /home/${USERNAME}
+        and each target directory to ensure parent directories are also
+        correctly owned.
+        """
+        if not user_dirs:
+            return ""
+
+        home = "/home/${USERNAME}"
+        all_paths: set[str] = set()
+        for d in user_dirs:
+            if d.startswith(home + "/"):
+                rel = d[len(home) + 1 :]
+                parts = rel.split("/")
+                for i in range(len(parts)):
+                    all_paths.add(home + "/" + "/".join(parts[: i + 1]))
+            else:
+                all_paths.add(d)
+
+        sorted_paths = sorted(all_paths)
+        dirs_str = " ".join(sorted_paths)
+        user_var = "${USERNAME}"
+
+        return (
+            "# Prepare plugin directories with correct ownership\n"
+            "USER root\n"
+            f"RUN mkdir -p {dirs_str} && \\\n"
+            f"    chown {user_var}:{user_var} {dirs_str}\n"
+            f"USER {user_var}"
+        )
 
     @staticmethod
     def collect_plugin_apt_packages(
