@@ -187,9 +187,23 @@ test_init_with_yes_flag() {
     assert_file_exists ".env generated" "$tmpdir/.env"
     assert_file_exists "devcontainer.json generated" "$tmpdir/.devcontainer/devcontainer.json"
 
-    # Default plugins (docker-cli, proto) should be enabled
-    assert_file_contains "docker-cli enabled" "$tmpdir/workspace.toml" 'docker-cli'
-    assert_file_contains "proto enabled" "$tmpdir/workspace.toml" 'proto'
+    # Plugins with default=true in their TOML should be enabled
+    local plugins_dir="$PROJECT_ROOT/plugins"
+    for toml_file in "$plugins_dir"/*.toml; do
+        local pid pdefault
+        pid=$(basename "$toml_file" .toml)
+        pdefault=$(python3 -c "
+import pathlib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+print(str(tomllib.loads(pathlib.Path('$toml_file').read_text())['metadata']['default']).lower())
+")
+        if [[ "$pdefault" == "true" ]]; then
+            assert_file_contains "$pid enabled (default)" "$tmpdir/workspace.toml" "$pid"
+        fi
+    done
 
     # [vscode] section should be present with empty extensions
     assert_file_contains "vscode section" "$tmpdir/workspace.toml" '\[vscode\]'

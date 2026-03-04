@@ -21,7 +21,9 @@ test_uv() {
 
     load_plugin "uv"
     assert_eq "PLUGIN_NAME" "uv" "$PLUGIN_NAME"
-    assert_eq "PLUGIN_DEFAULT" "false" "$PLUGIN_DEFAULT"
+    local expected_default
+    expected_default=$(get_plugin_default "uv")
+    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
     assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
     assert_true "no volumes" test "${#PLUGIN_VOLUME_NAMES[@]}" -eq 0
 

@@ -5,6 +5,7 @@
 # ============================================================
 # Source this file at the top of each plugin test script.
 # Provides: test_helper.sh assertions + lib/generators.sh + generate_plugin_installs
+#           + get_plugin_default (reads default from TOML)
 # ============================================================
 
 TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../.. && pwd)"
@@ -19,4 +20,20 @@ source "$PROJECT_ROOT/lib/generators.sh"
 # Usage: generate_plugin_installs "plugin1" "plugin2" ...
 generate_plugin_installs() {
     python3 "$PROJECT_ROOT/lib/generators.py" plugin-installs "$PROJECT_ROOT/plugins" "$@"
+}
+
+# Read a plugin's metadata.default value from its TOML file
+# Usage: get_plugin_default "plugin-id"
+# Returns: "true" or "false"
+get_plugin_default() {
+    local plugin_id="$1"
+    python3 -c "
+import sys, pathlib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+data = tomllib.loads(pathlib.Path('$PROJECT_ROOT/plugins/${plugin_id}.toml').read_text())
+print(str(data['metadata']['default']).lower())
+"
 }

@@ -21,7 +21,9 @@ test_aws_cli() {
 
     load_plugin "aws-cli"
     assert_eq "PLUGIN_NAME" "AWS CLI v2" "$PLUGIN_NAME"
-    assert_eq "PLUGIN_DEFAULT" "false" "$PLUGIN_DEFAULT"
+    local expected_default
+    expected_default=$(get_plugin_default "aws-cli")
+    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
     assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
     assert_eq "volume name is aws" "aws" "${PLUGIN_VOLUME_NAMES[0]}"
 

@@ -21,7 +21,9 @@ test_proto() {
 
     load_plugin "proto"
     assert_eq "PLUGIN_NAME" "proto" "$PLUGIN_NAME"
-    assert_eq "PLUGIN_DEFAULT" "true" "$PLUGIN_DEFAULT"
+    local expected_default
+    expected_default=$(get_plugin_default "proto")
+    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
     assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
     assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
     assert_eq "volume name is proto" "proto" "${PLUGIN_VOLUME_NAMES[0]}"

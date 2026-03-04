@@ -21,7 +21,9 @@ test_aws_sam_cli() {
 
     load_plugin "aws-sam-cli"
     assert_eq "PLUGIN_NAME" "AWS SAM CLI" "$PLUGIN_NAME"
-    assert_eq "PLUGIN_DEFAULT" "false" "$PLUGIN_DEFAULT"
+    local expected_default
+    expected_default=$(get_plugin_default "aws-sam-cli")
+    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
     assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
     assert_true "no volumes" test "${#PLUGIN_VOLUME_NAMES[@]}" -eq 0
 
