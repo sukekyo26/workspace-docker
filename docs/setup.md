@@ -4,6 +4,7 @@
 
 **Required:**
 - Docker installed on host machine
+- Bash 4.3+ on host (uses `declare -n` nameref)
 
 **Optional:**
 - VS Code + Dev Containers extension

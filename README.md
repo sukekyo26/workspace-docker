@@ -17,6 +17,7 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 ### Prerequisites
 
 - Docker installed on host machine
+- Bash 4.3+ (uses `declare -n` nameref)
 - (Optional) VS Code + Dev Containers extension
 
 ### Setup

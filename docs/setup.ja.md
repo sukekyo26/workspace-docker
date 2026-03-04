@@ -4,6 +4,7 @@
 
 **必須要件:**
 - Dockerがホストマシンにインストールされていること
+- Bash 4.3+（`declare -n` namerefを使用）
 
 **オプション:**
 - VS Code + Dev Containers 拡張機能
