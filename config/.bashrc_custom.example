@@ -4,22 +4,22 @@
 #
 # Examples:
 
-# custom aliases
-alias ll="ls -lah"
-alias gs="git status"
+# # custom aliases
+# alias ll="ls -lah"
+# alias gs="git status"
 
-# npm global binaries
-NPM_PREFIX=$(npm config get prefix 2>/dev/null)
-if [ -n "$NPM_PREFIX" ] && [ -d "$NPM_PREFIX/bin" ]; then
-  export PATH="$NPM_PREFIX/bin:$PATH"
-fi
+# # npm global binaries
+# NPM_PREFIX=$(npm config get prefix 2>/dev/null)
+# if [ -n "$NPM_PREFIX" ] && [ -d "$NPM_PREFIX/bin" ]; then
+#   export PATH="$NPM_PREFIX/bin:$PATH"
+# fi
 
-# pnpm global binaries
-export PNPM_HOME="~/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
+# # pnpm global binaries
+# export PNPM_HOME="~/.local/share/pnpm"
+# case ":$PATH:" in
+#   *":$PNPM_HOME:"*) ;;
+#   *) export PATH="$PNPM_HOME:$PATH" ;;
+# esac
 
-# Rust & Cargo
-. "$HOME/.cargo/env"
+# # Rust & Cargo
+# . "$HOME/.cargo/env"
