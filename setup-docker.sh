@@ -18,6 +18,10 @@ source "$SCRIPT_DIR/lib/certificates.sh"
 source "$SCRIPT_DIR/lib/validators.sh"
 # shellcheck source=lib/generators.sh
 source "$SCRIPT_DIR/lib/generators.sh"
+# shellcheck source=lib/tui.sh
+source "$SCRIPT_DIR/lib/tui.sh"
+
+trap tui_cleanup EXIT
 
 # ============================================================
 # Parse arguments
@@ -84,7 +88,6 @@ else
 
     # Software installation selection
     subsection_header "Software Installation Selection"
-    echo ""
 
     # Dynamic plugin selection from plugins/ directory
     list_available_plugins
@@ -103,28 +106,20 @@ else
             fi
         done
     else
+        # Build preselected CSV from plugin defaults
+        preselected_csv=""
         for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
-            plugin_id="${PLUGIN_IDS[$i]}"
-            plugin_name="${PLUGIN_NAMES[$i]}"
-            plugin_default="${PLUGIN_DEFAULTS[$i]}"
-
-            if [[ "$plugin_default" == "true" ]]; then
-                prompt_default="Y/n"
-                default_choice="Y"
-            else
-                prompt_default="y/N"
-                default_choice="N"
+            if [[ "${PLUGIN_DEFAULTS[$i]}" == "true" ]]; then
+                [[ -n "$preselected_csv" ]] && preselected_csv+=","
+                preselected_csv+="$i"
             fi
+        done
 
-            while true; do
-                read -rp "Install ${plugin_name}? [${prompt_default}]: " choice
-                choice=${choice:-$default_choice}
-                case $choice in
-                    [Yy]*) local_enabled_plugins+=("$plugin_id"); break ;;
-                    [Nn]*) break ;;
-                    *) error "Please enter Y or n" ;;
-                esac
-            done
+        # TUI multi-select for plugins
+        select_multi "Select plugins to install:" "$preselected_csv" "${PLUGIN_NAMES[@]}"
+
+        for idx in "${TUI_MULTI_RESULT[@]}"; do
+            local_enabled_plugins+=("${PLUGIN_IDS[$idx]}")
         done
     fi
 
@@ -172,6 +167,9 @@ enable = $plugins_toml
 
 [ports]
 forward = [$forward_port]
+
+[vscode]
+extensions = []
 EOF
 
     # Reload to set WS_* variables

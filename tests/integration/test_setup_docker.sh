@@ -191,6 +191,10 @@ test_init_with_yes_flag() {
     assert_file_contains "docker-cli enabled" "$tmpdir/workspace.toml" 'docker-cli'
     assert_file_contains "proto enabled" "$tmpdir/workspace.toml" 'proto'
 
+    # [vscode] section should be present with empty extensions
+    assert_file_contains "vscode section" "$tmpdir/workspace.toml" '\[vscode\]'
+    assert_file_contains "extensions empty" "$tmpdir/workspace.toml" 'extensions = \[\]'
+
     rm -rf "$tmpdir"
 }
 
