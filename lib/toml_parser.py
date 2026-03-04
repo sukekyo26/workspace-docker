@@ -235,21 +235,6 @@ COMMANDS: dict[str, TomlCommand] = {
 }
 
 
-# Backward-compatible aliases for external imports
-encode_value = ShellEncoder.encode
-print_kv = ShellEncoder.print_kv
-
-
-def cmd_workspace(filepath: str) -> None:
-    """Backward-compatible wrapper for WorkspaceCommand."""
-    WorkspaceCommand().execute(filepath)
-
-
-def cmd_plugin(filepath: str) -> None:
-    """Backward-compatible wrapper for PluginCommand."""
-    PluginCommand().execute(filepath)
-
-
 # ============================================================
 # CLI
 # ============================================================

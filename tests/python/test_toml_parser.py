@@ -19,8 +19,6 @@ from toml_parser import (
     PluginCommand,
     ShellEncoder,
     WorkspaceCommand,
-    cmd_plugin,
-    cmd_workspace,
 )
 
 
@@ -142,15 +140,15 @@ class TestWorkspaceCommand:
             finally:
                 os.unlink(f.name)
 
-    def test_backward_compat_wrapper(self, capsys: pytest.CaptureFixture[str]) -> None:
-        """cmd_workspace() should delegate to WorkspaceCommand."""
+    def test_execute_directly(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """WorkspaceCommand can be instantiated and executed directly."""
         with tempfile.NamedTemporaryFile(suffix=".toml", mode="w", delete=False) as f:
-            f.write('[container]\nservice_name = "compat"\n')
+            f.write('[container]\nservice_name = "direct"\n')
             f.flush()
             try:
-                cmd_workspace(f.name)
+                WorkspaceCommand().execute(f.name)
                 output = capsys.readouterr().out
-                assert "S:WS_SERVICE_NAME=compat" in output
+                assert "S:WS_SERVICE_NAME=direct" in output
             finally:
                 os.unlink(f.name)
 
@@ -307,21 +305,21 @@ class TestPluginCommand:
             finally:
                 os.unlink(f.name)
 
-    def test_backward_compat_wrapper(self, capsys: pytest.CaptureFixture[str]) -> None:
-        """cmd_plugin() should delegate to PluginCommand."""
+    def test_execute_directly(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """PluginCommand can be instantiated and executed directly."""
         with tempfile.NamedTemporaryFile(
-            suffix=".toml", mode="w", delete=False, prefix="compat-plugin-",
+            suffix=".toml", mode="w", delete=False, prefix="direct-plugin-",
         ) as f:
             f.write(
-                '[metadata]\nname = "Compat"\n\n'
+                '[metadata]\nname = "Direct"\n\n'
                 '[install]\nrequires_root = false\n'
-                'dockerfile = "RUN echo compat"\n'
+                'dockerfile = "RUN echo direct"\n'
             )
             f.flush()
             try:
-                cmd_plugin(f.name)
+                PluginCommand().execute(f.name)
                 output = capsys.readouterr().out
-                assert "S:PLUGIN_NAME=Compat" in output
+                assert "S:PLUGIN_NAME=Direct" in output
             finally:
                 os.unlink(f.name)
 
