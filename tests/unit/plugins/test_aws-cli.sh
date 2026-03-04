@@ -27,7 +27,8 @@ test_aws_cli() {
 
     local result
     result=$(generate_plugin_installs "aws-cli")
-    assert_true "install contains AWS" echo "$result" | grep -q "AWS"
+    assert_file_contains "install contains AWS" <(echo "$result") "AWS"
+    assert_file_contains "install uses TLS enforcement" <(echo "$result") "tlsv1.2"
 }
 
 # ============================================================

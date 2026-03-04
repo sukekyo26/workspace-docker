@@ -13,7 +13,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         arm64) CLI_ARCH="aarch64" ;; \
         *) CLI_ARCH="x86_64" ;; \
     esac && \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     sudo ./aws/install && \
     rm -rf aws awscliv2.zip && \

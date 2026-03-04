@@ -119,7 +119,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         arm64) CLI_ARCH="aarch64" ;; \
         *) CLI_ARCH="x86_64" ;; \
     esac && \
-    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     sudo ./aws/install && \
     rm -rf aws awscliv2.zip && \
@@ -132,7 +132,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         *) DOWNLOAD_ARCH="x86_64" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
     unzip aws-sam-cli.zip -d sam-installation && \
     sudo ./sam-installation/install && \
     rm -rf sam-installation aws-sam-cli.zip

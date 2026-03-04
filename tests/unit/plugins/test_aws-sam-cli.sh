@@ -27,8 +27,9 @@ test_aws_sam_cli() {
 
     local result
     result=$(generate_plugin_installs "aws-sam-cli")
-    assert_true "install contains SAM" echo "$result" | grep -q "SAM"
-    assert_true "install contains architecture detection" echo "$result" | grep -q "dpkg --print-architecture"
+    assert_file_contains "install contains SAM" <(echo "$result") "SAM"
+    assert_file_contains "install contains architecture detection" <(echo "$result") "dpkg --print-architecture"
+    assert_file_contains "install uses TLS enforcement" <(echo "$result") "tlsv1.2"
 }
 
 # ============================================================
