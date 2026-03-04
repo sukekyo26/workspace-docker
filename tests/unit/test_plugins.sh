@@ -18,6 +18,12 @@ echo "[ test_plugins.sh ]"
 source "$PROJECT_ROOT/lib/logging.sh"
 source "$PROJECT_ROOT/lib/generators.sh"
 
+# Generate plugin install snippets via Python (single source of truth)
+# Usage: generate_plugin_installs "plugin1" "plugin2" ...
+generate_plugin_installs() {
+    python3 "$PROJECT_ROOT/lib/generators.py" plugin-installs "$PROJECT_ROOT/plugins" "$@"
+}
+
 # ============================================================
 # Test: Plugin infrastructure files exist
 # ============================================================

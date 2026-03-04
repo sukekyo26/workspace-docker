@@ -565,6 +565,31 @@ COMMANDS: dict[str, _GeneratorFn] = {
 
 
 def main() -> None:
+    if len(sys.argv) < 3:
+        cmds = "|".join(COMMANDS)
+        print(
+            f"Usage: {sys.argv[0]} <{cmds}|plugin-installs> <workspace.toml|plugins_dir> <plugins_dir|plugin-id...>",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    command = sys.argv[1]
+
+    # plugin-installs subcommand: generate plugin install snippets
+    # Usage: generators.py plugin-installs <plugins_dir> <plugin-id> ...
+    if command == "plugin-installs":
+        if len(sys.argv) < 4:
+            print(
+                f"Usage: {sys.argv[0]} plugin-installs <plugins_dir> <plugin-id> ...",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        plugins_dir = sys.argv[2]
+        plugin_ids = sys.argv[3:]
+        output = _generate_plugin_installs(plugins_dir, plugin_ids)
+        sys.stdout.write(output)
+        return
+
     if len(sys.argv) < 4:
         cmds = "|".join(COMMANDS)
         print(
@@ -573,7 +598,6 @@ def main() -> None:
         )
         sys.exit(1)
 
-    command = sys.argv[1]
     workspace_toml = sys.argv[2]
     plugins_dir = sys.argv[3]
 
