@@ -241,6 +241,18 @@ To find extension IDs: open VS Code Extensions panel → right-click an extensio
 
 To customize, edit `config/workspace-settings.json` directly. Changes apply to newly generated workspace files.
 
+## Security Design
+
+### NOPASSWD sudo
+
+The container configures `NOPASSWD:ALL` sudo for the workspace user. This is an intentional design choice:
+
+- **Development-only containers**: These containers are ephemeral, single-user development environments — not production servers
+- **Plugin installation**: Some plugins (e.g., AWS CLI, AWS SAM CLI) require `sudo` for system-wide installation
+- **Developer experience**: Eliminating password prompts removes friction in interactive shell usage
+
+> **Note**: Do not use this container configuration for production workloads. The NOPASSWD sudo setting is appropriate only for local development environments.
+
 ## Testing
 
 The project includes a comprehensive test suite with 8 test suites:
