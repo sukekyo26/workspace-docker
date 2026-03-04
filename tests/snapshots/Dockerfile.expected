@@ -173,6 +173,12 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     ln -s /usr/local/zig/zig /usr/local/bin/zig && \
     rm /tmp/zig.tar.xz
 USER ${USERNAME}
+# Install uv (fast Python package and project manager)
+RUN curl -fsSL https://astral.sh/uv/install.sh -o /tmp/install-uv.sh && \
+    bash /tmp/install-uv.sh && \
+    rm -f /tmp/install-uv.sh && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.local
