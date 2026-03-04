@@ -50,6 +50,24 @@ test_mypy() {
 }
 
 # ============================================================
+# Test: pyright type check
+# ============================================================
+test_pyright() {
+    section "pyright type check"
+
+    if ! command -v pyright &>/dev/null; then
+        skip_test "pyright check" "pyright not installed"
+        return
+    fi
+
+    if pyright "$PROJECT_ROOT/lib/"*.py 2>/dev/null; then
+        assert_true "pyright lib/*.py" true
+    else
+        assert_true "pyright lib/*.py" false
+    fi
+}
+
+# ============================================================
 # Test: pytest
 # ============================================================
 test_pytest() {
@@ -77,6 +95,7 @@ test_pytest() {
 
 test_ruff
 test_mypy
+test_pyright
 test_pytest
 
 print_summary

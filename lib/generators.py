@@ -101,10 +101,10 @@ class ComposeGenerator(Generator):
     def str_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
         """Represent strings with double quotes only when YAML-special chars are present."""
         if any(c in ComposeGenerator.YAML_SPECIAL_CHARS for c in data):
-            return dumper.represent_scalar(
+            return dumper.represent_scalar(  # pyright: ignore[reportUnknownMemberType]
                 "tag:yaml.org,2002:str", data, style='"',
             )
-        return dumper.represent_scalar(
+        return dumper.represent_scalar(  # pyright: ignore[reportUnknownMemberType]
             "tag:yaml.org,2002:str", data,
         )
 
