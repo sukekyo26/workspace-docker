@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# tests/test_project_structure.sh
+# tests/structure/test_project_structure.sh
 # Tests for overall project structure, syntax, and conventions
 # ============================================================
 

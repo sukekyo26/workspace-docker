@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# tests/unit/lib/test_generators.sh
+# tests/unit/lib/test_utils.sh
 # Tests for lib/utils.sh and lib/certificates.sh
 # ============================================================
 
@@ -11,7 +11,7 @@ TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../.. && pwd)"
 source "$TESTS_DIR/test_helper.sh"
 
 echo ""
-echo "[ test_generators.sh ]"
+echo "[ test_utils.sh ]"
 
 source "$PROJECT_ROOT/lib/utils.sh"
 source "$PROJECT_ROOT/lib/certificates.sh"

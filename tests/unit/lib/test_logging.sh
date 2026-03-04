@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
-# tests/unit/lib/test_errors.sh
-# Tests for lib/errors.sh
+# tests/unit/lib/test_logging.sh
+# Tests for lib/logging.sh
 # ============================================================
 
 set -uo pipefail
@@ -11,7 +11,7 @@ TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../.. && pwd)"
 source "$TESTS_DIR/test_helper.sh"
 
 echo ""
-echo "[ test_errors.sh ]"
+echo "[ test_logging.sh ]"
 
 source "$PROJECT_ROOT/lib/logging.sh"
 

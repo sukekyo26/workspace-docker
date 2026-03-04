@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# tests/test_snapshot.sh
+# tests/structure/test_snapshot.sh
 # Snapshot tests: compare generated files against expected output
 # ============================================================
 # Usage:
