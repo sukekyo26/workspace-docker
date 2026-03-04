@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 # Add lib/ to import path
 LIB_DIR = Path(__file__).resolve().parent.parent.parent / "lib"
@@ -102,6 +103,118 @@ class TestGeneratorBase:
         assert gen.service_name == "dev"
         assert gen.username == "developer"
         assert gen.enabled_plugins == []
+
+
+class TestYamlRepresenter:
+    """Test ComposeGenerator YAML representer for correct quoting behavior (#67)."""
+
+    def _dump(self, data: str) -> str:
+        """Dump a string using the compose dumper and return the YAML output."""
+        dumper = ComposeGenerator.make_dumper()
+        return yaml.dump({"key": data}, Dumper=dumper, default_flow_style=False)
+
+    def test_plain_string_no_quotes(self) -> None:
+        """Simple strings without special chars should not be quoted."""
+        result = self._dump("simple-value")
+        assert result.strip() == "key: simple-value"
+
+    def test_colon_gets_quoted(self) -> None:
+        """Strings with colon should be double-quoted."""
+        result = self._dump("host:port")
+        assert '"host:port"' in result
+
+    def test_hash_gets_quoted(self) -> None:
+        """Strings with # should be double-quoted."""
+        result = self._dump("value # comment")
+        assert '"value # comment"' in result
+
+    def test_curly_brace_gets_quoted(self) -> None:
+        """Strings with {} should be double-quoted."""
+        result = self._dump("${VAR}")
+        assert '"${VAR}"' in result
+
+    def test_square_bracket_gets_quoted(self) -> None:
+        """Strings with [] should be double-quoted."""
+        result = self._dump("[item]")
+        assert '"[item]"' in result
+
+    def test_ampersand_gets_quoted(self) -> None:
+        """Strings with & should be double-quoted."""
+        result = self._dump("a & b")
+        assert '"a & b"' in result
+
+    def test_asterisk_gets_quoted(self) -> None:
+        """Strings with * should be double-quoted."""
+        result = self._dump("*alias")
+        assert '"*alias"' in result
+
+    def test_pipe_gets_quoted(self) -> None:
+        """Strings with | should be double-quoted."""
+        result = self._dump("cmd | grep")
+        assert '"cmd | grep"' in result
+
+    def test_percent_gets_quoted(self) -> None:
+        """Strings with % should be double-quoted."""
+        result = self._dump("100%")
+        assert '"100%"' in result
+
+    def test_single_quote_gets_quoted(self) -> None:
+        """Strings with ' should be double-quoted."""
+        result = self._dump("it's")
+        assert "\"it's\"" in result
+
+    def test_double_quote_gets_quoted(self) -> None:
+        """Strings with double quote should be double-quoted."""
+        result = self._dump('say "hello"')
+        # YAML escapes internal double quotes
+        assert result.count('"') >= 2
+
+    def test_backtick_gets_quoted(self) -> None:
+        """Strings with backtick should be double-quoted."""
+        result = self._dump("run `cmd`")
+        assert '"run `cmd`"' in result
+
+    def test_comma_gets_quoted(self) -> None:
+        """Strings with comma should be double-quoted."""
+        result = self._dump("a,b")
+        assert '"a,b"' in result
+
+    def test_question_mark_gets_quoted(self) -> None:
+        """Strings with ? should be double-quoted."""
+        result = self._dump("really?")
+        assert '"really?"' in result
+
+    def test_newline_gets_quoted(self) -> None:
+        """Strings with newline should be double-quoted."""
+        result = self._dump("line1\nline2")
+        # YAML may use different representations for newlines
+        assert '"' in result or "|-" in result
+
+    def test_docker_compose_env_var(self) -> None:
+        """Docker compose ${VAR} references should be double-quoted."""
+        result = self._dump("${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}")
+        assert '"${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"' in result
+
+    def test_docker_compose_volume_path(self) -> None:
+        """Docker compose volume paths without special chars should be plain."""
+        result = self._dump("..:/home/user/workspace")
+        # Contains colon, so should be quoted
+        assert '"..:/home/user/workspace"' in result
+
+    def test_yaml_special_chars_coverage(self) -> None:
+        """Every character in YAML_SPECIAL_CHARS should trigger quoting."""
+        for char in ComposeGenerator.YAML_SPECIAL_CHARS:
+            if char == "\n":
+                continue  # newline handled differently by yaml
+            data = f"test{char}value"
+            result = self._dump(data)
+            assert '"' in result, f"Character {char!r} should trigger quoting"
+
+    def test_make_dumper_returns_custom_type(self) -> None:
+        """make_dumper should return a new SafeDumper subclass."""
+        dumper = ComposeGenerator.make_dumper()
+        assert issubclass(dumper, yaml.SafeDumper)
+        assert dumper is not yaml.SafeDumper
 
 
 class TestGetPluginVolumes:
