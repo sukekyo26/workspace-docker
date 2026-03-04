@@ -191,7 +191,7 @@ test_init_with_yes_flag() {
 
     # Verify default values
     assert_file_contains "default service name" "$tmpdir/workspace.toml" 'service_name = "dev"'
-    assert_file_contains "default port" "$tmpdir/workspace.toml" 'forward = \[3000\]'
+    assert_file_contains "default port" "$tmpdir/workspace.toml" 'forward = [3000]'
 
     # Verify generated files
     assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
@@ -212,15 +212,15 @@ test_init_with_yes_flag() {
     done
 
     # [vscode] section should be present with empty extensions
-    assert_file_contains "vscode section" "$tmpdir/workspace.toml" '\[vscode\]'
-    assert_file_contains "extensions empty" "$tmpdir/workspace.toml" 'extensions = \[\]'
+    assert_file_contains "vscode section" "$tmpdir/workspace.toml" '[vscode]'
+    assert_file_contains "extensions empty" "$tmpdir/workspace.toml" 'extensions = []'
 
     # [apt] section should be present
-    assert_file_contains "apt section" "$tmpdir/workspace.toml" '\[apt\]'
-    assert_file_contains "packages empty" "$tmpdir/workspace.toml" 'packages = \[\]'
+    assert_file_contains "apt section" "$tmpdir/workspace.toml" '[apt]'
+    assert_file_contains "packages empty" "$tmpdir/workspace.toml" 'packages = []'
 
     # [volumes] section should be present
-    assert_file_contains "volumes section" "$tmpdir/workspace.toml" '\[volumes\]'
+    assert_file_contains "volumes section" "$tmpdir/workspace.toml" '[volumes]'
 
     rm -rf "$tmpdir"
 }

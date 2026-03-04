@@ -97,10 +97,10 @@ test_e2e_pipeline() {
     assert_file_exists ".devcontainer/docker-compose.yml" "$WORK_DIR/.devcontainer/docker-compose.yml"
 
     # Verify no unreplaced placeholders in any file
-    assert_file_not_contains "Dockerfile clean" "$WORK_DIR/Dockerfile" '{{.*}}'
-    assert_file_not_contains "docker-compose.yml clean" "$WORK_DIR/docker-compose.yml" '{{.*}}'
-    assert_file_not_contains "devcontainer.json clean" "$WORK_DIR/.devcontainer/devcontainer.json" '{{.*}}'
-    assert_file_not_contains ".devcontainer/docker-compose.yml clean" "$WORK_DIR/.devcontainer/docker-compose.yml" '{{.*}}'
+    assert_file_not_matches "Dockerfile clean" "$WORK_DIR/Dockerfile" '\{\{.*\}\}'
+    assert_file_not_matches "docker-compose.yml clean" "$WORK_DIR/docker-compose.yml" '\{\{.*\}\}'
+    assert_file_not_matches "devcontainer.json clean" "$WORK_DIR/.devcontainer/devcontainer.json" '\{\{.*\}\}'
+    assert_file_not_matches ".devcontainer/docker-compose.yml clean" "$WORK_DIR/.devcontainer/docker-compose.yml" '\{\{.*\}\}'
 
     # Verify service name propagation
     assert_file_contains "service in docker-compose" "$WORK_DIR/docker-compose.yml" "$service_name"

@@ -33,7 +33,7 @@ test_dockerfile_all_enabled() {
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
-    assert_file_not_contains "no unreplaced placeholders" "$WORK_DIR/Dockerfile" '{{.*}}'
+    assert_file_not_matches "no unreplaced placeholders" "$WORK_DIR/Dockerfile" '\{\{.*\}\}'
     assert_file_contains "Docker CLI section present" "$WORK_DIR/Dockerfile" 'Docker CLI'
     assert_file_contains "AWS CLI section present" "$WORK_DIR/Dockerfile" 'AWS CLI'
     assert_file_contains "AWS SAM CLI section present" "$WORK_DIR/Dockerfile" 'AWS SAM CLI'
@@ -66,7 +66,7 @@ test_dockerfile_no_plugins() {
     )
 
     assert_file_exists "Dockerfile generated" "$WORK_DIR/Dockerfile"
-    assert_file_not_contains "no unreplaced placeholders" "$WORK_DIR/Dockerfile" '{{.*}}'
+    assert_file_not_matches "no unreplaced placeholders" "$WORK_DIR/Dockerfile" '\{\{.*\}\}'
     assert_file_not_contains "Docker CLI absent" "$WORK_DIR/Dockerfile" 'Install Docker CLI'
     assert_file_not_contains "AWS CLI absent" "$WORK_DIR/Dockerfile" 'Install AWS CLI'
     assert_file_not_contains "GitHub CLI absent" "$WORK_DIR/Dockerfile" 'Install GitHub CLI'

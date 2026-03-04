@@ -109,8 +109,8 @@ test_gitignore() {
     local gi="$PROJECT_ROOT/.gitignore"
     assert_file_contains "ignores Dockerfile" "$gi" 'Dockerfile'
     assert_file_contains "ignores docker-compose.yml" "$gi" 'docker-compose.yml'
-    assert_file_contains "ignores .env" "$gi" '\.env'
-    assert_file_contains "ignores .code-workspace" "$gi" '\.code-workspace'
+    assert_file_contains "ignores .env" "$gi" '.env'
+    assert_file_contains "ignores .code-workspace" "$gi" '.code-workspace'
     assert_file_contains "ignores workspace.toml" "$gi" 'workspace.toml'
     assert_file_contains "ignores certs" "$gi" 'certs/'
 }
@@ -157,10 +157,10 @@ test_generated_files() {
 
     # Check no unreplaced placeholders
     if [[ -f "$PROJECT_ROOT/Dockerfile" ]]; then
-        assert_file_not_contains "Dockerfile: no unreplaced {{...}}" "$PROJECT_ROOT/Dockerfile" '{{.*}}'
+        assert_file_not_matches "Dockerfile: no unreplaced {{...}}" "$PROJECT_ROOT/Dockerfile" '\{\{.*\}\}'
     fi
     if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
-        assert_file_not_contains "docker-compose.yml: no unreplaced {{...}}" "$PROJECT_ROOT/docker-compose.yml" '{{.*}}'
+        assert_file_not_matches "docker-compose.yml: no unreplaced {{...}}" "$PROJECT_ROOT/docker-compose.yml" '\{\{.*\}\}'
     fi
 
     # docker-compose.yml syntax validation
@@ -190,7 +190,7 @@ test_env_format() {
     local required_vars=(CONTAINER_SERVICE_NAME USERNAME UID GID DOCKER_GID UBUNTU_VERSION FORWARD_PORT)
 
     for var in "${required_vars[@]}"; do
-        assert_file_contains ".env has $var" "$env_file" "^${var}="
+        assert_file_matches ".env has $var" "$env_file" "^${var}="
     done
 }
 
@@ -234,7 +234,7 @@ test_volume_mounts() {
     # Check docker-compose.yml named volumes
     if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
         for vol in "${volumes_to_check[@]}"; do
-            assert_file_contains "docker-compose.yml defines volume '$vol'" \
+            assert_file_matches "docker-compose.yml defines volume '$vol'" \
                 "$PROJECT_ROOT/docker-compose.yml" "^  ${vol}:"
         done
     fi

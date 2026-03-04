@@ -97,11 +97,11 @@ assert_dir_exists() {
 
 assert_file_contains() {
     local desc="$1" path="$2" pattern="$3"
-    if grep -q "$pattern" "$path" 2>/dev/null; then
+    if grep -Fq "$pattern" "$path" 2>/dev/null; then
         echo "  ✅ PASS: $desc"
         PASS=$((PASS + 1))
     else
-        echo "  ❌ FAIL: $desc (pattern '$pattern' not found in $path)"
+        echo "  ❌ FAIL: $desc (string '$pattern' not found in $path)"
         FAIL=$((FAIL + 1))
         ERRORS+=("$desc")
     fi
@@ -109,11 +109,35 @@ assert_file_contains() {
 
 assert_file_not_contains() {
     local desc="$1" path="$2" pattern="$3"
-    if ! grep -q "$pattern" "$path" 2>/dev/null; then
+    if ! grep -Fq "$pattern" "$path" 2>/dev/null; then
         echo "  ✅ PASS: $desc"
         PASS=$((PASS + 1))
     else
-        echo "  ❌ FAIL: $desc (pattern '$pattern' found in $path)"
+        echo "  ❌ FAIL: $desc (string '$pattern' found in $path)"
+        FAIL=$((FAIL + 1))
+        ERRORS+=("$desc")
+    fi
+}
+
+assert_file_matches() {
+    local desc="$1" path="$2" pattern="$3"
+    if grep -Eq "$pattern" "$path" 2>/dev/null; then
+        echo "  ✅ PASS: $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  ❌ FAIL: $desc (regex '$pattern' not matched in $path)"
+        FAIL=$((FAIL + 1))
+        ERRORS+=("$desc")
+    fi
+}
+
+assert_file_not_matches() {
+    local desc="$1" path="$2" pattern="$3"
+    if ! grep -Eq "$pattern" "$path" 2>/dev/null; then
+        echo "  ✅ PASS: $desc"
+        PASS=$((PASS + 1))
+    else
+        echo "  ❌ FAIL: $desc (regex '$pattern' matched in $path)"
         FAIL=$((FAIL + 1))
         ERRORS+=("$desc")
     fi

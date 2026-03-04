@@ -37,7 +37,7 @@ test_devcontainer_json_generation() {
     )
 
     assert_file_exists "devcontainer.json generated" "$WORK_DIR/.devcontainer/devcontainer.json"
-    assert_file_not_contains "no unreplaced {{...}}" "$WORK_DIR/.devcontainer/devcontainer.json" '{{.*}}'
+    assert_file_not_matches "no unreplaced {{...}}" "$WORK_DIR/.devcontainer/devcontainer.json" '\{\{.*\}\}'
     assert_file_contains "service name in devcontainer.json" "$WORK_DIR/.devcontainer/devcontainer.json" "$service_name"
     assert_file_contains "username in devcontainer.json" "$WORK_DIR/.devcontainer/devcontainer.json" "$username"
 
@@ -63,7 +63,7 @@ test_devcontainer_compose_generation() {
     )
 
     assert_file_exists ".devcontainer/docker-compose.yml generated" "$WORK_DIR/.devcontainer/docker-compose.yml"
-    assert_file_not_contains "no unreplaced {{...}}" "$WORK_DIR/.devcontainer/docker-compose.yml" '{{.*}}'
+    assert_file_not_matches "no unreplaced {{...}}" "$WORK_DIR/.devcontainer/docker-compose.yml" '\{\{.*\}\}'
     assert_file_contains "service name replaced" "$WORK_DIR/.devcontainer/docker-compose.yml" "$service_name"
 
     teardown_workspace
