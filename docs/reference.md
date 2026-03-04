@@ -155,11 +155,11 @@ Base packages are managed in `config/apt-base-packages.conf`. Project-specific e
 - **Bash Completion** - Command auto-completion
 - **Git-integrated Prompt** - Branch and status display
 - **Persistent History** - Command history persists across sessions
-- **Custom Configuration** - User-specific settings via `workspace-docker/config/.bashrc_custom` (editable from host)
+- **Custom Configuration** - User-specific settings via `config/.bashrc_custom` (editable from host)
 
 ### Using Custom Configuration File
 
-The container supports a custom configuration file at `workspace-docker/config/.bashrc_custom`. This file is:
+The container supports a custom configuration file at `config/.bashrc_custom`. This file is:
 - **Automatically loaded** by `.bashrc` on shell startup
 - **Editable directly from host** (no need to enter container)
 - **Part of workspace** for easy management and version control

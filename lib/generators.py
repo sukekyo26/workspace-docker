@@ -364,10 +364,10 @@ RUN echo 'export HISTFILE=~/.local/state/.bash_history_docker' >> ~/.bashrc && \
     echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \\
     mkdir -p ~/.local/state && touch ~/.local/state/.bash_history_docker
 
-# Custom configuration file support (workspace-docker/config/.bashrc_custom)
+# Custom configuration file support (config/.bashrc_custom)
 RUN echo '' >> ~/.bashrc && \\
-    echo '# Load custom configuration from workspace-docker/config/.bashrc_custom' >> ~/.bashrc && \\
-    echo '[ -f "$HOME/workspace/workspace-docker/config/.bashrc_custom" ] && . "$HOME/workspace/workspace-docker/config/.bashrc_custom"' >> ~/.bashrc
+    echo '# Load custom configuration from config/.bashrc_custom' >> ~/.bashrc && \\
+    echo '[ -f "$HOME/workspace/{{REPO_DIR}}/config/.bashrc_custom" ] && . "$HOME/workspace/{{REPO_DIR}}/config/.bashrc_custom"' >> ~/.bashrc
 
 WORKDIR /home/${USERNAME}/workspace
 """
@@ -438,7 +438,10 @@ WORKDIR /home/${USERNAME}/workspace
             if not matched:
                 result_lines.append(line)
 
-        return "\n".join(result_lines)
+        # Inline replacement for repo directory name
+        repo_dir = os.path.basename(self._workspace_root)
+        result = "\n".join(result_lines)
+        return result.replace("{{REPO_DIR}}", repo_dir)
 
     @staticmethod
     def generate_plugin_installs(

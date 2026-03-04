@@ -27,9 +27,12 @@ UPDATE_MODE=false
 # Helper: create workspace and generate all files
 # ============================================================
 WORK_DIR=""
+_SNAPSHOT_TMPDIR=""
 
 generate_all_files() {
-    WORK_DIR=$(mktemp -d)
+    _SNAPSHOT_TMPDIR=$(mktemp -d)
+    WORK_DIR="$_SNAPSHOT_TMPDIR/workspace-docker"
+    mkdir -p "$WORK_DIR"
 
     # Copy libs and plugins
     cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
@@ -64,8 +67,9 @@ generate_all_files() {
 }
 
 cleanup() {
-    [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]] && rm -rf "$WORK_DIR"
+    [[ -n "$_SNAPSHOT_TMPDIR" && -d "$_SNAPSHOT_TMPDIR" ]] && rm -rf "$_SNAPSHOT_TMPDIR"
     WORK_DIR=""
+    _SNAPSHOT_TMPDIR=""
 }
 
 # ============================================================

@@ -104,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zig toolchain for cargo-lambda cross-compilation (optional installation)
 - Persistent volumes for Deno (~/.deno), Bun (~/.bun), and Go (~/go) workspaces
 - Rust toolchain support with Cargo and Rustup persistent volumes (~/.cargo, ~/.rustup)
-- Custom bash configuration support via workspace-docker/config/.bashrc_custom
+- Custom bash configuration support via config/.bashrc_custom
 - Network diagnostic utilities (ping, traceroute, dnsutils) to system packages
 - bc (arbitrary precision calculator) package to system utilities
 - Test validation for new persistent volumes for language runtimes

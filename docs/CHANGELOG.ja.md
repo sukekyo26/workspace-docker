@@ -75,7 +75,7 @@
 - cargo-lambdaクロスコンパイル用のZigツールチェーン（オプションインストール）
 - Deno（~/.deno）、Bun（~/.bun）、Go（~/go）ワークスペース用の永続ボリューム
 - CargoとRustupの永続ボリューム（~/.cargo、~/.rustup）を含むRustツールチェーンサポート
-- workspace-docker/config/.bashrc_custom経由のカスタムbash設定サポート
+- config/.bashrc_custom経由のカスタムbash設定サポート
 - システムパッケージにネットワーク診断ユーティリティ（ping、traceroute、dnsutils）を追加
 - システムユーティリティにbc（任意精度計算機）パッケージを追加
 - 言語ランタイム用の新しい永続ボリュームのテスト検証
