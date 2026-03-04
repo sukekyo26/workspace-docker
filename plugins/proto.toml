@@ -1,7 +1,7 @@
 [metadata]
 name = "proto"
 description = "Multi-language version manager (moonrepo/proto)"
-default = true
+default = false
 
 [apt]
 packages = [
