@@ -1,0 +1,16 @@
+{
+  "files.autoSave": "afterDelay",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": true,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "github.copilot.chat.localeOverride": "ja",
+  "editor.tabSize": 2,
+  "[python]": {
+    "editor.tabSize": 4
+  },
+  "[dockerfile]": {
+    "editor.tabSize": 4
+  }
+}

@@ -3,11 +3,13 @@
 /docker-compose.yml
 /.devcontainer/devcontainer.json
 /.devcontainer/docker-compose.yml
-multi-project.code-workspace
+*.code-workspace
 
 # Environment files
 .env
-.envs/
+
+# Workspace configuration (user-specific)
+workspace.toml
 
 # Custom CA certificates (security: don't commit certificates)
 certs/*.crt
@@ -16,3 +18,12 @@ certs/*.pem
 
 # Custom configuration (user-specific settings)
 config/.bashrc_custom
+
+# VS Code user-specific settings (not project-wide)
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.mypy_cache/
+.venv/

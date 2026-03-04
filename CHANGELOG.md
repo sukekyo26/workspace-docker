@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-03-04
+
+### Added
+- **Plugin Architecture**: Extensible tool selection via `plugins/*.toml` TOML files
+  - TOML parser helper (`lib/toml_parser.py`) using Python 3.11+ `tomllib`
+  - Plugin loading library (`lib/plugins.sh`) for Dockerfile snippet generation
+  - Plugin definitions for all existing tools: `proto`, `aws-cli`, `aws-sam-cli`, `copilot-cli`, `claude-code`, `docker-cli`, `github-cli`, `zig`
+- **workspace.toml**: Single TOML configuration file replacing interactive-only setup
+  - `[container]` section for service name, username, Ubuntu version
+  - `[plugins]` section for tool selection
+  - `[apt]` section for extra system packages
+  - `[ports]` section for port forwarding
+  - `[devcontainer]` section for devcontainer.json key overrides and deep merge
+- `setup-docker.sh --yes` flag for non-interactive setup with default values
+- SHA256 checksum verification for zig plugin downloads
+- TLS enforcement (`--proto '=https' --tlsv1.2`) for curl|sh plugins (claude-code, uv, proto, copilot-cli)
+- `.dockerignore` to exclude `.git/`, `tests/`, `docs/`, `agent/`, `.env` from build context
+- `uv` plugin for fast Python package management
+- Per-plugin apt dependency packages via `[apt].packages` in plugin TOML
+- Plugin TOML validation for `requires_root` and volume path consistency
+- Auto-inject `USER root` / `USER ${USERNAME}` for `requires_root` plugins
+- VSCode extensions managed via `workspace.toml` `[vscode].extensions`
+- Per-language `tabSize` overrides for Python and Dockerfile
+- Auto-create `.devcontainer/` output directory in generator functions
+- Extra apt packages support via `workspace.toml` `[apt].extra_packages`
+- Configurable port forwarding via `workspace.toml` `[ports].forward`
+- Conditional Docker volume generation based on enabled plugins
+- Auto-copy `.bashrc_custom` skeleton from example on first setup
+- Externalized base apt packages into `config/apt-base-packages.conf`
+- Curl security hardening: eliminated curl-pipe-sh patterns and added `-f` flag to all curl calls
+- `uuid-runtime`, `python3`, `python3-pip`, `python3-venv`, `file`, `patch`, `gettext-base` to system packages
+- Interactive workspace generator script (`generate-workspace.sh`)
+- DevContainer management scripts (`rebuild-container.sh`, `lib/devcontainer.sh`)
+- Python type annotations, `pytest` tests, `mypy` strict, `ruff`, `pyright` strict static analysis
+- Snapshot regression tests comparing generated files against expected output
+- Structural validity tests for generated Dockerfile, YAML, and JSON files
+- Execution-based tests replacing source-grep approach for more reliable validation
+- Integration tests for end-to-end file generation pipeline
+- Plugin TOML structure validation test suite
+- Duplicate apt package detection with unit tests
+- `.env` file permission set to 600 after generation
+
+### Changed
+- **BREAKING**: Rewritten `setup-docker.sh` with plugin-based architecture
+- **BREAKING**: Rewritten `generators.sh` with plugin-based generation pipeline
+- **BREAKING**: Removed `switch-env.sh` and `.envs/` multi-environment management
+- Redesigned `generators.py` with `Generator` ABC and 4 subclasses (Compose, DevcontainerJson, DevcontainerCompose, Dockerfile)
+- Redesigned `toml_parser.py` with `TomlCommand` ABC, `ShellEncoder`, and Command pattern
+- Replaced `eval` with `declare`/`printf -v` (nameref) for secure TOML output parsing
+- Migrated Compose and Dockerfile generation to Python with PyYAML
+- Inlined Dockerfile template into `generators.py` (removed `templates/` directory)
+- Simplified devcontainer.json generator by removing JSONC template comments
+- Split `lib/` into focused modules with consistent naming
+- Migrated Python dev dependencies to `uv` with lockfile
+- Tests reorganized into genre-based subdirectories (`unit/`, `integration/`, `structure/`, `e2e/`)
+- `ARG DOCKER_GID` conditional on docker-cli plugin enablement
+- Default tools changed to minimal set (proto + Docker CLI only)
+- All ShellCheck style-level warnings resolved with `.shellcheckrc` configuration
+- README completely rewritten for plugin architecture and workspace.toml configuration
+- README split into compact Quick Start (root) with detailed guides in `docs/`
+  - `docs/setup.md` / `docs/setup.ja.md` — Full setup and configuration guide
+  - `docs/usage.md` / `docs/usage.ja.md` — Development workflows, commands, mounted dirs
+  - `docs/reference.md` / `docs/reference.ja.md` — Pre-installed software, project files
+- Replaced pyenv references with proto in Python configuration examples
+- `generators.sh` uses `trap` for safe temporary file cleanup on Python failure
+
+### Removed
+- `switch-env.sh` multi-environment switcher
+- `.envs/` directory for environment profiles
+- `test.sh` wrapper script (replaced by `tests/run_all.sh`)
+- `[environment]` section dead code from `toml_parser.py` and `plugins.sh`
+- Dead code: `validate_package_manager`, `confirm`, `generate_plugin_volumes`
+- `templates/` directory (Dockerfile template inlined into `generators.py`)
+- Deprecated version field from template substitution
+- Non-functional `chat.instructionsFilesLocations` configuration
+
+### Fixed
+- `forwardPorts` now uses full `ports.forward` array in devcontainer.json
+- JSONC comment stripping replaced with Python regex to preserve URLs
+- `USER` double-wrap fix in `github-cli.toml`
+- `check_python3 --check` logic corrected
+- `pyright` `represent_scalar` Unknown type error resolved
+- Removed GID 999 fallback in Docker GID detection
+- APT_EXTRA_PACKAGES placeholder replacement handling leading whitespace
+- Locale-gen restoration after APT_EXTRA_PACKAGES placeholder replacement
+- CI template validation YAML parsing errors
+
+### Security
+- SHA256 checksum verification for zig plugin binary downloads
+- TLS 1.2+ enforcement for curl|sh plugin installers
+- `eval` completely removed from TOML output parsing pipeline
+
 ## [3.1.0] - 2026-01-19
 
 ### Added
@@ -14,7 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zig toolchain for cargo-lambda cross-compilation (optional installation)
 - Persistent volumes for Deno (~/.deno), Bun (~/.bun), and Go (~/go) workspaces
 - Rust toolchain support with Cargo and Rustup persistent volumes (~/.cargo, ~/.rustup)
-- Custom bash configuration support via workspace-docker/config/.bashrc_custom
+- Custom bash configuration support via config/.bashrc_custom
 - Network diagnostic utilities (ping, traceroute, dnsutils) to system packages
 - bc (arbitrary precision calculator) package to system utilities
 - Test validation for new persistent volumes for language runtimes
@@ -64,7 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized version configuration file (lib/versions.conf)
 - Shared generator functions library (lib/generators.sh)
 - Input validation library (lib/validators.sh)
-- Error handling library (lib/errors.sh)
+- Error handling library (lib/logging.sh)
 - Safe environment variable parsing utility (read_env_var)
 - Symlink validation utility (validate_symlink)
 - Docker GID detection with fallback logic (detect_docker_gid)
@@ -96,7 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - All ShellCheck warnings resolved across shell scripts
 - Volume naming conflicts prevented with service name prefixes
-- Improved error messages with lib/errors.sh functions
+- Improved error messages with lib/logging.sh functions
 
 ## [2.1.0] - 2025-12-27
 

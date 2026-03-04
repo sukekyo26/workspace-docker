@@ -1,13 +1,14 @@
 #!/bin/bash
-# Error handling and logging functions
-# This library provides consistent error messages and logging
+# ============================================================
+# lib/logging.sh - Error handling and logging functions
+# ============================================================
+# Provides consistent error messages and logging
+set -uo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Load shared color constants
+_LOGGING_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=colors.sh
+source "$_LOGGING_LIB_DIR/colors.sh"
 
 # Log levels (exported for external use)
 export LOG_LEVEL_ERROR=0
@@ -94,21 +95,4 @@ section_header() {
 subsection_header() {
     echo ""
     echo -e "${GREEN}--- $* ---${NC}"
-}
-
-# Confirm action with user
-# Usage: confirm "Do you want to continue?" && action
-confirm() {
-    local prompt="$1"
-    local response
-
-    read -rp "$prompt [y/N]: " response
-    case "$response" in
-        [yY][eE][sS]|[yY])
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
-    esac
 }

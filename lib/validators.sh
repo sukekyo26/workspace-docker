@@ -1,6 +1,7 @@
 #!/bin/bash
 # Input validation functions for setup scripts
 # This library provides reusable validation functions
+set -uo pipefail
 
 # Validate container service name
 # Usage: validate_service_name "name"
@@ -70,46 +71,6 @@ validate_boolean() {
     return 0
 }
 
-# Validate package manager choice
-# Usage: validate_package_manager "manager" "type"
-# type can be "python" or "nodejs"
-# Returns: 0 if valid, 1 if invalid
-validate_package_manager() {
-    local manager="$1"
-    local type="$2"
-
-    case "$type" in
-        python)
-            case "$manager" in
-                none|uv|poetry|pyenv-poetry)
-                    return 0
-                    ;;
-                *)
-                    echo "ERROR: Invalid Python package manager: $manager" >&2
-                    echo "Valid options: none, uv, poetry, pyenv-poetry" >&2
-                    return 1
-                    ;;
-            esac
-            ;;
-        nodejs)
-            case "$manager" in
-                none|volta|nvm|fnm|mise)
-                    return 0
-                    ;;
-                *)
-                    echo "ERROR: Invalid Node.js package manager: $manager" >&2
-                    echo "Valid options: none, volta, nvm, fnm, mise" >&2
-                    return 1
-                    ;;
-            esac
-            ;;
-        *)
-            echo "ERROR: Invalid package manager type: $type" >&2
-            return 1
-            ;;
-    esac
-}
-
 # Validate file exists
 # Usage: validate_file_exists "filepath" "description"
 # Returns: 0 if exists, 1 if not
@@ -134,6 +95,46 @@ validate_dir_exists() {
 
     if [[ ! -d "$dirpath" ]]; then
         echo "ERROR: $description not found: $dirpath" >&2
+        return 1
+    fi
+
+    return 0
+}
+
+# Validate that apt packages don't duplicate base packages
+# Usage: validate_no_duplicate_apt_packages "apt_base_packages_conf" "extra_pkg1" "extra_pkg2" ...
+# Returns: 0 if no duplicates, 1 if duplicates found (prints warnings)
+validate_no_duplicate_apt_packages() {
+    local base_conf="$1"
+    shift
+    local extra_packages=("$@")
+
+    if [[ ${#extra_packages[@]} -eq 0 || -z "${extra_packages[0]}" ]]; then
+        return 0
+    fi
+
+    if [[ ! -f "$base_conf" ]]; then
+        return 0
+    fi
+
+    # Build set of base packages
+    local found_duplicates=false
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" || "$pkg" =~ ^[[:space:]]*# ]] && continue
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        [[ -z "$pkg" ]] && continue
+
+        for extra in "${extra_packages[@]}"; do
+            if [[ "$extra" == "$pkg" ]]; then
+                echo "WARNING: [apt] packages contains '${extra}', which is already in apt-base-packages.conf" >&2
+                found_duplicates=true
+            fi
+        done
+    done < "$base_conf"
+
+    if [[ "$found_duplicates" == true ]]; then
+        echo "WARNING: Remove duplicates from [apt] packages in workspace.toml to avoid redundant installs" >&2
         return 1
     fi
 

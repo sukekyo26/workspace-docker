@@ -1,0 +1,18 @@
+[metadata]
+name = "uv"
+description = "Fast Python package and project manager by Astral"
+default = false
+
+[install]
+requires_root = false
+dockerfile = '''
+# Install uv (fast Python package and project manager)
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tmp/install-uv.sh && \
+    bash /tmp/install-uv.sh && \
+    rm -f /tmp/install-uv.sh && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+'''
+
+[version]
+strategy = "latest"

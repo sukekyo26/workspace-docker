@@ -7,6 +7,69 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-03-04
+
+### 追加
+- **プラグインアーキテクチャ**: `plugins/*.toml` TOMLファイルによる拡張可能なツール選択
+  - TOMLパーサーヘルパー（`lib/toml_parser.py`）— Python 3.11+ `tomllib`使用
+  - プラグインローディングライブラリ（`lib/plugins.sh`）— Dockerfileスニペット生成
+  - 既存ツール用プラグイン定義: `proto`, `aws-cli`, `aws-sam-cli`, `copilot-cli`, `claude-code`, `docker-cli`, `github-cli`, `zig`
+- **workspace.toml**: 対話式セットアップに代わる単一TOML設定ファイル
+  - `[container]` セクション — サービス名、ユーザー名、Ubuntuバージョン
+  - `[plugins]` セクション — ツール選択
+  - `[apt]` セクション — 追加システムパッケージ
+  - `[ports]` セクション — ポートフォワーディング
+- `workspace.toml`の`[apt].packages`による追加aptパッケージサポート
+- `workspace.toml`の`[ports].forward`による設定可能なポートフォワーディング
+- 有効なプラグインに基づく条件付きDockerボリューム生成
+- 初回セットアップ時の`.bashrc_custom`スケルトンの自動コピー
+- ベースaptパッケージを`config/apt-base-packages.conf`に外部化
+- 新プラグイン: `copilot-cli`（GitHub Copilot CLI）、`claude-code`（Anthropic Claude Code）
+- curlセキュリティ強化: curl-pipe-shパターンの排除と全curlコマンドへの`-f`フラグ追加
+- デフォルトシステムユーティリティに`uuid-runtime`パッケージを追加
+- システムパッケージに`python3`、`python3-pip`、`python3-venv`、`file`、`patch`、`gettext-base`を追加
+- インタラクティブワークスペースジェネレータスクリプト（`generate-workspace.sh`）
+- DevContainer管理スクリプト（`rebuild-container.sh`、`lib/devcontainer.sh`）
+- 生成ファイルのスナップショット回帰テスト
+- 生成Dockerfile、YAML、JSONの構造的妥当性テスト
+- より信頼性の高い検証のためのソースgrep方式から実行ベーステストへの移行
+- エンドツーエンドファイル生成パイプラインの統合テスト
+- プラグインTOML構造検証テストスイート
+
+### 変更
+- **破壊的変更**: `setup-docker.sh`をプラグインベースアーキテクチャで書き直し
+- **破壊的変更**: `generators.sh`をプラグインベース生成パイプラインで書き直し
+- **破壊的変更**: `switch-env.sh`と`.envs/`マルチ環境管理を廃止
+- `Dockerfile.template`を単一プラグインプレースホルダー（`{{PLUGIN_INSTALLS}}`）使用に簡素化
+- protoをハードコードからプラグインシステムに移行（`plugins/proto.toml`）
+- ハードコードのaptパッケージを`Dockerfile.template`から`config/apt-base-packages.conf`に移動
+- `Dockerfile.template`を約62行（約120行から）に最小化—プレースホルダーとベースインフラのみ
+- デフォルトツールを最小セット（proto + Docker CLIのみ）に変更
+- テンプレート置換をawkに統一（sedベースのアプローチを削除）
+- プラグインベースアーキテクチャ用にテストスイートを書き直し
+- CIワークフローをプラグインベースアーキテクチャ用に更新、Hadolintを生成Dockerfileに適用
+- `.shellcheckrc`設定により全ShellCheckスタイルレベル警告を解消
+- READMEをプラグインアーキテクチャとworkspace.toml設定に合わせて完全書き直し
+- READMEをコンパクトなQuick Start（ルート）と詳細ガイド（`docs/`）に分割
+  - `docs/setup.md` / `docs/setup.ja.md` — セットアップ・設定ガイド
+  - `docs/usage.md` / `docs/usage.ja.md` — 開発ワークフロー、コマンド集、マウントディレクトリ
+  - `docs/reference.md` / `docs/reference.ja.md` — プリインストール済みソフト、プロジェクトファイル
+- PyenvリファレンスをPython設定例でprotoに置換
+
+### 削除
+- `switch-env.sh`マルチ環境スイッチャー
+- `.envs/`ディレクトリ（環境プロファイル用）
+- `test.sh`ラッパースクリプト（`tests/run_all.sh`に置換）
+- デッドコード: `validate_package_manager`関数
+- テンプレート置換からの非推奨バージョンフィールド
+- 機能しない`chat.instructionsFilesLocations`設定
+
+### 修正
+- Docker GID検出でのGID 999フォールバックを削除
+- APT_EXTRA_PACKAGESプレースホルダー置換時の先頭空白の処理
+- APT_EXTRA_PACKAGESプレースホルダー置換後のlocale-genの復元
+- CIテンプレート検証のYAMLパースエラー
+
 ## [3.1.0] - 2026-01-19
 
 ### 追加
@@ -14,7 +77,7 @@
 - cargo-lambdaクロスコンパイル用のZigツールチェーン（オプションインストール）
 - Deno（~/.deno）、Bun（~/.bun）、Go（~/go）ワークスペース用の永続ボリューム
 - CargoとRustupの永続ボリューム（~/.cargo、~/.rustup）を含むRustツールチェーンサポート
-- workspace-docker/config/.bashrc_custom経由のカスタムbash設定サポート
+- config/.bashrc_custom経由のカスタムbash設定サポート
 - システムパッケージにネットワーク診断ユーティリティ（ping、traceroute、dnsutils）を追加
 - システムユーティリティにbc（任意精度計算機）パッケージを追加
 - 言語ランタイム用の新しい永続ボリュームのテスト検証
@@ -64,7 +127,7 @@
 - 一元化されたバージョン設定ファイル（lib/versions.conf）
 - 共有ジェネレータ関数ライブラリ（lib/generators.sh）
 - 入力検証ライブラリ（lib/validators.sh）
-- エラーハンドリングライブラリ（lib/errors.sh）
+- エラーハンドリングライブラリ（lib/logging.sh）
 - 安全な環境変数パース機能（read_env_var）
 - シンボリックリンク検証機能（validate_symlink）
 - フォールバックロジック付きDocker GID検出機能（detect_docker_gid）
@@ -96,7 +159,7 @@
 ### 修正
 - 全シェルスクリプトのShellCheck警告を解決
 - サービス名プレフィックスによりボリューム名の競合を防止
-- lib/errors.sh関数によりエラーメッセージを改善
+- lib/logging.sh関数によりエラーメッセージを改善
 
 ## [2.1.0] - 2025-12-27
 

@@ -8,121 +8,207 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load shared libraries
-# shellcheck source=lib/generators.sh
-source "$SCRIPT_DIR/lib/generators.sh"
+# shellcheck source=lib/logging.sh
+source "$SCRIPT_DIR/lib/logging.sh"
+# shellcheck source=lib/utils.sh
+source "$SCRIPT_DIR/lib/utils.sh"
+# shellcheck source=lib/certificates.sh
+source "$SCRIPT_DIR/lib/certificates.sh"
 # shellcheck source=lib/validators.sh
 source "$SCRIPT_DIR/lib/validators.sh"
-# shellcheck source=lib/errors.sh
-source "$SCRIPT_DIR/lib/errors.sh"
+# shellcheck source=lib/generators.sh
+source "$SCRIPT_DIR/lib/generators.sh"
+# shellcheck source=lib/tui.sh
+source "$SCRIPT_DIR/lib/tui.sh"
 
-section_header "Generate Dockerfile for Ubuntu on Docker"
+trap tui_cleanup EXIT
 
-# Set container service name
-while true; do
-    read -rp "Enter container service name: " container_service_name
+# ============================================================
+# Parse arguments
+# ============================================================
+FORCE_INIT=false
+AUTO_YES=false
+for arg in "$@"; do
+    case "$arg" in
+        --init) FORCE_INIT=true ;;
+        --yes|-y) AUTO_YES=true ;;
+        *) die "Unknown argument: $arg" ;;
+    esac
+done
 
-    if validate_service_name "$container_service_name" 2>&1; then
-        break
+# ============================================================
+# Prerequisites
+# ============================================================
+check_python3 || exit 1
+
+WORKSPACE_TOML="$SCRIPT_DIR/workspace.toml"
+
+# ============================================================
+# Mode: Regenerate (workspace.toml exists and not --init)
+# ============================================================
+if [[ -f "$WORKSPACE_TOML" && "$FORCE_INIT" = false ]]; then
+    section_header "Regenerate from workspace.toml"
+
+    load_workspace_config "$WORKSPACE_TOML"
+
+    info "Service: $WS_SERVICE_NAME"
+    info "Username: $WS_USERNAME"
+    info "Plugins: ${WS_PLUGINS[*]}"
+else
+    # ============================================================
+    # Mode: Interactive setup (first run or --init)
+    # ============================================================
+    section_header "Generate Dockerfile for Ubuntu on Docker"
+
+    if [[ "$AUTO_YES" = true ]]; then
+        # Non-interactive: use sensible defaults
+        container_service_name="dev"
+        username="$(whoami)"
+        info "Service name: $container_service_name (default)"
+        info "Username: $username (current user)"
+    else
+        # Set container service name
+        while true; do
+            read -rp "Enter container service name: " container_service_name
+
+            if validate_service_name "$container_service_name" 2>&1; then
+                break
+            fi
+        done
+
+        # Set username
+        while true; do
+            read -rp "Enter Ubuntu on Docker username: " username
+
+            if validate_username "$username" 2>&1; then
+                break
+            fi
+        done
     fi
-done
 
-# Set username
-while true; do
-    read -rp "Enter Ubuntu on Docker username: " username
+    # Software installation selection
+    subsection_header "Software Installation Selection"
 
-    if validate_username "$username" 2>&1; then
-        break
+    # Dynamic plugin selection from plugins/ directory
+    list_available_plugins
+    local_enabled_plugins=()
+
+    if [[ "$AUTO_YES" = true ]]; then
+        # Non-interactive: select plugins marked as default
+        for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+            plugin_id="${PLUGIN_IDS[$i]}"
+            plugin_default="${PLUGIN_DEFAULTS[$i]}"
+            if [[ "$plugin_default" == "true" ]]; then
+                local_enabled_plugins+=("$plugin_id")
+                info "  ${plugin_id}: enabled (default)"
+            else
+                info "  ${plugin_id}: skipped"
+            fi
+        done
+    else
+        # Build preselected CSV from plugin defaults
+        preselected_csv=""
+        for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+            if [[ "${PLUGIN_DEFAULTS[$i]}" == "true" ]]; then
+                [[ -n "$preselected_csv" ]] && preselected_csv+=","
+                preselected_csv+="$i"
+            fi
+        done
+
+        # TUI multi-select for plugins
+        select_multi "Select plugins to install:" "$preselected_csv" "${PLUGIN_NAMES[@]}"
+
+        for idx in "${TUI_MULTI_RESULT[@]}"; do
+            local_enabled_plugins+=("${PLUGIN_IDS[$idx]}")
+        done
     fi
-done
 
-# Software installation selection
-subsection_header "Software Installation Selection"
-echo "proto is always installed (multi-language version manager)"
-echo ""
+    # Port forwarding
+    if [[ "$AUTO_YES" = true ]]; then
+        forward_port=3000
+        info "Forward port: $forward_port (default)"
+    else
+        subsection_header "Port Configuration"
+        while true; do
+            read -rp "Forward port [3000]: " forward_port
+            forward_port=${forward_port:-3000}
+            if [[ "$forward_port" =~ ^[0-9]+$ ]] && [ "$forward_port" -ge 1 ] && [ "$forward_port" -le 65535 ]; then
+                break
+            else
+                error "Please enter a valid port number (1-65535)"
+            fi
+        done
+    fi
 
-# Initialize software installation flags
-install_docker=true
-install_aws_cli=true
-install_aws_sam_cli=true
-install_github_cli=true
-install_zig=true
+    # Generate workspace.toml
+    echo "Generating workspace.toml..."
 
-# Docker CLI
-while true; do
-    read -rp "Install Docker CLI? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
-    case $choice in
-        [Yy]*) install_docker=true; break ;;
-        [Nn]*) install_docker=false; break ;;
-        *) error "Please enter Y or n" ;;
-    esac
-done
+    # Build plugins enable list for TOML
+    plugins_toml="["
+    for ((i = 0; i < ${#local_enabled_plugins[@]}; i++)); do
+        if [[ $i -gt 0 ]]; then
+            plugins_toml+=", "
+        fi
+        plugins_toml+="\"${local_enabled_plugins[$i]}\""
+    done
+    plugins_toml+="]"
 
-# AWS CLI v2
-while true; do
-    read -rp "Install AWS CLI v2? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
-    case $choice in
-        [Yy]*) install_aws_cli=true; break ;;
-        [Nn]*) install_aws_cli=false; break ;;
-        *) error "Please enter Y or n" ;;
-    esac
-done
+    cat > "$WORKSPACE_TOML" << EOF
+# workspace.toml — workspace-docker configuration
+# Edit this file and run setup-docker.sh to regenerate
 
-# AWS SAM CLI
-while true; do
-    read -rp "Install AWS SAM CLI? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
-    case $choice in
-        [Yy]*) install_aws_sam_cli=true; break ;;
-        [Nn]*) install_aws_sam_cli=false; break ;;
-        *) error "Please enter Y or n" ;;
-    esac
-done
+[container]
+service_name = "$container_service_name"
+username = "$username"
+ubuntu_version = "24.04"
 
-# GitHub CLI
-while true; do
-    read -rp "Install GitHub CLI? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
-    case $choice in
-        [Yy]*) install_github_cli=true; break ;;
-        [Nn]*) install_github_cli=false; break ;;
-        *) error "Please enter Y or n" ;;
-    esac
-done
+[plugins]
+enable = $plugins_toml
 
-# Zig
-while true; do
-    read -rp "Install Zig (required for cargo-lambda)? [Y/n]: " choice
-    choice=${choice:-Y}  # Default to Y if empty
-    case $choice in
-        [Yy]*) install_zig=true; break ;;
-        [Nn]*) install_zig=false; break ;;
-        *) error "Please enter Y or n" ;;
-    esac
-done
+[ports]
+forward = [$forward_port]
 
-# Automatically get UID and GID from current user
+[apt]
+packages = []
+
+[vscode]
+extensions = []
+
+[volumes]
+EOF
+
+    # Reload to set WS_* variables
+    load_workspace_config "$WORKSPACE_TOML"
+fi
+
+# ============================================================
+# Auto-detection
+# ============================================================
 uid=$(id -u)
 gid=$(id -g)
 
-# Automatically get Docker socket GID using robust detection
 docker_gid=$(detect_docker_gid)
 if [ -z "$docker_gid" ]; then
     die_with_hint "Failed to detect Docker GID" "Tried: /var/run/docker.sock, rootless socket, docker group\nPlease ensure Docker is installed and running"
 fi
 success "Detected Docker GID: $docker_gid"
 
-# Check if template files exist
-validate_file_exists "docker-compose.yml.template" "docker-compose.yml.template" || exit 1
-validate_file_exists "Dockerfile.template" "Dockerfile.template" || exit 1
-validate_file_exists ".devcontainer/devcontainer.json.template" ".devcontainer/devcontainer.json.template" || exit 1
-validate_file_exists ".devcontainer/docker-compose.yml.template" ".devcontainer/docker-compose.yml.template" || exit 1
+# ============================================================
+# Template file validation
+# ============================================================
+validate_no_duplicate_apt_packages \
+    "$SCRIPT_DIR/config/apt-base-packages.conf" \
+    "${WS_APT_EXTRA[@]}" || true
 
-# Generate docker-compose.yml and Dockerfile
+
+
+# ============================================================
+# File generation
+# ============================================================
 echo "Generating docker-compose.yml..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    docker-compose.yml.template > docker-compose.yml
+generate_compose \
+    "docker-compose.yml" \
+    "$WORKSPACE_TOML"
 
 echo "Generating Dockerfile..."
 
@@ -137,76 +223,66 @@ if has_valid_certificates; then
 fi
 
 generate_dockerfile_from_template \
-    "Dockerfile.template" \
     "Dockerfile" \
-    "$install_docker" \
-    "$install_aws_cli" \
-    "$install_aws_sam_cli" \
-    "$install_github_cli" \
-    "$install_zig"
+    "$WORKSPACE_TOML"
 
 echo "Generating .devcontainer/devcontainer.json..."
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    -e "s/{{USERNAME}}/$username/g" \
-    .devcontainer/devcontainer.json.template > .devcontainer/devcontainer.json
+generate_devcontainer_json \
+    ".devcontainer/devcontainer.json" \
+    "$WORKSPACE_TOML"
 
 echo "Generating .devcontainer/docker-compose.yml..."
-# Service name must be static, but other values can use .env
-sed -e "s/{{CONTAINER_SERVICE_NAME}}/$container_service_name/g" \
-    .devcontainer/docker-compose.yml.template > .devcontainer/docker-compose.yml
+generate_devcontainer_compose \
+    ".devcontainer/docker-compose.yml" \
+    "$WORKSPACE_TOML"
 
-# Create .envs directory if it doesn't exist
-mkdir -p .envs
+# Generate .env file for docker-compose
+echo "Generating .env..."
+cat > ".env" << EOF
+# Environment variables for docker-compose
+# Auto-generated from workspace.toml — do not edit manually
+# Regenerate with: ./setup-docker.sh
 
-# Generate .env file for this service
-echo "Generating .envs/$container_service_name.env..."
-cat > ".envs/${container_service_name}.env" << EOF
-# Environment variables for $container_service_name
-# Generated on $(date)
-
-CONTAINER_SERVICE_NAME=$container_service_name
-USERNAME=$username
+CONTAINER_SERVICE_NAME=$WS_SERVICE_NAME
+USERNAME=$WS_USERNAME
 UID=$uid
 GID=$gid
 DOCKER_GID=$docker_gid
-UBUNTU_VERSION=$UBUNTU_VERSION
-INSTALL_DOCKER=$install_docker
-INSTALL_AWS_CLI=$install_aws_cli
-INSTALL_AWS_SAM_CLI=$install_aws_sam_cli
-INSTALL_GITHUB_CLI=$install_github_cli
-INSTALL_ZIG=$install_zig
+UBUNTU_VERSION=$WS_UBUNTU_VERSION
+FORWARD_PORT=${WS_FORWARD_PORTS[0]:-3000}
 EOF
+chmod 600 ".env"
 
-# Create symlink to .env for docker compose to use
-# Using relative path to ensure portability across different environments
-ln -sf ".envs/${container_service_name}.env" .env
-
-# Verify symlink was created correctly
-if ! validate_symlink ".env" ".envs/"; then
-    die "Failed to create symlink to .envs/$container_service_name.env"
+# Copy .bashrc_custom skeleton if not exists
+if [[ ! -f "config/.bashrc_custom" && -f "config/.bashrc_custom.example" ]]; then
+    cp "config/.bashrc_custom.example" "config/.bashrc_custom"
+    echo "Created config/.bashrc_custom from example"
 fi
 
+# ============================================================
+# Result display
+# ============================================================
 echo -e "${GREEN}=== Setup Complete ===${NC}"
-echo "Container service name: $container_service_name"
-echo "Username: $username"
+echo "Container service name: $WS_SERVICE_NAME"
+echo "Username: $WS_USERNAME"
 echo "UID/GID: $uid/$gid (automatically detected)"
 echo "Docker GID: $docker_gid (automatically detected)"
 echo ""
-echo "Software installed:"
-echo "  - proto: Yes (always installed)"
-[ "$install_docker" = true ] && echo "  - Docker CLI: Yes" || echo "  - Docker CLI: No"
-[ "$install_aws_cli" = true ] && echo "  - AWS CLI v2: Yes" || echo "  - AWS CLI v2: No"
-[ "$install_aws_sam_cli" = true ] && echo "  - AWS SAM CLI: Yes" || echo "  - AWS SAM CLI: No"
-[ "$install_github_cli" = true ] && echo "  - GitHub CLI: Yes" || echo "  - GitHub CLI: No"
-[ "$install_zig" = true ] && echo "  - Zig: Yes" || echo "  - Zig: No"
+echo "Enabled plugins:"
+for plugin_id in "${WS_PLUGINS[@]}"; do
+    echo "  - ${plugin_id}: Yes"
+done
 has_valid_certificates && echo "  - Custom CA Certificates: Yes (from certs/)"
 echo ""
+echo "Port forwarding: ${WS_FORWARD_PORTS[0]:-3000}"
+echo ""
 echo "Generated files:"
+echo "  - workspace.toml (configuration — edit this file)"
 echo "  - Dockerfile"
 echo "  - docker-compose.yml"
 echo "  - .devcontainer/devcontainer.json"
 echo "  - .devcontainer/docker-compose.yml"
-echo "  - .envs/$container_service_name.env (linked to .env)"
+echo "  - .env (auto-generated from workspace.toml)"
 echo ""
 echo "You can build the Docker image with the following command:"
 echo -e "  ${YELLOW}docker compose${NC} build"
@@ -216,7 +292,12 @@ echo "To start the container:"
 echo -e "  ${YELLOW}docker compose${NC} up ${CYAN}-d${NC}"
 echo ""
 echo "To access the container:"
-echo -e "  ${YELLOW}docker compose${NC} exec $container_service_name bash"
+echo -e "  ${YELLOW}docker compose${NC} exec $WS_SERVICE_NAME bash"
 echo ""
 echo "To stop the container:"
 echo -e "  ${YELLOW}docker compose${NC} down"
+echo ""
+echo "To reconfigure:"
+echo -e "  Edit ${YELLOW}workspace.toml${NC} and run ${YELLOW}./setup-docker.sh${NC}"
+echo -e "  Or run ${YELLOW}./setup-docker.sh --init${NC} for interactive setup"
+echo -e "  Or run ${YELLOW}./setup-docker.sh --init --yes${NC} for non-interactive setup with defaults"

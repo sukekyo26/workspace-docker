@@ -1,0 +1,198 @@
+ARG UBUNTU_VERSION
+FROM ubuntu:${UBUNTU_VERSION}
+
+ARG USERNAME
+ARG UID
+ARG GID
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
+    openssh-client \
+    git \
+    make \
+    sudo \
+    vim \
+    nano \
+    zip \
+    unzip \
+    tar \
+    gzip \
+    bzip2 \
+    xz-utils \
+    tree \
+    jq \
+    bc \
+    less \
+    rsync \
+    procps \
+    iproute2 \
+    dnsutils \
+    iputils-ping \
+    net-tools \
+    shellcheck \
+    uuid-runtime \
+    file \
+    patch \
+    gettext-base \
+    python3 \
+    python3-pip \
+    python3-venv \
+    bash-completion \
+    locales \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
+    lsb-release \
+    && locale-gen en_US.UTF-8 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
+RUN userdel -r ubuntu 2>/dev/null || true && \
+    groupdel ubuntu 2>/dev/null || true && \
+    groupadd -g ${GID} ${USERNAME} && \
+    useradd -m -s /bin/bash -u ${UID} -g ${GID} ${USERNAME} && \
+    usermod -aG sudo ${USERNAME} && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
+    chmod 0440 /etc/sudoers.d/${USERNAME}
+
+USER ${USERNAME}
+WORKDIR /home/${USERNAME}
+
+# Set locale environment variables
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+# Enable bash completion
+RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bashrc && \
+    echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \
+    echo 'fi' >> ~/.bashrc
+
+# Custom PS1 with Docker container name, user/host, working directory, and git status
+RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
+    echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \
+    echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
+    echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
+
+
+# Prepare plugin directories with correct ownership
+USER root
+RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto && \
+    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto
+USER ${USERNAME}
+# proto (multi-language version manager)
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
+    bash /tmp/install-proto.sh --no-profile --yes && \
+    rm -f /tmp/install-proto.sh && \
+    echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \
+    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc
+ENV PROTO_HOME="/home/${USERNAME}/.proto"
+ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
+USER root
+# Install Docker CLI (client only, to use host Docker daemon via socket mount)
+ARG DOCKER_GID
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+    > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    groupadd -g ${DOCKER_GID} docker 2>/dev/null || groupmod -g ${DOCKER_GID} docker && \
+    usermod -aG docker ${USERNAME}
+USER ${USERNAME}
+# Install AWS CLI v2
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) CLI_ARCH="x86_64" ;; \
+        arm64) CLI_ARCH="aarch64" ;; \
+        *) CLI_ARCH="x86_64" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    sudo ./aws/install && \
+    rm -rf aws awscliv2.zip
+# Install AWS SAM CLI
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
+    unzip aws-sam-cli.zip -d sam-installation && \
+    sudo ./sam-installation/install && \
+    rm -rf sam-installation aws-sam-cli.zip
+USER root
+# Install GitHub CLI
+RUN mkdir -p -m 755 /etc/apt/keyrings && \
+    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+USER ${USERNAME}
+# Install GitHub Copilot CLI
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
+    bash /tmp/install-copilot.sh && \
+    rm -f /tmp/install-copilot.sh
+# Install Claude Code
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/install-claude.sh && \
+    bash /tmp/install-claude.sh && \
+    rm -f /tmp/install-claude.sh
+USER root
+# Install Zig (required for cargo-lambda cross-compilation)
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -fsSL "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
+    echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
+    mkdir -p /usr/local/zig && \
+    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
+    ln -s /usr/local/zig/zig /usr/local/bin/zig && \
+    rm /tmp/zig.tar.xz
+USER ${USERNAME}
+# Install uv (fast Python package and project manager)
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tmp/install-uv.sh && \
+    bash /tmp/install-uv.sh && \
+    rm -f /tmp/install-uv.sh && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+
+# create volume mount directories for permission
+RUN mkdir -p ~/.local
+
+# Setup persistent bash history
+RUN echo 'export HISTFILE=~/.local/state/.bash_history_docker' >> ~/.bashrc && \
+    echo 'export HISTSIZE=10000' >> ~/.bashrc && \
+    echo 'export HISTFILESIZE=20000' >> ~/.bashrc && \
+    mkdir -p ~/.local/state && touch ~/.local/state/.bash_history_docker
+
+# Custom configuration file support (config/.bashrc_custom)
+RUN echo '' >> ~/.bashrc && \
+    echo '# Load custom configuration from config/.bashrc_custom' >> ~/.bashrc && \
+    echo '[ -f "$HOME/workspace/workspace-docker/config/.bashrc_custom" ] && . "$HOME/workspace/workspace-docker/config/.bashrc_custom"' >> ~/.bashrc
+
+WORKDIR /home/${USERNAME}/workspace

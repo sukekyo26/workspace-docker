@@ -1,0 +1,54 @@
+[project]
+name = "workspace-docker"
+version = "4.0.0"
+requires-python = ">=3.11"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+files = ["lib/*.py"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+include = ["lib"]
+
+[tool.ruff]
+target-version = "py311"
+src = ["lib"]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "RUF001",  # ambiguous unicode — Japanese full-width parentheses are intentional
+]
+
+[tool.ruff.lint.per-file-ignores]
+"lib/generators.py" = ["E501"]  # Dockerfile template constant contains long lines
+"tests/python/*.py" = ["E402", "TCH"]  # sys.path manipulation; pytest import at runtime
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pyyaml>=6.0.3",
+    "ruff>=0.15.4",
+    "types-pyyaml>=6.0.12.20250915",
+]

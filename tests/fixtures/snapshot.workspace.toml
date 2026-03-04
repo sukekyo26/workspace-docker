@@ -1,0 +1,27 @@
+# Snapshot test fixture — all plugins enabled with fixed values
+# Used by tests/test_snapshot.sh for regression detection
+
+[container]
+service_name = "snapshot-test"
+username = "testuser"
+ubuntu_version = "24.04"
+
+[plugins]
+enable = ["proto", "docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "copilot-cli", "claude-code", "zig", "uv"]
+
+[ports]
+forward = [3000]
+
+[vscode]
+extensions = [
+    "MS-CEINTL.vscode-language-pack-ja",
+    "ms-azuretools.vscode-docker",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-vscode.vscode-typescript-next",
+    "eamodio.gitlens",
+    "github.copilot-chat",
+    "github.vscode-github-actions",
+    "oderwat.indent-rainbow",
+    "shardulm94.trailing-spaces",
+]

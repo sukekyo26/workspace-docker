@@ -28,11 +28,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Make test script executable
-        run: chmod +x test.sh
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python dev dependencies
+        run: uv sync --frozen
+
+      - name: Make test scripts executable
+        run: chmod +x tests/run_all.sh && find tests -name 'test_*.sh' -exec chmod +x {} +
 
       - name: Run tests
-        run: ./test.sh
+        run: ./tests/run_all.sh
 
   template-validation:
     name: Template Validation
@@ -41,70 +47,66 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Check template files exist
+      - name: Check required files exist
         run: |
           files=(
-            "Dockerfile.template"
-            "docker-compose.yml.template"
-            ".devcontainer/devcontainer.json.template"
-            ".devcontainer/docker-compose.yml.template"
+            "lib/generators.py"
           )
           for file in "${files[@]}"; do
             if [ ! -f "$file" ]; then
-              echo "❌ Missing template file: $file"
+              echo "❌ Missing file: $file"
               exit 1
             fi
             echo "✓ Found: $file"
           done
 
-      - name: Validate YAML templates
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Validate programmatic generators
         run: |
-          for file in docker-compose.yml.template .devcontainer/docker-compose.yml.template; do
-            echo "Checking $file..."
-            # Replace template variables with dummy values for validation
-            sed 's/{{[^}]*}}/dummy/g' "$file" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" || {
-              echo "❌ Invalid YAML: $file"
+          echo "Checking generators.py can generate all targets..."
+          # Create minimal workspace.toml for validation
+          cat > /tmp/test-ws.toml << 'TOML'
+          [container]
+          service_name = "ci-test"
+          username = "testuser"
+          ubuntu_version = "24.04"
+          [plugins]
+          enable = ["docker-cli"]
+          [ports]
+          forward = [3000]
+          TOML
+          for cmd in compose devcontainer-json devcontainer-compose dockerfile; do
+            uv run python3 lib/generators.py $cmd /tmp/test-ws.toml plugins > /dev/null || {
+              echo "❌ generators.py $cmd failed"
               exit 1
             }
-            echo "✓ Valid: $file"
+            echo "✓ generators.py $cmd OK"
           done
 
-      - name: Validate JSON templates
+      - name: Validate JSON output
         run: |
-          for file in .devcontainer/devcontainer.json.template; do
-            echo "Checking $file..."
-            # Check for basic JSON structure (template has variables so full validation isn't possible)
-            if ! grep -q '"name"' "$file"; then
-              echo "❌ Missing required field in: $file"
+          cat > /tmp/test-ws.toml << 'TOML'
+          [container]
+          service_name = "ci-test"
+          username = "testuser"
+          ubuntu_version = "24.04"
+          [plugins]
+          enable = []
+          [ports]
+          forward = [3000]
+          TOML
+          echo "Checking devcontainer.json validity..."
+          uv run python3 lib/generators.py devcontainer-json /tmp/test-ws.toml plugins | \
+            uv run python3 -c "import re, sys; data=re.sub(r'^\s*//.*$', '', sys.stdin.read(), flags=re.MULTILINE); import json; json.loads(data)" || {
+              echo "❌ Invalid JSON output from generators.py"
               exit 1
-            fi
-            echo "✓ Valid structure: $file"
-          done
-
-  # dockerfile-lint:
-  #   name: Dockerfile Lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v6
-
-  #     - name: Lint Dockerfile.template
-  #       uses: hadolint/hadolint-action@v3.3.0
-  #       with:
-  #         dockerfile: Dockerfile.template
-  #         ignore: DL3008,DL3013,DL3059,DL3046,SC2016,DL4006,DL3004,SC2174,DL4001
-  #         # DL3008: Pin versions in apt-get (using latest for dev)
-  #         # DL3013: Pin versions in pip
-  #         # DL3059: Multiple consecutive RUN
-  #         # DL3046: useradd -l flag (acceptable for dev environment)
-  #         # SC2016: Single quotes (intentional, not actual issue)
-  #         # DL4006: pipefail (acceptable for dev environment)
-  #         # DL3004: sudo usage (necessary for dev environment)
-  #         # SC2174: mkdir -p with -m (not an actual issue)
-  #         # DL4001: wget and curl both used (both needed)
-
-  #     # Note: Dockerfile.custom.template is not linted because it contains
-  #     # template placeholders ({{VARIABLE}}) that Hadolint cannot parse
+            }
+          echo "✓ Valid JSON output"
 
   docker-build:
     name: Docker Build Test
@@ -117,6 +119,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create test workspace.toml
+        run: |
+          cat > workspace.toml << 'EOF'
+          [container]
+          service_name = "ci-test"
+          username = "testuser"
+          ubuntu_version = "24.04"
+
+          [plugins]
+          enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "claude-code", "copilot-cli", "proto", "uv", "zig"]
+
+          [ports]
+          forward = [3000]
+
+          [vscode]
+          extensions = ["ms-python.python"]
+          EOF
+
       - name: Create test .env file
         run: |
           cat > .env << 'EOF'
@@ -126,25 +146,33 @@ jobs:
           GID=1000
           DOCKER_GID=999
           UBUNTU_VERSION=24.04
-          INSTALL_DOCKER=true
-          INSTALL_AWS_CLI=true
-          INSTALL_AWS_SAM_CLI=true
-          INSTALL_GITHUB_CLI=true
+          FORWARD_PORT=3000
           EOF
 
-      - name: Generate Dockerfile from template
+      - name: Generate Dockerfile
         run: |
           # Load generator functions
           source lib/generators.sh
 
-          # Generate Dockerfile with all tools enabled for CI test
+          # Generate Dockerfile using plugin-based pipeline
           generate_dockerfile_from_template \
-            "Dockerfile.template" \
             "Dockerfile" \
-            "true" \
-            "true" \
-            "true" \
-            "true"
+            "workspace.toml"
+
+      - name: Lint generated Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
+          ignore: DL3008,DL3013,DL3059,DL3046,SC2016,DL4006,DL3004,SC2174,DL4001
+          # DL3008: Pin versions in apt-get (dev environment uses latest)
+          # DL3013: Pin versions in pip
+          # DL3059: Multiple consecutive RUN (readability over layer optimization)
+          # DL3046: useradd -l flag
+          # SC2016: Single quotes (intentional)
+          # DL4006: pipefail
+          # DL3004: sudo usage (necessary for dev environment)
+          # SC2174: mkdir -p with -m
+          # DL4001: wget and curl both used (both needed)
 
       - name: Build Docker image
         uses: docker/build-push-action@v6
@@ -157,5 +185,6 @@ jobs:
             USERNAME=testuser
             UID=1000
             GID=1000
+            DOCKER_GID=999
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -1,0 +1,39 @@
+services:
+  snapshot-test:
+    container_name: "${CONTAINER_SERVICE_NAME}"
+    build:
+      context: .
+      args:
+      - "UBUNTU_VERSION=${UBUNTU_VERSION}"
+      - "USERNAME=${USERNAME}"
+      - "UID=${UID}"
+      - "GID=${GID}"
+      - "DOCKER_GID=${DOCKER_GID}"
+    user: "${UID}:${GID}"
+    environment:
+    - "CONTAINER_SERVICE_NAME=${CONTAINER_SERVICE_NAME}"
+    volumes:
+    - "..:/home/${USERNAME}/workspace"
+    - "~/.ssh:/home/${USERNAME}/.ssh"
+    - "local:/home/${USERNAME}/.local"
+    - "proto:/home/${USERNAME}/.proto"
+    - "aws:/home/${USERNAME}/.aws"
+    - "gh-config:/home/${USERNAME}/.config/gh"
+    - "copilot:/home/${USERNAME}/.copilot"
+    - "claude:/home/${USERNAME}/.claude"
+    ports:
+    - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
+    tty: true
+volumes:
+  local:
+    name: "${CONTAINER_SERVICE_NAME}_local"
+  proto:
+    name: "${CONTAINER_SERVICE_NAME}_proto"
+  aws:
+    name: "${CONTAINER_SERVICE_NAME}_aws"
+  gh-config:
+    name: "${CONTAINER_SERVICE_NAME}_gh-config"
+  copilot:
+    name: "${CONTAINER_SERVICE_NAME}_copilot"
+  claude:
+    name: "${CONTAINER_SERVICE_NAME}_claude"
