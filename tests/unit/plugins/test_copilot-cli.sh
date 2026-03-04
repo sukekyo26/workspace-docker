@@ -28,7 +28,7 @@ test_copilot_cli() {
 
     local result
     result=$(generate_plugin_installs "copilot-cli")
-    assert_true "install contains Copilot" echo "$result" | grep -q "Copilot"
+    assert_file_contains "install contains Copilot" <(echo "$result") "Copilot"
 }
 
 # ============================================================

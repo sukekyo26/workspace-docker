@@ -28,7 +28,7 @@ test_claude_code() {
 
     local result
     result=$(generate_plugin_installs "claude-code")
-    assert_true "install contains Claude" echo "$result" | grep -q "Claude"
+    assert_file_contains "install contains Claude" <(echo "$result") "Claude"
 }
 
 # ============================================================

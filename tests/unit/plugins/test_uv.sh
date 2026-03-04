@@ -27,8 +27,8 @@ test_uv() {
 
     local result
     result=$(generate_plugin_installs "uv")
-    assert_true "install contains uv" echo "$result" | grep -q "uv"
-    assert_true "install sets PATH" echo "$result" | grep -q "PATH"
+    assert_file_contains "install contains uv" <(echo "$result") "uv"
+    assert_file_contains "install sets PATH" <(echo "$result") "PATH"
 }
 
 # ============================================================

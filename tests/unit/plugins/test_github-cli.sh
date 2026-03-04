@@ -27,7 +27,7 @@ test_github_cli() {
 
     local result
     result=$(generate_plugin_installs "github-cli")
-    assert_true "install contains GitHub" echo "$result" | grep -q "GitHub"
+    assert_file_contains "install contains GitHub" <(echo "$result") "GitHub"
 }
 
 # ============================================================

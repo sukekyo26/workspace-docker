@@ -26,7 +26,7 @@ test_docker_cli() {
 
     local result
     result=$(generate_plugin_installs "docker-cli")
-    assert_true "install contains Docker" echo "$result" | grep -q "Docker"
+    assert_file_contains "install contains Docker" <(echo "$result") "Docker"
 }
 
 # ============================================================
