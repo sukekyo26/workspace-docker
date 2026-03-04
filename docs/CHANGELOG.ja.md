@@ -10,7 +10,7 @@
 ### 追加
 - **プラグインアーキテクチャ**: `plugins/*.toml` TOMLファイルによる拡張可能なツール選択
   - TOMLパーサーヘルパー（`lib/toml_parser.py`）— Python 3.11+ `tomllib`使用
-  - プラグインローディングライブラリ（`lib/plugin.sh`）— Dockerfileスニペット生成
+  - プラグインローディングライブラリ（`lib/plugins.sh`）— Dockerfileスニペット生成
   - 既存ツール用プラグイン定義: `proto`, `aws-cli`, `aws-sam-cli`, `copilot-cli`, `claude-code`, `docker-cli`, `github-cli`, `zig`
 - **workspace.toml**: 対話式セットアップに代わる単一TOML設定ファイル
   - `[container]` セクション — サービス名、ユーザー名、Ubuntuバージョン
@@ -125,7 +125,7 @@
 - 一元化されたバージョン設定ファイル（lib/versions.conf）
 - 共有ジェネレータ関数ライブラリ（lib/generators.sh）
 - 入力検証ライブラリ（lib/validators.sh）
-- エラーハンドリングライブラリ（lib/errors.sh）
+- エラーハンドリングライブラリ（lib/logging.sh）
 - 安全な環境変数パース機能（read_env_var）
 - シンボリックリンク検証機能（validate_symlink）
 - フォールバックロジック付きDocker GID検出機能（detect_docker_gid）
@@ -157,7 +157,7 @@
 ### 修正
 - 全シェルスクリプトのShellCheck警告を解決
 - サービス名プレフィックスによりボリューム名の競合を防止
-- lib/errors.sh関数によりエラーメッセージを改善
+- lib/logging.sh関数によりエラーメッセージを改善
 
 ## [2.1.0] - 2025-12-27
 

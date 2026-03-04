@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Plugin Architecture**: Extensible tool selection via `plugins/*.toml` TOML files
   - TOML parser helper (`lib/toml_parser.py`) using Python 3.11+ `tomllib`
-  - Plugin loading library (`lib/plugin.sh`) for Dockerfile snippet generation
+  - Plugin loading library (`lib/plugins.sh`) for Dockerfile snippet generation
   - Plugin definitions for all existing tools: `proto`, `aws-cli`, `aws-sam-cli`, `copilot-cli`, `claude-code`, `docker-cli`, `github-cli`, `zig`
 - **workspace.toml**: Single TOML configuration file replacing interactive-only setup
   - `[container]` section for service name, username, Ubuntu version
@@ -125,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized version configuration file (lib/versions.conf)
 - Shared generator functions library (lib/generators.sh)
 - Input validation library (lib/validators.sh)
-- Error handling library (lib/errors.sh)
+- Error handling library (lib/logging.sh)
 - Safe environment variable parsing utility (read_env_var)
 - Symlink validation utility (validate_symlink)
 - Docker GID detection with fallback logic (detect_docker_gid)
@@ -157,7 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - All ShellCheck warnings resolved across shell scripts
 - Volume naming conflicts prevented with service name prefixes
-- Improved error messages with lib/errors.sh functions
+- Improved error messages with lib/logging.sh functions
 
 ## [2.1.0] - 2025-12-27
 

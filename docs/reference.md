@@ -193,11 +193,14 @@ Each plugin TOML contains `[metadata]` (name, description, default), `[install]`
 - `lib/generators.py` - Programmatic generator for all output files (Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml)
 
 ### Libraries (`lib/`)
-- `lib/generators.sh` - Generator orchestration functions
-- `lib/plugin.sh` - Plugin loading and Dockerfile snippet generation
+- `lib/generators.sh` - Python generator wrapper functions
+- `lib/plugins.sh` - Plugin loading and Dockerfile snippet generation
+- `lib/utils.sh` - General-purpose utilities (env parsing, symlink validation, Docker GID detection)
+- `lib/certificates.sh` - Certificate validation and management
 - `lib/toml_parser.py` - TOML parser (Python 3.11+ tomllib)
 - `lib/validators.sh` - Input validation library (service names, usernames)
-- `lib/errors.sh` - Error handling and messaging library
+- `lib/logging.sh` - Error handling and messaging library
+- `lib/colors.sh` - Shared color constants for terminal output
 - `lib/devcontainer.sh` - devcontainer CLI prerequisite checks and WSL-compatible wrapper
 
 ### Tests (`tests/`)

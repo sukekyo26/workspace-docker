@@ -193,11 +193,14 @@ bash tests/run_all.sh
 - `lib/generators.py` - 全出力ファイルのプログラマティックジェネレータ（Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml）
 
 ### ライブラリ（`lib/`）
-- `lib/generators.sh` - ジェネレータオーケストレーション関数
-- `lib/plugin.sh` - プラグイン読み込みとDockerfileスニペット生成
+- `lib/generators.sh` - Python生成器ラッパー関数
+- `lib/plugins.sh` - プラグイン読み込みとDockerfileスニペット生成
+- `lib/utils.sh` - 汎用ユーティリティ（env解析、シンボリックリンク検証、Docker GID検出）
+- `lib/certificates.sh` - 証明書の検証と管理
 - `lib/toml_parser.py` - TOMLパーサー（Python 3.11+ tomllib）
 - `lib/validators.sh` - 入力検証ライブラリ（サービス名、ユーザー名）
-- `lib/errors.sh` - エラーハンドリングとメッセージングライブラリ
+- `lib/logging.sh` - エラーハンドリングとメッセージングライブラリ
+- `lib/colors.sh` - ターミナル出力用の共有カラー定数
 - `lib/devcontainer.sh` - devcontainer CLIの前提条件チェックとWSL対応ラッパー
 
 ### テスト（`tests/`）
