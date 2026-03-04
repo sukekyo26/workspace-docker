@@ -206,6 +206,11 @@ def cmd_list_plugins(dirpath: str) -> None:
 
 
 def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "--check":
+        # If we reach here, Python and TOML library are available
+        # (tomllib import at module level would have failed otherwise)
+        sys.exit(0)
+
     if len(sys.argv) < 3:
         print(f"Usage: {sys.argv[0]} <workspace|plugin|list-plugins> <file|dir>", file=sys.stderr)
         sys.exit(1)

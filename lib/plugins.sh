@@ -10,12 +10,12 @@
 # ============================================================
 
 # Get the directory where this script is located
-PLUGIN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOML_PARSER="$PLUGIN_LIB_DIR/toml_parser.py"
+_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOML_PARSER="$_LIB_DIR/toml_parser.py"
 
 # Load utility functions (_parse_toml_output)
 # shellcheck source=utils.sh
-source "$PLUGIN_LIB_DIR/utils.sh"
+source "$_LIB_DIR/utils.sh"
 
 # ============================================================
 # Python/TOML Prerequisites
@@ -32,19 +32,11 @@ check_python3() {
         return 1
     fi
 
-    if ! python3 "$TOML_PARSER" --help &>/dev/null 2>&1; then
-        # Try running with a simple test to check TOML parser availability
-        if ! python3 -c "
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli
-" &>/dev/null 2>&1; then
-            echo "ERROR: No TOML parser available." >&2
-            echo "  Python 3.11+ includes tomllib." >&2
-            echo "  For older Python: pip install tomli" >&2
-            return 1
-        fi
+    if ! python3 "$TOML_PARSER" --check &>/dev/null; then
+        echo "ERROR: No TOML parser available." >&2
+        echo "  Python 3.11+ includes tomllib." >&2
+        echo "  For older Python: pip install tomli" >&2
+        return 1
     fi
 
     return 0
@@ -85,7 +77,7 @@ load_workspace_config() {
 # Get the plugins directory path
 # Usage: get_plugins_dir
 get_plugins_dir() {
-    echo "$(cd "$PLUGIN_LIB_DIR/.." && pwd)/plugins"
+    echo "$(cd "$_LIB_DIR/.." && pwd)/plugins"
 }
 
 # List available plugins with their metadata

@@ -7,13 +7,13 @@
 # ============================================================
 
 # Get the directory where this script is located
-_GEN_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load plugin system
 # shellcheck source=plugins.sh
-source "$_GEN_LIB_DIR/plugins.sh"
+source "$_LIB_DIR/plugins.sh"
 
-GENERATORS_PY="$_GEN_LIB_DIR/generators.py"
+GENERATORS_PY="$_LIB_DIR/generators.py"
 
 # Generate docker-compose.yml programmatically
 # Usage: generate_compose "output" "workspace_toml"
@@ -23,7 +23,10 @@ generate_compose() {
     local plugins_dir
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
-    python3 "$GENERATORS_PY" compose "$workspace_toml" "$plugins_dir" > "$output_file"
+    local tmp
+    tmp=$(mktemp "${output_file}.XXXXXX")
+    python3 "$GENERATORS_PY" compose "$workspace_toml" "$plugins_dir" > "$tmp"
+    mv "$tmp" "$output_file"
 }
 
 # Generate devcontainer.json programmatically
@@ -35,7 +38,10 @@ generate_devcontainer_json() {
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
     mkdir -p "$(dirname "$output_file")"
-    python3 "$GENERATORS_PY" devcontainer-json "$workspace_toml" "$plugins_dir" > "$output_file"
+    local tmp
+    tmp=$(mktemp "${output_file}.XXXXXX")
+    python3 "$GENERATORS_PY" devcontainer-json "$workspace_toml" "$plugins_dir" > "$tmp"
+    mv "$tmp" "$output_file"
 }
 
 # Generate .devcontainer/docker-compose.yml programmatically
@@ -47,7 +53,10 @@ generate_devcontainer_compose() {
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
     mkdir -p "$(dirname "$output_file")"
-    python3 "$GENERATORS_PY" devcontainer-compose "$workspace_toml" "$plugins_dir" > "$output_file"
+    local tmp
+    tmp=$(mktemp "${output_file}.XXXXXX")
+    python3 "$GENERATORS_PY" devcontainer-compose "$workspace_toml" "$plugins_dir" > "$tmp"
+    mv "$tmp" "$output_file"
 }
 
 # Generate Dockerfile using plugin system (Python)
@@ -58,5 +67,8 @@ generate_dockerfile_from_template() {
     local plugins_dir
     plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
-    python3 "$GENERATORS_PY" dockerfile "$workspace_toml" "$plugins_dir" > "$output_file"
+    local tmp
+    tmp=$(mktemp "${output_file}.XXXXXX")
+    python3 "$GENERATORS_PY" dockerfile "$workspace_toml" "$plugins_dir" > "$tmp"
+    mv "$tmp" "$output_file"
 }

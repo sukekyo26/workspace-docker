@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/utils.sh"
 source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
 # Container Environment Check
@@ -52,7 +53,7 @@ check_all_prerequisites "$WORKSPACE_DIR"
 
 echo ""
 
-SERVICE_NAME=$(grep -oP '^CONTAINER_SERVICE_NAME=\K.*' "$WORKSPACE_DIR/.env" 2>/dev/null || echo "dev")
+SERVICE_NAME=$(read_env_var "CONTAINER_SERVICE_NAME" "$WORKSPACE_DIR/.env" || echo "dev")
 WORKSPACE_NAME=$(basename "$WORKSPACE_DIR")
 IMAGE_NAME="${WORKSPACE_NAME}-${SERVICE_NAME}"
 
