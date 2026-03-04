@@ -39,6 +39,11 @@ test_devcontainer_functions() {
     else
         skip_test "check_docker execution" "docker not installed"
     fi
+
+    # curl command uses TLS enforcement
+    local src="$PROJECT_ROOT/lib/devcontainer.sh"
+    assert_file_contains "curl uses --proto '=https'" "$src" "proto '=https'"
+    assert_file_contains "curl uses --tlsv1.2" "$src" "tlsv1.2"
 }
 
 # ============================================================

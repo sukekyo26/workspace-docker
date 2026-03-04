@@ -52,14 +52,14 @@ check_devcontainer_cli() {
             echo -e "    ${CYAN}→ インストール中...${NC}"
             local install_script
             install_script=$(mktemp)
-            curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"
+            curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"
             sh "$install_script"
             rm -f "$install_script"
             echo -e "  ${GREEN}✓${NC} devcontainer CLI をインストールしました"
         else
             echo -e "  ${RED}✗${NC} curl が見つかりません"
             echo "    devcontainer CLI をインストールするには curl が必要です:"
-            echo "      curl -fsSL https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh"
+            echo "      curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh"
             exit 1
         fi
     else
