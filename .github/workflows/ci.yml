@@ -128,7 +128,7 @@ jobs:
           ubuntu_version = "24.04"
 
           [plugins]
-          enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli"]
+          enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "claude-code", "copilot-cli", "proto", "uv", "zig"]
 
           [ports]
           forward = [3000]
