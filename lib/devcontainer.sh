@@ -53,9 +53,11 @@ check_devcontainer_cli() {
             echo -e "    ${CYAN}→ インストール中...${NC}"
             local install_script
             install_script=$(mktemp)
+            trap 'rm -f "$install_script"' EXIT
             curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"
             sh "$install_script"
             rm -f "$install_script"
+            trap - EXIT
             echo -e "  ${GREEN}✓${NC} devcontainer CLI をインストールしました"
         else
             echo -e "  ${RED}✗${NC} curl が見つかりません"
