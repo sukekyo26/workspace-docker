@@ -26,3 +26,4 @@ config/.bashrc_custom
 __pycache__/
 *.pyc
 .mypy_cache/
+.venv/

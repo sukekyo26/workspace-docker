@@ -28,8 +28,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install Python linting and testing tools
-        run: pip install --break-system-packages mypy ruff pytest pyyaml types-PyYAML
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python dev dependencies
+        run: uv sync --frozen
 
       - name: Make test scripts executable
         run: chmod +x tests/run_all.sh && find tests -name 'test_*.sh' -exec chmod +x {} +
@@ -57,6 +60,12 @@ jobs:
             echo "✓ Found: $file"
           done
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
       - name: Validate programmatic generators
         run: |
           echo "Checking generators.py can generate all targets..."
@@ -72,7 +81,7 @@ jobs:
           forward = [3000]
           TOML
           for cmd in compose devcontainer-json devcontainer-compose dockerfile; do
-            python3 lib/generators.py $cmd /tmp/test-ws.toml plugins > /dev/null || {
+            uv run python3 lib/generators.py $cmd /tmp/test-ws.toml plugins > /dev/null || {
               echo "❌ generators.py $cmd failed"
               exit 1
             }
@@ -92,8 +101,8 @@ jobs:
           forward = [3000]
           TOML
           echo "Checking devcontainer.json validity..."
-          python3 lib/generators.py devcontainer-json /tmp/test-ws.toml plugins | \
-            python3 -c "import re, sys; data=re.sub(r'^\s*//.*$', '', sys.stdin.read(), flags=re.MULTILINE); import json; json.loads(data)" || {
+          uv run python3 lib/generators.py devcontainer-json /tmp/test-ws.toml plugins | \
+            uv run python3 -c "import re, sys; data=re.sub(r'^\s*//.*$', '', sys.stdin.read(), flags=re.MULTILINE); import json; json.loads(data)" || {
               echo "❌ Invalid JSON output from generators.py"
               exit 1
             }

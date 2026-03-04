@@ -10,6 +10,11 @@ set -uo pipefail
 TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PROJECT_ROOT="$(dirname "$TESTS_DIR")"
 
+# Activate uv virtual environment if available
+if [[ -d "$PROJECT_ROOT/.venv/bin" ]]; then
+    export PATH="$PROJECT_ROOT/.venv/bin:$PATH"
+fi
+
 SUITE_RESULTS=()
 
 echo ""
