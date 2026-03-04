@@ -281,20 +281,18 @@ class TestDevcontainerJsonGenerator:
         output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
         assert '"ms-python.python"' in output
 
-    def test_jsonc_with_comments(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+    def test_header_comment(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
         output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
-        assert "//" in output  # JSONC comments
+        assert output.startswith("// Auto-generated from workspace.toml")
 
-    def test_json_valid_after_stripping_comments(
+    def test_valid_json_after_stripping_header(
         self, workspace_data: dict[str, object], plugins_dir: str,
     ) -> None:
-        """JSONC should be valid JSON after stripping // comments."""
+        """Output should be valid JSON after stripping the header comment."""
         import re
 
         output = DevcontainerJsonGenerator(workspace_data, plugins_dir).generate()
-        # Only strip line-level // comments to preserve URLs in values
         stripped = re.sub(r"^\s*//.*$", "", output, flags=re.MULTILINE)
-        # Should not raise
         json.loads(stripped)
 
     def test_workspace_folder(self, workspace_data: dict[str, object], plugins_dir: str) -> None:

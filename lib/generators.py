@@ -183,96 +183,18 @@ class ComposeGenerator(Generator):
 
 
 class DevcontainerJsonGenerator(Generator):
-    """Generates .devcontainer/devcontainer.json in JSONC format.
+    """Generates .devcontainer/devcontainer.json as JSON.
 
-    Uses json.dumps for value serialization with interleaved JSONC comments
-    for user guidance, replacing manual string concatenation.
+    Uses json.dumps for clean, machine-readable output.
+    A header comment marks the file as auto-generated.
     """
 
-    _HEADER = (
-        "// For format details, see https://aka.ms/devcontainer.json. For config options, see the",
-        "// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-docker-compose",
-    )
-
-    # (key, pre_comments, post_extras)
-    # pre_comments:  lines inserted before the key line
-    # post_extras:   lines inserted after the key line (commented-out alternatives)
-    _SECTIONS: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
-        ("name", (), ()),
-        (
-            "dockerComposeFile",
-            (
-                "",
-                "\t// Update the 'dockerComposeFile' list if you have more compose files or use different names.",
-                "\t// The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.",
-            ),
-            (),
-        ),
-        (
-            "service",
-            (
-                "",
-                "\t// The 'service' property is the name of the service for the container that VS Code should",
-                "\t// use. Update this value and .devcontainer/docker-compose.yml to the real service name.",
-            ),
-            (),
-        ),
-        (
-            "workspaceFolder",
-            (
-                "",
-                "\t// The optional 'workspaceFolder' property is the path VS Code should open by default when",
-                "\t// connected. This is typically a file mount in .devcontainer/docker-compose.yml",
-            ),
-            (
-                "",
-                "\t// Features to add to the dev container. More info: https://containers.dev/features.",
-                '\t// "features": {},',
-            ),
-        ),
-        (
-            "forwardPorts",
-            (
-                "",
-                "\t// Use 'forwardPorts' to make a list of ports inside the container available locally.",
-            ),
-            (
-                "",
-                "\t// Uncomment the next line if you want start specific services in your Docker Compose config.",
-                '\t// "runServices": [],',
-            ),
-        ),
-        (
-            "shutdownAction",
-            (
-                "",
-                "\t// Uncomment the next line if you want to keep your containers running after VS Code shuts down.",
-            ),
-            (
-                "",
-                "\t// Uncomment the next line to run commands after the container is created.",
-                '\t// "postCreateCommand": "cat /etc/os-release",',
-            ),
-        ),
-        (
-            "customizations",
-            (
-                "",
-                "\t// Configure tool-specific properties.",
-            ),
-            (
-                "",
-                "\t// Uncomment to connect as an existing user other than"
-                " the container default."
-                " More info: https://aka.ms/dev-containers-non-root.",
-                '\t// "remoteUser": "devcontainer"',
-            ),
-        ),
-    )
+    _HEADER = "// Auto-generated from workspace.toml — do not edit directly.\n"
 
     def generate(self) -> str:
         config = self._build_config()
-        return self._render_jsonc(config)
+        body = json.dumps(config, indent="\t", ensure_ascii=False)
+        return self._HEADER + body + "\n"
 
     def _build_config(self) -> dict[str, Any]:
         """Build the devcontainer.json configuration dictionary."""
@@ -292,44 +214,6 @@ class DevcontainerJsonGenerator(Generator):
                 },
             },
         }
-
-    def _render_jsonc(self, config: dict[str, Any]) -> str:
-        """Render the config dict as JSONC with interleaved comments."""
-        lines: list[str] = list(self._HEADER)
-        lines.append("{")
-
-        last_idx = len(self._SECTIONS) - 1
-        for i, (key, pre_comments, post_extras) in enumerate(self._SECTIONS):
-            lines.extend(pre_comments)
-            value = config[key]
-            formatted = self._format_value(value)
-            comma = "" if i == last_idx else ","
-            lines.append(f"\t{json.dumps(key)}: {formatted}{comma}")
-            lines.extend(post_extras)
-
-        lines.append("}")
-        return "\n".join(lines) + "\n"
-
-    @staticmethod
-    def _format_value(value: Any) -> str:
-        """Format a value as JSON with tab indentation for nested structures.
-
-        Short flat arrays (≤1 element) and scalars are kept inline.
-        Multi-element arrays and dicts use multi-line with tab indentation.
-        """
-        # Scalars: always inline
-        if not isinstance(value, (list, dict)):
-            return json.dumps(value, ensure_ascii=False)
-
-        # Short flat arrays: inline (e.g., [3000])
-        if isinstance(value, list) and len(value) <= 1 and all(not isinstance(v, (list, dict)) for v in value):
-            return json.dumps(value, ensure_ascii=False)
-
-        # Complex values: multi-line with indentation
-        s = json.dumps(value, indent="\t", ensure_ascii=False)
-        value_lines = s.split("\n")
-        # Indent continuation lines by one tab for top-level key nesting
-        return value_lines[0] + "\n" + "\n".join("\t" + line for line in value_lines[1:])
 
 
 # ============================================================
