@@ -1,0 +1,33 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Development / CI
+tests/
+docs/
+agent/
+local/
+.github/
+.vscode/
+
+# Python tooling
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+
+# Environment & secrets
+.env
+
+# Generated files (rebuilt during build)
+.devcontainer/
+Dockerfile
+docker-compose.yml
+
+# Editor / OS
+*.swp
+*.swo
+*~
+.DS_Store
