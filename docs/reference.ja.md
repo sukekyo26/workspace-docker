@@ -17,6 +17,63 @@
 
 各プラグインは`plugins/`ディレクトリ内の自己完結型TOMLファイルで、メタデータ、Dockerfile命令、バージョン情報を含みます。新しいツールを追加するには、`plugins/<name>.toml`ファイルを作成するだけです。
 
+## プラグインの作成方法
+
+新しいツールを追加するには、以下の構造で `plugins/<name>.toml` を作成します。
+
+### TOML スキーマ
+
+```toml
+[metadata]
+name = "My Tool"                  # 表示名
+description = "ツールの説明"
+default = false                   # true = デフォルトで有効
+
+[apt]
+packages = ["libfoo-dev"]         # オプション: apt依存パッケージ
+
+[install]
+requires_root = false             # true = root権限で実行（USER切替は自動）
+dockerfile = '''
+# ツールをインストールするDockerfile RUN命令
+RUN curl -fsSL https://example.com/install.sh | sh
+'''
+
+[volumes]
+tool-data = "/home/${USERNAME}/.tool"  # オプション: 永続ボリュームマウント
+
+[version]
+strategy = "latest"               # "latest" または "pin"
+pin = ""                          # strategy = "pin" 時のバージョン文字列
+```
+
+### 重要なルール
+
+- **`requires_root`**: `true` の場合、ジェネレータが自動的に `USER root` / `USER ${USERNAME}` でラップします。手動で `USER` ディレクティブを含めないでください — 両方が存在する場合は検証警告が出力されます。
+- **`${USERNAME}`**: ボリュームパスやdockerfile命令でこの変数を使用します。ビルド時に `workspace.toml` の値で置換されます。
+- **`[apt].packages`**: プラグインが有効な場合のみインストールされます。ベースパッケージリスト（`config/apt-base-packages.conf`）との重複は自動検知されます。
+- **`[volumes]`**: パスは絶対パスでなければなりません。ボリューム名はdocker-compose.ymlでサービス名がプレフィックスとして付与されます。マウント先ディレクトリはDockerfile内でユーザー権限で作成されます。
+- **`dockerfile`**: トリプルクォート文字列（`'''...'''`）を使用します。各命令は後始末を行ってください（`apt-get clean`、`rm -rf /tmp/*`）。
+
+### 例: 最小構成のプラグイン
+
+```toml
+[metadata]
+name = "ripgrep"
+description = "高速な再帰的grep"
+
+[install]
+requires_root = true
+dockerfile = '''
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ripgrep && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+'''
+
+[version]
+strategy = "latest"
+```
+
 ## システムパッケージ
 
 ベースパッケージは`config/apt-base-packages.conf`で管理されています。プロジェクト固有のパッケージは`workspace.toml`の`[apt] extra_packages`で追加できます。
@@ -144,6 +201,25 @@ source ~/.bashrc
 - コンテナ再起動時に設定が自動適用
 - Dockerfileの更新との競合がない
 
+## ワークスペース設定
+
+`config/workspace-settings.json` は `generate-workspace.sh` で生成される `.code-workspace` ファイルに埋め込まれるVS Codeエディタ設定を定義します。
+
+**デフォルト設定:**
+
+| 設定 | 値 | 説明 |
+|------|-----|------|
+| `files.autoSave` | `afterDelay` | 一定時間後に自動保存 |
+| `files.trimTrailingWhitespace` | `true` | 保存時に末尾の空白を削除 |
+| `files.insertFinalNewline` | `true` | ファイル末尾に改行を保証 |
+| `editor.formatOnSave` | `true` | 保存時にフォーマット |
+| `editor.insertSpaces` | `true` | タブの代わりにスペースを使用 |
+| `editor.detectIndentation` | `false` | 自動検出せず設定されたtabSizeを使用 |
+| `editor.tabSize` | `2` | デフォルトインデント幅（PythonとDockerfileは4） |
+| `github.copilot.chat.localeOverride` | `ja` | Copilot Chatの言語設定 |
+
+カスタマイズするには `config/workspace-settings.json` を直接編集してください。変更は新たに生成するワークスペースファイルに反映されます。
+
 ## テスト
 
 プロジェクトには8つのテストスイートを含む包括的なテスト環境が整備されています：
@@ -175,6 +251,9 @@ bash tests/run_all.sh
 
 ### 設定
 - `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、VSCode拡張機能、カスタムボリューム）
+- `config/workspace-settings.json` - 生成される `.code-workspace` ファイルに埋め込まれるVS Codeエディタ設定
+- `config/apt-base-packages.conf` - 全コンテナにインストールされるベースaptパッケージ
+- `config/.bashrc_custom` - シェル起動時に読み込まれるユーザー固有のシェル設定
 
 ### プラグイン（`plugins/`）
 - `plugins/proto.toml` - protoバージョンマネージャープラグイン（デフォルト: on）

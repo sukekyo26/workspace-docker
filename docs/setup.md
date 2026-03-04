@@ -46,10 +46,68 @@ Note: Re-login required for group changes to take effect.
 
 ## workspace.toml Configuration
 
-```toml
-# workspace.toml — workspace-docker configuration
-# Edit this file and run setup-docker.sh to regenerate
+`workspace.toml` is the single configuration file for the entire development environment. Edit this file and run `setup-docker.sh` to regenerate all Docker configuration files.
 
+### Sections
+
+#### `[container]` — Container identity
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `service_name` | string | `"dev"` | Docker Compose service name |
+| `username` | string | `"developer"` | Linux user created in the container |
+| `ubuntu_version` | string | `"24.04"` | Ubuntu base image version |
+
+#### `[plugins]` — Tool selection
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `enable` | string[] | `[]` | List of plugin IDs to install (from `plugins/*.toml`) |
+
+#### `[ports]` — Port forwarding
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `forward` | int[] | `[3000]` | Ports forwarded from container to host |
+
+#### `[apt]` — Additional system packages
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `extra_packages` | string[] | `[]` | Additional apt packages (duplicates with base packages are detected) |
+
+#### `[vscode]` — VS Code extensions
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `extensions` | string[] | `[]` | VS Code extension IDs installed in Dev Container |
+
+#### `[volumes]` — Custom persistent volumes
+
+Key-value pairs where key = volume name, value = absolute container path. See [Custom Volume Mounts](#custom-volume-mounts) for details.
+
+#### `[devcontainer]` — devcontainer.json overrides
+
+Add arbitrary [devcontainer.json properties](https://containers.dev/implementors/json_reference/) without modifying code. Values are **deep-merged** into the generated base config, so nested objects (like `customizations.vscode`) coexist safely with `[vscode].extensions`.
+
+```toml
+# Add a post-create command
+[devcontainer]
+postCreateCommand = "cat /etc/os-release"
+remoteUser = "devcontainer"
+
+# Add Dev Container Features
+[devcontainer.features]
+"ghcr.io/devcontainers/features/node:1" = {}
+
+# Add VS Code settings (coexists with [vscode].extensions)
+[devcontainer.customizations.vscode]
+settings = { "editor.fontSize" = 14 }
+```
+
+### Full example
+
+```toml
 [container]
 service_name = "dev"
 username = "devuser"
@@ -59,12 +117,11 @@ ubuntu_version = "24.04"
 enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
-extra_packages = ["ripgrep", "fd-find"]  # optional
+extra_packages = ["ripgrep", "fd-find"]
 
 [ports]
-forward = [3000]
+forward = [3000, 8080]
 
-# Optional: VSCode extensions to install in Dev Container
 [vscode]
 extensions = [
     "MS-CEINTL.vscode-language-pack-ja",
@@ -72,11 +129,11 @@ extensions = [
     "eamodio.gitlens",
 ]
 
-# Optional: custom persistent volumes (volume-name = "/container/path")
-# Use this to persist paths not covered by plugins.
-# e.g., proto-managed tool data, project-specific caches
 [volumes]
 node-data = "/home/devuser/.node"
+
+[devcontainer]
+postCreateCommand = "echo 'Container ready!'"
 ```
 
 Available plugins are defined in `plugins/*.toml`. Each plugin is a self-contained TOML file with install instructions:
@@ -205,7 +262,7 @@ If you want to work with multiple projects simultaneously with independent setti
 
 2. After connecting to Dev Container, open workspace file from within the container:
    - Open Command Palette (Ctrl+Shift+P) and select "File: Open Workspace from File..."
-   - Choose `/home/<username>/workspace/workspace-docker/multi-project.code-workspace`
+   - Choose a `.code-workspace` file from `workspaces/` directory
 
 See [Multi-Root Workspace Support](#multi-root-workspace-support) section below for more details.
 
@@ -263,7 +320,7 @@ Run the provided script to automatically generate a workspace file:
 ```
 
 This scans all directories in the parent directory (excluding hidden directories) and generates:
-- `multi-project.code-workspace` (in the workspace-docker directory)
+- A `.code-workspace` file in the `workspaces/` directory (you choose the filename interactively)
 
 ### Opening Multi-Root Workspace
 
@@ -271,7 +328,7 @@ This scans all directories in the parent directory (excluding hidden directories
 1. Connect to container via Dev Containers as a single folder
 2. Open Command Palette (`Ctrl+Shift+P`)
 3. Select "File: Open Workspace from File..."
-4. Choose `/home/<username>/workspace/workspace-docker/multi-project.code-workspace`
+4. Choose a `.code-workspace` file from `/home/<username>/workspace/workspace-docker/workspaces/`
 
 Once opened, VS Code remembers it in "Recent Files" for easy access (though you'll need to reconnect to the devcontainer each time).
 

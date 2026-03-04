@@ -27,7 +27,6 @@ import tomllib
 from abc import ABC, abstractmethod
 from typing import Any, cast
 
-
 # ============================================================
 # TOML loader
 # ============================================================
@@ -66,7 +65,7 @@ class ShellEncoder:
         if isinstance(value, (int, float)):
             return str(value)
         if isinstance(value, list):
-            return cls.UNIT_SEP.join(cls.encode(v) for v in cast(list[object], value))
+            return cls.UNIT_SEP.join(cls.encode(v) for v in cast("list[object]", value))
         s = str(value)
         # Escape for printf %b compatibility (order matters: backslash first)
         s = s.replace("\\", "\\\\")
@@ -84,7 +83,7 @@ class ShellEncoder:
             A:KEY=elem1\\x1felem2  (array, elements separated by U+001F)
         """
         if isinstance(value, list):
-            encoded_elements = [cls.encode(v) for v in cast(list[object], value)]
+            encoded_elements = [cls.encode(v) for v in cast("list[object]", value)]
             print(f"A:{key}={cls.UNIT_SEP.join(encoded_elements)}")
         else:
             print(f"S:{key}={cls.encode(value)}")

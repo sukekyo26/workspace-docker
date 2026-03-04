@@ -106,6 +106,33 @@ docker compose ps
 docker compose stats
 ```
 
+### Generating Workspace Files
+
+Use `generate-workspace.sh` to create or update `.code-workspace` files interactively:
+
+```bash
+bash generate-workspace.sh
+```
+
+The script provides a TUI (Terminal User Interface) for folder selection:
+
+1. **Scans** the parent directory (`..`) for available project folders
+2. **Displays** a multi-select list with arrow keys, Enter to toggle, `a` for select all, `d` to confirm
+3. **Outputs** the `.code-workspace` file to `workspaces/`
+
+**Flows:**
+
+| Scenario | Behavior |
+|----------|----------|
+| No existing workspace files | Prompts for folder selection and filename, creates new file |
+| Existing workspace files found | Choose "Update existing" or "Create new" |
+| Updating | Pre-selects currently included folders, allows modification |
+
+**Features:**
+- Auto-expands directories that contain only subdirectories (e.g., `group/repo1`, `group/repo2`)
+- Embeds VS Code settings from `config/workspace-settings.json` into generated files
+- Overwrites confirmation when creating a file with an existing name
+
 ### Complete Rebuild
 
 Using `rebuild-container.sh` (recommended):

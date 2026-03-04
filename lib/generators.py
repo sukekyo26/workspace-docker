@@ -101,10 +101,10 @@ class ComposeGenerator(Generator):
     def str_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
         """Represent strings with double quotes only when YAML-special chars are present."""
         if any(c in ComposeGenerator.YAML_SPECIAL_CHARS for c in data):
-            return dumper.represent_scalar(  # type: ignore[no-any-return]
+            return dumper.represent_scalar(
                 "tag:yaml.org,2002:str", data, style='"',
             )
-        return dumper.represent_scalar(  # type: ignore[no-any-return]
+        return dumper.represent_scalar(
             "tag:yaml.org,2002:str", data,
         )
 
@@ -240,7 +240,7 @@ class DevcontainerJsonGenerator(Generator):
         for key, val in override.items():
             if key in base and isinstance(base[key], dict) and isinstance(val, dict):
                 DevcontainerJsonGenerator._deep_merge(
-                    base[key], cast(dict[str, Any], val),
+                    base[key], cast("dict[str, Any]", val),
                 )
             else:
                 base[key] = val
