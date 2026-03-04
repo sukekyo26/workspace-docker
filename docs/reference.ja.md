@@ -78,7 +78,7 @@ strategy = "latest"
 
 ## システムパッケージ
 
-ベースパッケージは`config/apt-base-packages.conf`で管理されています。プロジェクト固有のパッケージは`workspace.toml`の`[apt] extra_packages`で追加できます。
+ベースパッケージは`config/apt-base-packages.conf`で管理されています。プロジェクト固有のパッケージは`workspace.toml`の`[apt] packages`で追加できます。
 
 ### 必須パッケージ
 - **ca-certificates** - SSL/TLS証明書管理、安全なHTTPS接続に必要

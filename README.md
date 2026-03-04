@@ -43,7 +43,7 @@ ubuntu_version = "24.04"
 enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
-extra_packages = ["ripgrep", "fd-find"]
+packages = ["ripgrep", "fd-find"]
 
 [ports]
 forward = [3000]

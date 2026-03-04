@@ -548,7 +548,7 @@ class TestDockerfileGenerator:
         data: dict[str, object] = {
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": []},
-            "apt": {"extra_packages": ["vim-nox", "tmux"]},
+            "apt": {"packages": ["vim-nox", "tmux"]},
         }
         output = DockerfileGenerator(data, plugins_dir, workspace_root).generate()
         assert "vim-nox" in output

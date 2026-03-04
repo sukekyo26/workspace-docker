@@ -168,8 +168,13 @@ enable = $plugins_toml
 [ports]
 forward = [$forward_port]
 
+[apt]
+packages = []
+
 [vscode]
 extensions = []
+
+[volumes]
 EOF
 
     # Reload to set WS_* variables

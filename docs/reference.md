@@ -78,7 +78,7 @@ strategy = "latest"
 
 ## System Packages
 
-Base packages are managed in `config/apt-base-packages.conf`. Project-specific extra packages can be added via `workspace.toml` under `[apt] extra_packages`.
+Base packages are managed in `config/apt-base-packages.conf`. Project-specific extra packages can be added via `workspace.toml` under `[apt] packages`.
 
 ### Essential Packages
 - **ca-certificates** - SSL/TLS certificate management for secure HTTPS connections

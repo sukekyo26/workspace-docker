@@ -17,7 +17,7 @@
   - `[plugins]` セクション — ツール選択
   - `[apt]` セクション — 追加システムパッケージ
   - `[ports]` セクション — ポートフォワーディング
-- `workspace.toml`の`[apt].extra_packages`による追加aptパッケージサポート
+- `workspace.toml`の`[apt].packages`による追加aptパッケージサポート
 - `workspace.toml`の`[ports].forward`による設定可能なポートフォワーディング
 - 有効なプラグインに基づく条件付きDockerボリューム生成
 - 初回セットアップ時の`.bashrc_custom`スケルトンの自動コピー

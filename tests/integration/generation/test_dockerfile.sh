@@ -169,7 +169,7 @@ enable = []
 forward = [3000]
 
 [apt]
-extra_packages = ["vim-nox", "tmux"]
+packages = ["vim-nox", "tmux"]
 EOF
 
     (

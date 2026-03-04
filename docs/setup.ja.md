@@ -75,7 +75,7 @@ sudo usermod -aG docker $USER
 
 | キー | 型 | デフォルト | 説明 |
 |------|-----|-----------|------|
-| `extra_packages` | string[] | `[]` | 追加aptパッケージ（ベースパッケージとの重複は自動検知） |
+| `packages` | string[] | `[]` | 追加aptパッケージ（ベースパッケージとの重複は自動検知） |
 
 #### `[vscode]` — VS Code 拡張機能
 
@@ -118,7 +118,7 @@ ubuntu_version = "24.04"
 enable = ["proto", "aws-cli", "docker-cli", "github-cli"]
 
 [apt]
-extra_packages = ["ripgrep", "fd-find"]
+packages = ["ripgrep", "fd-find"]
 
 [ports]
 forward = [3000, 8080]

@@ -410,7 +410,7 @@ WORKDIR /home/${USERNAME}/workspace
         )
 
         apt_extra_pkgs: list[str] = self._data.get("apt", {}).get(
-            "extra_packages",
+            "packages",
             [],
         )
         apt_extra = ""

@@ -18,11 +18,23 @@ echo ""
 echo "[ test_setup_docker.sh ]"
 
 # ============================================================
+# Cleanup: ensure temp directories are removed on exit
+# ============================================================
+_TEST_SETUP_TMPDIRS=()
+_cleanup_test_setup_dirs() {
+    for d in "${_TEST_SETUP_TMPDIRS[@]}"; do
+        [[ -d "$d" ]] && rm -rf "$d"
+    done
+}
+trap _cleanup_test_setup_dirs EXIT
+
+# ============================================================
 # Helper: create a tmpdir with all project files needed
 # ============================================================
 setup_test_dir() {
     local tmpdir
     tmpdir=$(mktemp -d)
+    _TEST_SETUP_TMPDIRS+=("$tmpdir")
 
     cp "$SCRIPT" "$tmpdir/"
     cp -r "$PROJECT_ROOT/lib" "$tmpdir/"
@@ -192,14 +204,8 @@ test_init_with_yes_flag() {
     for toml_file in "$plugins_dir"/*.toml; do
         local pid pdefault
         pid=$(basename "$toml_file" .toml)
-        pdefault=$(python3 -c "
-import pathlib
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib
-print(str(tomllib.loads(pathlib.Path('$toml_file').read_text())['metadata']['default']).lower())
-")
+        pdefault=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$toml_file" \
+            | grep '^S:PLUGIN_DEFAULT=' | sed 's/^S:PLUGIN_DEFAULT=//')
         if [[ "$pdefault" == "true" ]]; then
             assert_file_contains "$pid enabled (default)" "$tmpdir/workspace.toml" "$pid"
         fi
@@ -208,6 +214,13 @@ print(str(tomllib.loads(pathlib.Path('$toml_file').read_text())['metadata']['def
     # [vscode] section should be present with empty extensions
     assert_file_contains "vscode section" "$tmpdir/workspace.toml" '\[vscode\]'
     assert_file_contains "extensions empty" "$tmpdir/workspace.toml" 'extensions = \[\]'
+
+    # [apt] section should be present
+    assert_file_contains "apt section" "$tmpdir/workspace.toml" '\[apt\]'
+    assert_file_contains "packages empty" "$tmpdir/workspace.toml" 'packages = \[\]'
+
+    # [volumes] section should be present
+    assert_file_contains "volumes section" "$tmpdir/workspace.toml" '\[volumes\]'
 
     rm -rf "$tmpdir"
 }

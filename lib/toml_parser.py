@@ -121,7 +121,7 @@ class WorkspaceCommand(TomlCommand):
         kv("WS_FORWARD_PORTS", ports.get("forward", [3000]))
 
         apt = data.get("apt", {})
-        kv("WS_APT_EXTRA", apt.get("extra_packages", []))
+        kv("WS_APT_EXTRA", apt.get("packages", []))
 
         # Custom volumes: name = path
         volumes = data.get("volumes", {})
