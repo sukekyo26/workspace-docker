@@ -128,11 +128,6 @@ class WorkspaceCommand(TomlCommand):
         kv("WS_VOLUME_NAMES", list(volumes.keys()))
         kv("WS_VOLUME_PATHS", list(volumes.values()))
 
-        # Environment variables
-        env = data.get("environment", {})
-        kv("WS_ENV_KEYS", list(env.keys()))
-        kv("WS_ENV_VALS", [str(v) for v in env.values()])
-
         # VSCode extensions
         vscode = data.get("vscode", {})
         kv("WS_VSCODE_EXTENSIONS", vscode.get("extensions", []))

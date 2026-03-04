@@ -50,8 +50,7 @@ check_python3() {
 # Usage: load_workspace_config "workspace.toml"
 # Sets: WS_SERVICE_NAME, WS_USERNAME, WS_UBUNTU_VERSION,
 #       WS_PLUGINS, WS_FORWARD_PORTS, WS_APT_EXTRA,
-#       WS_VOLUME_NAMES, WS_VOLUME_PATHS,
-#       WS_ENV_KEYS, WS_ENV_VALS
+#       WS_VOLUME_NAMES, WS_VOLUME_PATHS
 load_workspace_config() {
     local config_file="$1"
 
@@ -66,7 +65,6 @@ load_workspace_config() {
         WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
         WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
         WS_VOLUME_NAMES WS_VOLUME_PATHS \
-        WS_ENV_KEYS WS_ENV_VALS \
         WS_VSCODE_EXTENSIONS
 }
 
