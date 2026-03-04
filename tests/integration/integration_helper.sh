@@ -9,6 +9,12 @@
 
 WORK_DIR=""
 
+# Ensure cleanup on exit even if tests fail midway
+_cleanup_integration_workdir() {
+    [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]] && rm -rf "$WORK_DIR"
+}
+trap _cleanup_integration_workdir EXIT
+
 setup_workspace() {
     WORK_DIR=$(mktemp -d)
     # Copy libs
