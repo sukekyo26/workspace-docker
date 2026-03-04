@@ -37,9 +37,31 @@ test_error_functions() {
 }
 
 # ============================================================
+# Test: die and die_with_hint (must run in subshell)
+# ============================================================
+test_die_functions() {
+    section "die / die_with_hint"
+
+    # die exits with code 1
+    local output exit_code
+    output=$( (die "fatal error") 2>&1 ) || exit_code=$?
+    assert_eq "die exits with code 1" "$exit_code" "1"
+    assert_file_contains "die outputs ERROR:" <(echo "$output") "ERROR:"
+    assert_file_contains "die outputs message" <(echo "$output") "fatal error"
+
+    # die_with_hint exits with code 1 and shows hint
+    output=$( (die_with_hint "something broke" "try this fix") 2>&1 ) || exit_code=$?
+    assert_eq "die_with_hint exits with code 1" "$exit_code" "1"
+    assert_file_contains "die_with_hint outputs ERROR:" <(echo "$output") "ERROR:"
+    assert_file_contains "die_with_hint outputs HINT:" <(echo "$output") "HINT:"
+    assert_file_contains "die_with_hint outputs hint text" <(echo "$output") "try this fix"
+}
+
+# ============================================================
 # Run
 # ============================================================
 
 test_error_functions
+test_die_functions
 
 print_summary
