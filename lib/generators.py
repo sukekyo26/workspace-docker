@@ -21,25 +21,7 @@ from typing import Any
 
 import yaml
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    try:
-        import tomli as tomllib  # type: ignore[no-redef,import-not-found]
-    except ModuleNotFoundError:
-        print(
-            "ERROR: No TOML parser available. "
-            "Python 3.11+ includes tomllib. "
-            "For older Python, run: pip install tomli",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-
-def load_toml(filepath: str) -> dict[str, Any]:
-    """Load and parse a TOML file."""
-    with open(filepath, "rb") as f:
-        return tomllib.load(f)
+from toml_parser import load_toml
 
 
 def get_plugin_volumes(

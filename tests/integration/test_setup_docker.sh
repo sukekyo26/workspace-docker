@@ -9,6 +9,8 @@ set -uo pipefail
 TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/.. && pwd)"
 # shellcheck source=../test_helper.sh
 source "$TESTS_DIR/test_helper.sh"
+# shellcheck source=integration_helper.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/integration_helper.sh"
 
 SCRIPT="$PROJECT_ROOT/setup-docker.sh"
 
@@ -54,18 +56,7 @@ test_regenerate_from_toml() {
     local tmpdir
     tmpdir=$(setup_test_dir)
 
-    cat > "$tmpdir/workspace.toml" << 'EOF'
-[container]
-service_name = "setup-test"
-username = "testuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = ["docker-cli", "github-cli"]
-
-[ports]
-forward = [8080]
-EOF
+    create_test_workspace_toml "$tmpdir" "setup-test" "testuser" 8080 "docker-cli" "github-cli"
 
     (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
     local exit_code=$?
@@ -124,18 +115,8 @@ test_regenerate_all_plugins() {
     local tmpdir
     tmpdir=$(setup_test_dir)
 
-    cat > "$tmpdir/workspace.toml" << 'EOF'
-[container]
-service_name = "all-plugins"
-username = "devuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = ["docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "copilot-cli", "claude-code", "uv", "zig"]
-
-[ports]
-forward = [3000]
-EOF
+    create_test_workspace_toml "$tmpdir" "all-plugins" "devuser" 3000 \
+        "docker-cli" "aws-cli" "aws-sam-cli" "github-cli" "copilot-cli" "claude-code" "uv" "zig"
 
     (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
 
@@ -165,18 +146,7 @@ test_regenerate_no_plugins() {
     local tmpdir
     tmpdir=$(setup_test_dir)
 
-    cat > "$tmpdir/workspace.toml" << 'EOF'
-[container]
-service_name = "minimal"
-username = "testuser"
-ubuntu_version = "24.04"
-
-[plugins]
-enable = []
-
-[ports]
-forward = [3000]
-EOF
+    create_test_workspace_toml "$tmpdir" "minimal" "testuser" 3000
 
     (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
 

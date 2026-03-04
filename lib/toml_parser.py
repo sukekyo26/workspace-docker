@@ -36,6 +36,12 @@ except ModuleNotFoundError:
 _UNIT_SEP = "\x1f"
 
 
+def load_toml(filepath: str) -> dict[str, Any]:
+    """Load and parse a TOML file."""
+    with open(filepath, "rb") as f:
+        return tomllib.load(f)
+
+
 def encode_value(value: Any) -> str:
     """Encode a value for safe shell parsing without eval.
 
@@ -74,8 +80,7 @@ def print_kv(key: str, value: Any) -> None:
 
 def cmd_workspace(filepath: str) -> None:
     """Parse workspace.toml and output shell variables."""
-    with open(filepath, "rb") as f:
-        data = tomllib.load(f)
+    data = load_toml(filepath)
 
     container = data.get("container", {})
     print_kv("WS_SERVICE_NAME", container.get("service_name", "dev"))
@@ -113,8 +118,7 @@ def cmd_workspace(filepath: str) -> None:
 
 def cmd_plugin(filepath: str) -> None:
     """Parse a plugin TOML file and output shell variables."""
-    with open(filepath, "rb") as f:
-        data = tomllib.load(f)
+    data = load_toml(filepath)
 
     # Plugin ID from filename (e.g., plugins/aws-cli.toml -> aws-cli)
     plugin_id = os.path.splitext(os.path.basename(filepath))[0]
@@ -178,8 +182,7 @@ def cmd_list_plugins(dirpath: str) -> None:
             continue
         filepath = os.path.join(dirpath, fname)
         try:
-            with open(filepath, "rb") as f:
-                data = tomllib.load(f)
+            data = load_toml(filepath)
             plugin_id = os.path.splitext(fname)[0]
             metadata = data.get("metadata", {})
             plugins.append(

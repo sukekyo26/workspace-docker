@@ -32,6 +32,13 @@ create_test_workspace_toml() {
     local service_name="$2"
     local username="$3"
     shift 3
+
+    # If next arg is a number, treat it as port; otherwise default 3000
+    local port=3000
+    if [[ $# -gt 0 && "$1" =~ ^[0-9]+$ ]]; then
+        port="$1"
+        shift
+    fi
     local plugins=("$@")
 
     local plugins_toml="["
@@ -51,6 +58,6 @@ ubuntu_version = "24.04"
 enable = $plugins_toml
 
 [ports]
-forward = [3000]
+forward = [$port]
 EOF
 }
