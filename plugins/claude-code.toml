@@ -7,7 +7,7 @@ default = false
 requires_root = false
 dockerfile = '''
 # Install Claude Code
-RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh && \
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/install-claude.sh && \
     bash /tmp/install-claude.sh && \
     rm -f /tmp/install-claude.sh && \
     mkdir -p ~/.claude

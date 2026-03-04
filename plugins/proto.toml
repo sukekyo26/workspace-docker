@@ -23,7 +23,7 @@ packages = [
 requires_root = false
 dockerfile = '''
 # proto (multi-language version manager)
-RUN curl -fsSL https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
     bash /tmp/install-proto.sh --no-profile --yes && \
     rm -f /tmp/install-proto.sh && \
     echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \

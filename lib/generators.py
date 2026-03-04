@@ -480,6 +480,12 @@ WORKDIR /home/${USERNAME}/workspace
             pin = version.get("pin", "")
             if pin:
                 snippet = snippet.replace("{{VERSION}}", pin)
+            checksum_amd64 = version.get("checksum_amd64", "")
+            if checksum_amd64:
+                snippet = snippet.replace("{{CHECKSUM_AMD64}}", checksum_amd64)
+            checksum_arm64 = version.get("checksum_arm64", "")
+            if checksum_arm64:
+                snippet = snippet.replace("{{CHECKSUM_ARM64}}", checksum_arm64)
 
             if requires_root:
                 snippet = f"USER root\n{snippet}\nUSER ${{USERNAME}}"

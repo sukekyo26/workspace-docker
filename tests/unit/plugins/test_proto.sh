@@ -31,6 +31,7 @@ test_proto() {
     assert_true "install contains proto" echo "$result" | grep -q "proto"
     assert_true "install contains PROTO_HOME" echo "$result" | grep -q "PROTO_HOME"
     assert_true "install sets PATH" echo "$result" | grep -q "PATH"
+    assert_file_contains "TLS enforcement" <(echo "$result") "tlsv1.2"
 }
 
 # ============================================================

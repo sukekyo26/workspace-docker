@@ -27,6 +27,9 @@ test_zig() {
     result=$(generate_plugin_installs "zig")
     assert_file_contains "contains 0.14.0" <(echo "$result") "0.14.0"
     assert_file_not_contains "no {{VERSION}} placeholder" <(echo "$result") '{{VERSION}}'
+    assert_file_contains "contains sha256sum check" <(echo "$result") 'sha256sum -c -'
+    assert_file_not_contains "no {{CHECKSUM_AMD64}} placeholder" <(echo "$result") '{{CHECKSUM_AMD64}}'
+    assert_file_not_contains "no {{CHECKSUM_ARM64}} placeholder" <(echo "$result") '{{CHECKSUM_ARM64}}'
 }
 
 # ============================================================
