@@ -13,6 +13,7 @@
 #   is_wsl                  WSL 環境かどうか判定
 #   run_devcontainer        WSL 環境を考慮した devcontainer CLI ラッパー
 # ============================================================
+set -uo pipefail
 
 # Load shared color constants
 _DC_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

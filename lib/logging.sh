@@ -3,6 +3,7 @@
 # lib/logging.sh - Error handling and logging functions
 # ============================================================
 # Provides consistent error messages and logging
+set -uo pipefail
 
 # Load shared color constants
 _LOGGING_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -8,6 +8,7 @@
 #
 # Requires: Python 3.11+ (tomllib) or Python 3.x with tomli
 # ============================================================
+set -uo pipefail
 
 # Get the directory where this script is located
 _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

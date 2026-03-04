@@ -5,6 +5,7 @@
 # Provides: read_env_var, validate_symlink, detect_docker_gid,
 #           _parse_toml_output
 # ============================================================
+set -uo pipefail
 
 # ============================================================
 # TOML output parser (eval-free)

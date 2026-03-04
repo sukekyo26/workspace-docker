@@ -1,6 +1,7 @@
 #!/bin/bash
 # Input validation functions for setup scripts
 # This library provides reusable validation functions
+set -uo pipefail
 
 # Validate container service name
 # Usage: validate_service_name "name"

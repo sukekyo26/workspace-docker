@@ -2,6 +2,7 @@
 # ============================================================
 # lib/certificates.sh - Certificate validation and management
 # ============================================================
+set -uo pipefail
 # Provides: get_project_root, validate_certificate,
 #           list_valid_certificates, has_valid_certificates
 # ============================================================

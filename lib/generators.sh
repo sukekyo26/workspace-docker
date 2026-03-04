@@ -5,6 +5,7 @@
 # Provides: generate_compose, generate_devcontainer_json,
 #           generate_devcontainer_compose, generate_dockerfile_from_template
 # ============================================================
+set -uo pipefail
 
 # Get the directory where this script is located
 _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
