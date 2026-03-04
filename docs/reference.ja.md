@@ -203,6 +203,25 @@ source ~/.bashrc
 - コンテナ再起動時に設定が自動適用
 - Dockerfileの更新との競合がない
 
+## VS Code 拡張機能
+
+VS Code の拡張機能は `workspace.toml` の `[vscode]` セクションで設定します。これらの拡張機能は Dev Container 作成時に自動インストールされます。
+
+```toml
+[vscode]
+extensions = [
+    "MS-CEINTL.vscode-language-pack-ja",
+    "ms-azuretools.vscode-docker",
+    "ms-python.python",
+    "eamodio.gitlens",
+    "github.copilot-chat",
+]
+```
+
+各拡張機能はマーケットプレイス ID（`publisher.extension-name`）で指定します。リストは生成時に `devcontainer.json` の `customizations.vscode.extensions` に書き込まれます。
+
+拡張機能 ID の確認方法: VS Code の拡張機能パネルを開く → 拡張機能を右クリック →「拡張機能 ID のコピー」。
+
 ## ワークスペース設定
 
 `config/workspace-settings.json` は `generate-workspace.sh` で生成される `.code-workspace` ファイルに埋め込まれるVS Codeエディタ設定を定義します。
