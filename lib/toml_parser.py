@@ -16,29 +16,16 @@ Usage:
     python3 lib/toml_parser.py plugin <file>
     python3 lib/toml_parser.py list-plugins <dir>
 
-Requires Python 3.11+ (tomllib) or tomli package for older versions.
+Requires Python 3.11+ (tomllib).
 """
 
 from __future__ import annotations
 
 import os
 import sys
+import tomllib
 from abc import ABC, abstractmethod
-from typing import Any
-
-try:
-    import tomllib
-except ModuleNotFoundError:
-    try:
-        import tomli as tomllib  # type: ignore[no-redef,import-not-found]
-    except ModuleNotFoundError:
-        print(
-            "ERROR: No TOML parser available. "
-            "Python 3.11+ includes tomllib. "
-            "For older Python, run: pip install tomli",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+from typing import Any, cast
 
 
 # ============================================================
@@ -79,7 +66,7 @@ class ShellEncoder:
         if isinstance(value, (int, float)):
             return str(value)
         if isinstance(value, list):
-            return cls.UNIT_SEP.join(cls.encode(v) for v in value)
+            return cls.UNIT_SEP.join(cls.encode(v) for v in cast(list[object], value))
         s = str(value)
         # Escape for printf %b compatibility (order matters: backslash first)
         s = s.replace("\\", "\\\\")
@@ -97,7 +84,7 @@ class ShellEncoder:
             A:KEY=elem1\\x1felem2  (array, elements separated by U+001F)
         """
         if isinstance(value, list):
-            encoded_elements = [cls.encode(v) for v in value]
+            encoded_elements = [cls.encode(v) for v in cast(list[object], value)]
             print(f"A:{key}={cls.UNIT_SEP.join(encoded_elements)}")
         else:
             print(f"S:{key}={cls.encode(value)}")
@@ -119,8 +106,8 @@ class TomlCommand(ABC):
 class WorkspaceCommand(TomlCommand):
     """Parse workspace.toml and output shell variables."""
 
-    def execute(self, filepath: str) -> None:
-        data = load_toml(filepath)
+    def execute(self, target: str) -> None:
+        data = load_toml(target)
         kv = ShellEncoder.print_kv
 
         container = data.get("container", {})
@@ -155,12 +142,12 @@ class WorkspaceCommand(TomlCommand):
 class PluginCommand(TomlCommand):
     """Parse a plugin TOML file and output shell variables."""
 
-    def execute(self, filepath: str) -> None:
-        data = load_toml(filepath)
+    def execute(self, target: str) -> None:
+        data = load_toml(target)
         kv = ShellEncoder.print_kv
 
         # Plugin ID from filename
-        plugin_id = os.path.splitext(os.path.basename(filepath))[0]
+        plugin_id = os.path.splitext(os.path.basename(target))[0]
         kv("PLUGIN_ID", plugin_id)
 
         metadata = data.get("metadata", {})
@@ -206,18 +193,18 @@ class PluginCommand(TomlCommand):
 class ListPluginsCommand(TomlCommand):
     """List all plugin TOML files with their metadata."""
 
-    def execute(self, dirpath: str) -> None:
-        if not os.path.isdir(dirpath):
-            print(f"ERROR: Directory not found: {dirpath}", file=sys.stderr)
+    def execute(self, target: str) -> None:
+        if not os.path.isdir(target):
+            print(f"ERROR: Directory not found: {target}", file=sys.stderr)
             sys.exit(1)
 
         plugins: list[dict[str, Any]] = []
-        for fname in sorted(os.listdir(dirpath)):
+        for fname in sorted(os.listdir(target)):
             if not fname.endswith(".toml"):
                 continue
-            filepath = os.path.join(dirpath, fname)
+            fpath = os.path.join(target, fname)
             try:
-                data = load_toml(filepath)
+                data = load_toml(fpath)
                 plugin_id = os.path.splitext(fname)[0]
                 metadata = data.get("metadata", {})
                 plugins.append(

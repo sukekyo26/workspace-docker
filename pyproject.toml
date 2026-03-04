@@ -10,6 +10,11 @@ warn_return_any = true
 warn_unused_configs = true
 files = ["lib/*.py"]
 
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+include = ["lib"]
+
 [tool.ruff]
 target-version = "py311"
 src = ["lib"]
