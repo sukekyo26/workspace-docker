@@ -31,6 +31,10 @@ WORKSPACES_DIR="$SCRIPT_DIR/workspaces"
 # shellcheck source=lib/colors.sh
 source "$SCRIPT_DIR/lib/colors.sh"
 
+# ===== Business Logic =====
+# shellcheck source=lib/workspace.sh
+source "$SCRIPT_DIR/lib/workspace.sh"
+
 # ===== Global State =====
 # TUI結果を受け渡すためのグローバル変数（サブシェル回避）
 TUI_SINGLE_RESULT=""
@@ -284,46 +288,10 @@ select_multi() {
 }
 
 # ============================================================
-# Business Logic Functions
+# Business Logic Functions (TUI-dependent)
 # ============================================================
-
-# ディレクトリが直下にファイルを含まずフォルダのみかを判定
-is_folder_only_dir() {
-    local dir="$1"
-    local file_count
-    file_count=$(find "$dir" -mindepth 1 -maxdepth 1 -type f ! -name ".*" 2>/dev/null | wc -l)
-    [[ "$file_count" -eq 0 ]]
-}
-
-# 親ディレクトリ配下のフォルダ一覧を取得（隠しフォルダ除く）
-# フォルダのみを含むディレクトリは配下のサブディレクトリも展開する
-# 出力: PARENT_DIR からの相対パス（例: workspace-docker, groupA/repo1）
-get_available_dirs() {
-    while IFS= read -r dir; do
-        [[ -z "$dir" ]] && continue
-        local full_path="$PARENT_DIR/$dir"
-        echo "$dir"
-
-        # フォルダのみを含むディレクトリはサブディレクトリも展開
-        if is_folder_only_dir "$full_path"; then
-            while IFS= read -r subdir; do
-                [[ -z "$subdir" ]] && continue
-                echo "$dir/$subdir"
-            done < <(find "$full_path" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
-        fi
-    done < <(find "$PARENT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
-}
-
-# 既存の .code-workspace ファイル一覧を取得（workspaces/ 内）
-get_workspace_files() {
-    find "$WORKSPACES_DIR" -maxdepth 1 -name "*.code-workspace" -printf '%f\n' 2>/dev/null | sort
-}
-
-# ワークスペースファイルから現在のフォルダ一覧を取得（path から ../../ を除去）
-get_current_folders() {
-    local file="$1"
-    grep '"path":' "$file" | sed 's/.*"path":[[:space:]]*"\([^"]*\)".*/\1/' | sed 's|^\.\./\.\./||'
-}
+# Pure business logic is in lib/workspace.sh
+# Below are TUI-dependent orchestration functions
 
 # フォルダの対話的選択
 # 引数: $1 = 更新対象のワークスペースファイルパス（任意）
@@ -336,7 +304,7 @@ interactive_select_folders() {
     local dirs=()
     while IFS= read -r dir; do
         [[ -n "$dir" ]] && dirs+=("$dir")
-    done < <(get_available_dirs)
+    done < <(get_available_dirs "$PARENT_DIR")
 
     if [[ ${#dirs[@]} -eq 0 ]]; then
         echo -e "${RED}ERROR:${NC} 親ディレクトリにフォルダが見つかりません" >&2
@@ -383,39 +351,14 @@ interactive_select_folders() {
     done
 }
 
-# ワークスペースファイル生成
-generate_workspace_file() {
+# ワークスペースファイル生成（TUI出力付きラッパー）
+_generate_workspace_file_with_output() {
     local output_file="$1"
     shift
     local folders=("$@")
     local settings_file="$SCRIPT_DIR/config/workspace-settings.json"
 
-    {
-        printf '{\n'
-        printf '\t"folders": [\n'
-
-        local i=0
-        local count=${#folders[@]}
-        local folder
-        for folder in "${folders[@]}"; do
-            i=$((i + 1))
-            local comma=""
-            if [[ "$i" -lt "$count" ]]; then
-                comma=","
-            fi
-            local name
-            name=$(basename "$folder")
-            printf '\t\t{\n'
-            printf '\t\t\t"name": "%s",\n' "$name"
-            printf '\t\t\t"path": "../../%s"\n' "$folder"
-            printf '\t\t}%s\n' "$comma"
-        done
-
-        printf '\t],\n'
-        printf '\t"settings": '
-        sed '1!s/^/\t/' "$settings_file"
-        printf '}\n'
-    } > "$output_file"
+    generate_workspace_file "$output_file" "$settings_file" "${folders[@]}"
 
     echo "" >&2
     echo -e "${GREEN}✅ ワークスペースファイルを生成しました:${NC}" >&2
@@ -454,7 +397,7 @@ create_new_workspace() {
         fi
     fi
 
-    generate_workspace_file "$output_path" "${selected_folders[@]}"
+    _generate_workspace_file_with_output "$output_path" "${selected_folders[@]}"
 }
 
 # ============================================================
@@ -480,7 +423,7 @@ main() {
     local workspace_files=()
     while IFS= read -r file; do
         [[ -n "$file" ]] && workspace_files+=("$file")
-    done < <(get_workspace_files)
+    done < <(get_workspace_files "$WORKSPACES_DIR")
 
     if [[ ${#workspace_files[@]} -gt 0 ]]; then
         # ===== 既存ファイルあり =====
@@ -507,7 +450,7 @@ main() {
 
                 echo "" >&2
                 interactive_select_folders "$output_path"
-                generate_workspace_file "$output_path" "${SELECTED_FOLDERS[@]}"
+                _generate_workspace_file_with_output "$output_path" "${SELECTED_FOLDERS[@]}"
                 ;;
             1)
                 # === 新規作成 ===
