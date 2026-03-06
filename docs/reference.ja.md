@@ -304,6 +304,9 @@ bash tests/run_all.sh
 - `lib/generators.py` - 全出力ファイルのプログラマティックジェネレータ（Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml）
 
 ### ライブラリ（`lib/`）
+
+全 `lib/*.sh` は `set -uo pipefail`（`-e` なし）を使用します。これは意図的な設計です。これらのファイルはエントリポイントスクリプトから source されるため、`set -e` は呼び出し元に伝播し、算術式やサブシェルの戻り値で意図しない終了を引き起こします。`set -euo pipefail` はスタンドアロンのエントリポイントスクリプト（`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`）のみで使用します。
+
 - `lib/generators.sh` - Python生成器ラッパー関数
 - `lib/plugins.sh` - プラグイン読み込みとDockerfileスニペット生成
 - `lib/utils.sh` - 汎用ユーティリティ（env解析、シンボリックリンク検証、Docker GID検出）

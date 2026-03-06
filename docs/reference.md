@@ -304,6 +304,9 @@ Each plugin TOML contains `[metadata]` (name, description, default), `[install]`
 - `lib/generators.py` - Programmatic generator for all output files (Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml)
 
 ### Libraries (`lib/`)
+
+All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: these files are sourced (not executed) by entry-point scripts, so `set -e` would propagate to the caller and cause unexpected exits on arithmetic expressions or subshell return codes. Only standalone entry-point scripts (`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`) use `set -euo pipefail`.
+
 - `lib/generators.sh` - Python generator wrapper functions
 - `lib/plugins.sh` - Plugin loading and Dockerfile snippet generation
 - `lib/utils.sh` - General-purpose utilities (env parsing, symlink validation, Docker GID detection)
