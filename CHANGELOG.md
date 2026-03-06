@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.env` generation now uses `printf` instead of unquoted here-doc to prevent shell expansion in values
 - Added nameref scope pollution verification tests for `_parse_toml_output`
 - Documented `set -e` design intent: lib files use `set -uo pipefail` (no `-e`) because they are sourced
+- Exported `CURRENT_LOG_LEVEL` so subshells inherit the log level
+- Added explicit `encoding="utf-8"` to `open()` calls in `generators.py`
+- `_run_generator` now cleans up stale temp files from previous interrupted runs
+- Fixed missing `uv` setup in CI docker-build job
 
 ## [4.0.0] - 2026-03-04
 

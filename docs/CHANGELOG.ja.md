@@ -29,6 +29,10 @@
 - `.env` 生成を `printf` に変更しシェル展開による値の破損を防止
 - `_parse_toml_output` の nameref スコープ汚染検証テストを追加
 - `set -e` 設計意図を文書化: lib ファイルは source されるため `set -uo pipefail`（`-e` なし）を使用
+- `CURRENT_LOG_LEVEL` を export しサブシェルでログレベルが反映されるように修正
+- `generators.py` の `open()` に `encoding="utf-8"` を明示
+- `_run_generator` が前回中断時の古い一時ファイルをクリーンアップするように改善
+- CI の docker-build ジョブに `uv` セットアップを追加
 
 ## [4.0.0] - 2026-03-04
 
