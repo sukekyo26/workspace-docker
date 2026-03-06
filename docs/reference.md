@@ -329,3 +329,14 @@ All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: t
   - Template validation and generator verification
   - Dockerfile linting with Hadolint
   - Docker build verification
+
+## i18n Policy
+
+This project does not use an i18n framework. Language usage follows these conventions:
+
+| Context | Language | Rationale |
+|---------|----------|----------|
+| User-facing output (TUI, echo) | Japanese | Primary audience is Japanese developers |
+| Log/error messages via `logging.sh` | English | Searchability in logs and CI output |
+| Code comments | English | Public repository on GitHub |
+| Documentation | Both (EN + JA) | Maintain `docs/*.md` and `docs/*.ja.md` in parallel |
