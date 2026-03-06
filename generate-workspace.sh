@@ -94,7 +94,10 @@ interactive_select_folders() {
   fi
 
   # TUI multi-select 実行（結果は TUI_MULTI_RESULT に格納される）
-  select_multi "${BOLD}ワークスペースに含めるフォルダを選択:${NC}" "$preselected" "${dirs[@]}"
+  select_multi "${BOLD}ワークスペースに含めるフォルダを選択:${NC}" "$preselected" "${dirs[@]}" || {
+    echo "キャンセルしました" >&2
+    exit 0
+  }
 
   if [[ ${#TUI_MULTI_RESULT[@]} -eq 0 ]]; then
     echo -e "${RED}ERROR:${NC} フォルダが選択されていません" >&2

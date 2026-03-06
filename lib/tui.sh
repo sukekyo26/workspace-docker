@@ -62,6 +62,8 @@ read_key() {
     KEY_PRESSED="TOGGLE_ALL"
   elif [[ "$key" == "d" || "$key" == "D" ]]; then
     KEY_PRESSED="DONE"
+  elif [[ "$key" == "q" || "$key" == "Q" ]]; then
+    KEY_PRESSED="CANCEL"
   else
     KEY_PRESSED="IGNORE"
   fi
@@ -185,7 +187,7 @@ select_multi() {
         fi
       fi
     done
-    printf '\033[K  %b↑↓: 移動  Enter: 選択/解除  a: 全選択  d: 決定%b' "${DIM}" "${NC}" >&2
+    printf '\033[K  %b↑↓: 移動  Enter: 選択/解除  a: 全選択  d: 決定  q: キャンセル%b' "${DIM}" "${NC}" >&2
 
     # キー入力待ち
     read_key
@@ -216,6 +218,19 @@ select_multi() {
         for ((i = 0; i < count; i++)); do
           sel[i]="$nv"
         done
+        ;;
+      CANCEL)
+        # キャンセル: メニューをクリアしてキャンセルメッセージ表示
+        printf '\033[%dA\r' $((count + 1)) >&2
+        local j
+        for ((j = 0; j < count + 2; j++)); do
+          printf '\033[K\n' >&2
+        done
+        printf '\033[%dA\r' $((count + 2)) >&2
+        printf '\033[K%b → %bキャンセル%b\n' "$title" "${YELLOW}" "${NC}" >&2
+        printf '\033[?25h' >&2
+        TUI_MULTI_RESULT=()
+        return 1
         ;;
       DONE)
         # 選択チェック

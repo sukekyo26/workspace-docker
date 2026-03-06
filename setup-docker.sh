@@ -116,7 +116,10 @@ else
     done
 
     # TUI multi-select for plugins
-    select_multi "Select plugins to install:" "$preselected_csv" "${PLUGIN_NAMES[@]}"
+    select_multi "Select plugins to install:" "$preselected_csv" "${PLUGIN_NAMES[@]}" || {
+      echo "キャンセルしました" >&2
+      exit 0
+    }
 
     for idx in "${TUI_MULTI_RESULT[@]}"; do
       local_enabled_plugins+=("${PLUGIN_IDS[$idx]}")
