@@ -12,5 +12,11 @@
   },
   "[dockerfile]": {
     "editor.tabSize": 4
+  },
+  "[sh]": {
+    "editor.tabSize": 4
+  },
+  "[toml]": {
+    "editor.tabSize": 4
   }
 }
