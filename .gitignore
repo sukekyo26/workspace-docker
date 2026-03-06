@@ -30,6 +30,3 @@ __pycache__/
 
 # agent
 agent/lessons.md
-
-# workspace-settings
-config/workspace-settings.json
