@@ -18,6 +18,7 @@ certs/*.pem
 
 # Custom configuration (user-specific settings)
 config/.bashrc_custom
+config/workspace-settings.json
 
 # VS Code user-specific settings (not project-wide)
 .vscode/
