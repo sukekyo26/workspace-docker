@@ -27,3 +27,6 @@ __pycache__/
 *.pyc
 .mypy_cache/
 .venv/
+
+# agent
+agent/lessons.md
