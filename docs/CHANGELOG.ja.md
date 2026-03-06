@@ -25,6 +25,11 @@
 - 重複テストファイル（`test_generators.sh`、`test_errors.sh`）を削除し二重実行を解消
 - `check_devcontainer_cli` の trap 上書きを修正（呼び出し元の EXIT trap を保護）
 - `validate_symlink` のパストラバーサル脆弱性を修正（末尾スラッシュによるプレフィックスガード）
+- `colors.sh` に `set -uo pipefail` を追加（他の lib ファイルとの一貫性）
+- `.env` 生成を `printf` に変更しシェル展開による値の破損を防止
+- `_parse_toml_output` の nameref スコープ汚染検証テストを追加
+- `set -e` 設計意図を文書化: lib ファイルは source されるため `set -uo pipefail`（`-e` なし）を使用
+- シェル規約（set -e ポリシー、nameref cleanup、.env 生成）を `.github/instructions/shell.instructions.md` に追加
 
 ## [4.0.0] - 2026-03-04
 
