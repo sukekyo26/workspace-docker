@@ -17,9 +17,9 @@ export LOG_LEVEL_INFO=2
 export LOG_LEVEL_DEBUG=3
 
 # Default log level
-CURRENT_LOG_LEVEL=${LOG_LEVEL:-$LOG_LEVEL_INFO}
+export CURRENT_LOG_LEVEL=${LOG_LEVEL:-$LOG_LEVEL_INFO}
 
-# Format and print error message
+# Format and print error message (always shown regardless of log level)
 # Usage: error "message"
 error() {
   echo -e "${RED}ERROR:${NC} $*" >&2
