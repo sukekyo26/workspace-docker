@@ -278,20 +278,22 @@ generate_devcontainer_compose \
 
 # Generate .env file for docker-compose
 echo "Generating .env..."
-cat > ".env" << EOF
+{
+  cat << 'EOF'
 # Environment variables for docker-compose
 # Auto-generated from workspace.toml — do not edit manually
 # Regenerate with: ./setup-docker.sh
 
-COMPOSE_PROJECT_NAME=$(basename "$SCRIPT_DIR")
-CONTAINER_SERVICE_NAME=$WS_SERVICE_NAME
-USERNAME=$WS_USERNAME
-UID=$uid
-GID=$gid
-DOCKER_GID=$docker_gid
-UBUNTU_VERSION=$WS_UBUNTU_VERSION
-FORWARD_PORT=${WS_FORWARD_PORTS[0]:-3000}
 EOF
+  printf 'COMPOSE_PROJECT_NAME=%s\n' "$(basename "$SCRIPT_DIR")"
+  printf 'CONTAINER_SERVICE_NAME=%s\n' "$WS_SERVICE_NAME"
+  printf 'USERNAME=%s\n' "$WS_USERNAME"
+  printf 'UID=%s\n' "$uid"
+  printf 'GID=%s\n' "$gid"
+  printf 'DOCKER_GID=%s\n' "$docker_gid"
+  printf 'UBUNTU_VERSION=%s\n' "$WS_UBUNTU_VERSION"
+  printf 'FORWARD_PORT=%s\n' "${WS_FORWARD_PORTS[0]:-3000}"
+} > ".env"
 chmod 600 ".env"
 
 # Copy .bashrc_custom skeleton if not exists
