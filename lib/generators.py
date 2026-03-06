@@ -323,7 +323,6 @@ RUN apt-get update && \\
     && apt-get clean \\
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
 RUN userdel -r ubuntu 2>/dev/null || true && \\
     groupdel ubuntu 2>/dev/null || true && \\
     groupadd -g ${GID} ${USERNAME} && \\

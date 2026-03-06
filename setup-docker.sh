@@ -117,7 +117,7 @@ else
 
     # TUI multi-select for plugins
     select_multi "Select plugins to install:" "$preselected_csv" "${PLUGIN_NAMES[@]}" || {
-      echo "キャンセルしました" >&2
+      echo "Cancelled" >&2
       exit 0
     }
 

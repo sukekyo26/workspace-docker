@@ -336,7 +336,7 @@ This project does not use an i18n framework. Language usage follows these conven
 
 | Context | Language | Rationale |
 |---------|----------|----------|
-| User-facing output (TUI, echo) | Japanese | Primary audience is Japanese developers |
+| User-facing output (TUI, echo) | English | Consistency with logs and international readability |
 | Log/error messages via `logging.sh` | English | Searchability in logs and CI output |
 | Code comments | English | Public repository on GitHub |
 | Documentation | Both (EN + JA) | Maintain `docs/*.md` and `docs/*.ja.md` in parallel |

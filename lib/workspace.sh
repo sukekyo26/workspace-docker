@@ -14,7 +14,7 @@
 # ============================================================
 set -uo pipefail
 
-# ディレクトリが直下にファイルを含まずフォルダのみかを判定
+# Check if a directory contains only subdirectories (no files)
 # Usage: is_folder_only_dir <dir>
 is_folder_only_dir() {
   local dir="$1"
@@ -23,10 +23,10 @@ is_folder_only_dir() {
   [[ "$file_count" -eq 0 ]]
 }
 
-# 親ディレクトリ配下のフォルダ一覧を取得（隠しフォルダ除く）
-# フォルダのみを含むディレクトリは配下のサブディレクトリも展開する
+# List folders under parent directory (excluding hidden folders)
+# Directories containing only subdirectories are expanded
 # Usage: get_available_dirs <parent_dir>
-# 出力: parent_dir からの相対パス（例: workspace-docker, groupA/repo1）
+# Output: relative paths from parent_dir (e.g. workspace-docker, groupA/repo1)
 get_available_dirs() {
   local parent_dir="$1"
   while IFS= read -r dir; do
@@ -34,7 +34,7 @@ get_available_dirs() {
     local full_path="$parent_dir/$dir"
     echo "$dir"
 
-    # フォルダのみを含むディレクトリはサブディレクトリも展開
+    # Expand subdirectories for folder-only directories
     if is_folder_only_dir "$full_path"; then
       while IFS= read -r subdir; do
         [[ -z "$subdir" ]] && continue
@@ -44,21 +44,21 @@ get_available_dirs() {
   done < <(find "$parent_dir" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf '%f\n' | sort)
 }
 
-# 既存の .code-workspace ファイル一覧を取得
+# List existing .code-workspace files
 # Usage: get_workspace_files <workspaces_dir>
 get_workspace_files() {
   local workspaces_dir="$1"
   find "$workspaces_dir" -maxdepth 1 -name "*.code-workspace" -printf '%f\n' 2>/dev/null | sort
 }
 
-# ワークスペースファイルから現在のフォルダ一覧を取得（path から ../../ を除去）
+# Extract current folder list from workspace file (strip ../../ from path)
 # Usage: get_current_folders <workspace_file>
 get_current_folders() {
   local file="$1"
   grep '"path":' "$file" | sed 's/.*"path":[[:space:]]*"\([^"]*\)".*/\1/' | sed 's|^\.\./\.\./||'
 }
 
-# ワークスペースファイル生成
+# Generate workspace file
 # Usage: generate_workspace_file <output_file> <settings_file> <folder1> [folder2 ...]
 generate_workspace_file() {
   local output_file="$1"

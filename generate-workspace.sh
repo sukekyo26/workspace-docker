@@ -1,25 +1,25 @@
 #!/bin/bash
 
 # ============================================================
-# generate-workspace.sh - .code-workspace ファイル ジェネレーター
+# generate-workspace.sh - .code-workspace file generator
 # ============================================================
-# ワークスペースに含めるフォルダを対話的に選択し、
-# workspaces/ 内に .code-workspace ファイルを新規作成・更新します。
+# Interactively select folders to include in a workspace and
+# create or update a .code-workspace file in workspaces/.
 #
-# 操作方法（単一選択）:
-#   ↑/↓    カーソル移動
-#   Enter  確定
+# Controls (single select):
+#   Up/Down   Move cursor
+#   Enter     Confirm
 #
-# 操作方法（複数選択）:
-#   ↑/↓    カーソル移動
-#   Enter  選択/解除
-#   a      全選択/全解除
-#   d      決定
+# Controls (multi select):
+#   Up/Down   Move cursor
+#   Enter     Toggle selection
+#   a         Select/deselect all
+#   d         Done
 #
-# 使い方: ./generate-workspace.sh
+# Usage: ./generate-workspace.sh
 # ============================================================
 
-# set -e は算術式 exit code やサブシェルの問題を起こすため使用しない
+# set -e is not used because it causes issues with arithmetic exit codes and subshells
 set -uo pipefail
 
 # ===== Script Location =====
@@ -39,7 +39,7 @@ source "$SCRIPT_DIR/lib/tui.sh"
 # shellcheck source=lib/workspace.sh
 source "$SCRIPT_DIR/lib/workspace.sh"
 
-# カーソル復元
+# Restore cursor
 cleanup() {
   tui_cleanup
 }
@@ -51,25 +51,25 @@ trap cleanup EXIT
 # Pure business logic is in lib/workspace.sh
 # Below are TUI-dependent orchestration functions
 
-# フォルダの対話的選択
-# 引数: $1 = 更新対象のワークスペースファイルパス（任意）
-# 結果: SELECTED_FOLDERS 配列に選択されたフォルダ名を格納
+# Interactive folder selection
+# Args: $1 = workspace file path to update (optional)
+# Result: SELECTED_FOLDERS array populated with selected folder names
 SELECTED_FOLDERS=()
 interactive_select_folders() {
   local current_file="${1:-}"
 
-  # 利用可能なフォルダ一覧
+  # Available folders
   local dirs=()
   while IFS= read -r dir; do
     [[ -n "$dir" ]] && dirs+=("$dir")
   done < <(get_available_dirs "$PARENT_DIR")
 
   if [[ ${#dirs[@]} -eq 0 ]]; then
-    echo -e "${RED}ERROR:${NC} 親ディレクトリにフォルダが見つかりません" >&2
+    echo -e "${RED}ERROR:${NC} No folders found in parent directory" >&2
     exit 1
   fi
 
-  # 更新時: 現在のフォルダ構成から初期選択を構築
+  # When updating: build initial selection from current folder structure
   local preselected=""
   if [[ -n "$current_file" && -f "$current_file" ]]; then
     local current_folders=()
@@ -93,18 +93,18 @@ interactive_select_folders() {
     fi
   fi
 
-  # TUI multi-select 実行（結果は TUI_MULTI_RESULT に格納される）
-  select_multi "${BOLD}ワークスペースに含めるフォルダを選択:${NC}" "$preselected" "${dirs[@]}" || {
-    echo "キャンセルしました" >&2
+  # Run TUI multi-select (result stored in TUI_MULTI_RESULT)
+  select_multi "${BOLD}Select folders to include in workspace:${NC}" "$preselected" "${dirs[@]}" || {
+    echo "Cancelled" >&2
     exit 0
   }
 
   if [[ ${#TUI_MULTI_RESULT[@]} -eq 0 ]]; then
-    echo -e "${RED}ERROR:${NC} フォルダが選択されていません" >&2
+    echo -e "${RED}ERROR:${NC} No folders selected" >&2
     exit 1
   fi
 
-  # 選択されたフォルダ名を配列に格納
+  # Store selected folder names in array
   SELECTED_FOLDERS=()
   local idx
   for idx in "${TUI_MULTI_RESULT[@]}"; do
@@ -112,7 +112,7 @@ interactive_select_folders() {
   done
 }
 
-# ワークスペースファイル生成（TUI出力付きラッパー）
+# Generate workspace file (TUI output wrapper)
 _generate_workspace_file_with_output() {
   local output_file="$1"
   shift
@@ -125,38 +125,38 @@ _generate_workspace_file_with_output() {
   generate_workspace_file "$output_file" "$settings_file" "${folders[@]}"
 
   echo "" >&2
-  echo -e "${GREEN}✅ ワークスペースファイルを生成しました:${NC}" >&2
+  echo -e "${GREEN}✅ Workspace file generated:${NC}" >&2
   echo -e "   ${BOLD}workspaces/$(basename "$output_file")${NC}" >&2
   echo "" >&2
-  echo "含まれるプロジェクト:" >&2
+  echo "Included projects:" >&2
   for folder in "${folders[@]}"; do
     echo "  - $folder" >&2
   done
 }
 
-# ファイル名入力（空入力時はループ）
+# Filename input (loop on empty input)
 create_new_workspace() {
   local selected_folders=("$@")
   local filename=""
 
   while true; do
     echo "" >&2
-    read -rp "ファイル名を入力してください（.code-workspace は自動付与）: " filename
+    read -rp "Enter filename (.code-workspace is appended automatically): " filename
     filename=$(echo "$filename" | xargs)
     if [[ -n "$filename" ]]; then
       break
     fi
-    echo -e "${YELLOW}⚠ ファイル名を入力してください${NC}" >&2
+    echo -e "${YELLOW}⚠ Please enter a filename${NC}" >&2
   done
 
   filename="${filename%.code-workspace}"
   local output_path="$WORKSPACES_DIR/${filename}.code-workspace"
 
   if [[ -f "$output_path" ]]; then
-    echo -e "${YELLOW}⚠ ${filename}.code-workspace は既に存在します。上書きしますか？${NC}" >&2
+    echo -e "${YELLOW}⚠ ${filename}.code-workspace already exists. Overwrite?${NC}" >&2
     read -rp "[y/N]: " confirm
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-      echo "キャンセルしました" >&2
+      echo "Cancelled" >&2
       exit 0
     fi
   fi
@@ -169,44 +169,44 @@ create_new_workspace() {
 # ============================================================
 
 main() {
-  # workspaces ディレクトリの確認・作成
+  # Ensure workspaces directory exists
   if [[ ! -d "$WORKSPACES_DIR" ]]; then
     mkdir -p "$WORKSPACES_DIR"
   fi
 
   echo "" >&2
   echo -e "${BOLD}========================================" >&2
-  echo " .code-workspace ファイル ジェネレーター" >&2
+  echo " .code-workspace File Generator" >&2
   echo -e "========================================${NC}" >&2
   echo "" >&2
-  echo -e "スキャン対象:   ${BOLD}${PARENT_DIR}${NC}" >&2
-  echo -e "出力先:         ${BOLD}workspaces/${NC}" >&2
+  echo -e "Scan target:    ${BOLD}${PARENT_DIR}${NC}" >&2
+  echo -e "Output dir:     ${BOLD}workspaces/${NC}" >&2
   echo "" >&2
 
-  # 既存の .code-workspace ファイルを検索
+  # Search for existing .code-workspace files
   local workspace_files=()
   while IFS= read -r file; do
     [[ -n "$file" ]] && workspace_files+=("$file")
   done < <(get_workspace_files "$WORKSPACES_DIR")
 
   if [[ ${#workspace_files[@]} -gt 0 ]]; then
-    # ===== 既存ファイルあり =====
-    echo -e "${CYAN}既存のワークスペースファイル:${NC}" >&2
+    # ===== Existing files found =====
+    echo -e "${CYAN}Existing workspace files:${NC}" >&2
     local f
     for f in "${workspace_files[@]}"; do
       echo "  - $f" >&2
     done
     echo "" >&2
 
-    # 更新 / 新規作成 を選択
-    select_single "${BOLD}操作を選択してください:${NC}" "既存ファイルを更新" "新規作成"
+    # Select update / create new
+    select_single "${BOLD}Select action:${NC}" "Update existing file" "Create new"
     local action_idx="$TUI_SINGLE_RESULT"
 
     case "$action_idx" in
       0)
-        # === 既存ファイルを更新 ===
+        # === Update existing file ===
         echo "" >&2
-        select_single "${BOLD}更新するファイルを選択してください:${NC}" "${workspace_files[@]}"
+        select_single "${BOLD}Select file to update:${NC}" "${workspace_files[@]}"
         local file_idx="$TUI_SINGLE_RESULT"
 
         local target_file="${workspace_files[$file_idx]}"
@@ -217,15 +217,15 @@ main() {
         _generate_workspace_file_with_output "$output_path" "${SELECTED_FOLDERS[@]}"
         ;;
       1)
-        # === 新規作成 ===
+        # === Create new ===
         echo "" >&2
         interactive_select_folders
         create_new_workspace "${SELECTED_FOLDERS[@]}"
         ;;
     esac
   else
-    # ===== 既存ファイルなし → 新規作成 =====
-    echo "ワークスペースファイルが見つかりません。新規作成します。" >&2
+    # ===== No existing files — create new =====
+    echo "No workspace files found. Creating new one." >&2
     echo "" >&2
 
     interactive_select_folders

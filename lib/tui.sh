@@ -28,7 +28,7 @@ source "$_TUI_LIB_DIR/colors.sh"
 TUI_SINGLE_RESULT=""
 TUI_MULTI_RESULT=()
 
-# カーソル復元
+# Restore cursor
 tui_cleanup() {
   printf '\033[?25h' >&2
 }
@@ -37,8 +37,7 @@ tui_cleanup() {
 # Key Reading
 # ============================================================
 
-# /dev/tty から1キー読み取り → 標準化された文字列を返す
-# グローバル変数 KEY_PRESSED に結果を格納
+# Read a single key from /dev/tty and set KEY_PRESSED to a normalized string
 KEY_PRESSED=""
 read_key() {
   KEY_PRESSED=""
@@ -57,7 +56,7 @@ read_key() {
   elif [[ "$key" == "" ]]; then
     KEY_PRESSED="ENTER"
   elif [[ "$key" == " " ]]; then
-    KEY_PRESSED="ENTER"  # スペースもEnterと同じ扱い
+    KEY_PRESSED="ENTER"  # Space treated same as Enter
   elif [[ "$key" == "a" || "$key" == "A" ]]; then
     KEY_PRESSED="TOGGLE_ALL"
   elif [[ "$key" == "d" || "$key" == "D" ]]; then
@@ -73,9 +72,9 @@ read_key() {
 # Single Select
 # ============================================================
 
-# 単一選択メニュー
-# 引数: タイトル, 選択肢1, 選択肢2, ...
-# 結果: TUI_SINGLE_RESULT にインデックスを格納
+# Single-select menu
+# Args: title, option1, option2, ...
+# Result: TUI_SINGLE_RESULT set to selected index
 select_single() {
   local title="$1"
   shift
@@ -83,10 +82,10 @@ select_single() {
   local count=${#options[@]}
   local cursor=0
 
-  printf '\033[?25l' >&2  # カーソル非表示
+  printf '\033[?25l' >&2  # Hide cursor
 
   while true; do
-    # 描画
+    # Draw
     printf '\033[K%b\n' "$title" >&2
     local i
     for i in "${!options[@]}"; do
@@ -97,9 +96,9 @@ select_single() {
         printf '    %s\n' "${options[$i]}" >&2
       fi
     done
-    printf '\033[K  %b↑↓: 移動  Enter: 確定%b' "${DIM}" "${NC}" >&2
+    printf '\033[K  %b↑↓: Move  Enter: Confirm%b' "${DIM}" "${NC}" >&2
 
-    # キー入力待ち
+    # Wait for key input
     read_key
 
     case "$KEY_PRESSED" in
@@ -110,7 +109,7 @@ select_single() {
         [[ "$cursor" -lt $((count - 1)) ]] && cursor=$((cursor + 1))
         ;;
       ENTER)
-        # 確定: メニューをクリアして結果表示
+        # Confirm: clear menu and show result
         printf '\033[%dA\r' $((count + 1)) >&2
         local j
         for ((j = 0; j < count + 2; j++)); do
@@ -119,13 +118,13 @@ select_single() {
         printf '\033[%dA\r' $((count + 2)) >&2
         printf '\033[K%b → %b%s%b\n' "$title" "${GREEN}" "${options[$cursor]}" "${NC}" >&2
 
-        printf '\033[?25h' >&2  # カーソル再表示
+        printf '\033[?25h' >&2  # Show cursor
         TUI_SINGLE_RESULT="$cursor"
         return 0
         ;;
     esac
 
-    # カーソルを描画開始位置に戻す
+    # Move cursor back to draw start position
     printf '\033[%dA\r' $((count + 1)) >&2
   done
 }
@@ -134,9 +133,9 @@ select_single() {
 # Multi Select
 # ============================================================
 
-# 複数選択メニュー
-# 引数: タイトル, 初期選択CSV(例:"0,2"=インデックス), 選択肢1, 選択肢2, ...
-# 結果: TUI_MULTI_RESULT 配列に選択されたインデックスを格納
+# Multi-select menu
+# Args: title, preselected CSV (e.g. "0,2" = indices), option1, option2, ...
+# Result: TUI_MULTI_RESULT array populated with selected indices
 select_multi() {
   local title="$1"
   local preselected_csv="$2"
@@ -145,14 +144,14 @@ select_multi() {
   local count=${#options[@]}
   local cursor=0
 
-  # 選択状態配列
+  # Selection state array
   local sel=()
   local i
   for ((i = 0; i < count; i++)); do
     sel+=("0")
   done
 
-  # 初期選択を適用
+  # Apply initial selection
   if [[ -n "$preselected_csv" ]]; then
     IFS=',' read -ra pre_idx <<< "$preselected_csv"
     local pi
@@ -163,10 +162,10 @@ select_multi() {
     done
   fi
 
-  printf '\033[?25l' >&2  # カーソル非表示
+  printf '\033[?25l' >&2  # Hide cursor
 
   while true; do
-    # 描画
+    # Draw
     printf '\033[K%b\n' "$title" >&2
     for i in "${!options[@]}"; do
       printf '\033[K' >&2
@@ -187,9 +186,9 @@ select_multi() {
         fi
       fi
     done
-    printf '\033[K  %b↑↓: 移動  Enter: 選択/解除  a: 全選択  d: 決定  q: キャンセル%b' "${DIM}" "${NC}" >&2
+    printf '\033[K  %b↑↓: Move  Enter: Toggle  a: Select all  d: Done  q: Cancel%b' "${DIM}" "${NC}" >&2
 
-    # キー入力待ち
+    # Wait for key input
     read_key
 
     case "$KEY_PRESSED" in
@@ -200,7 +199,7 @@ select_multi() {
         [[ "$cursor" -lt $((count - 1)) ]] && cursor=$((cursor + 1))
         ;;
       ENTER)
-        # カーソル位置をトグル
+        # Toggle item at cursor
         if [[ "${sel[cursor]}" == "1" ]]; then
           sel[cursor]="0"
         else
@@ -220,38 +219,38 @@ select_multi() {
         done
         ;;
       CANCEL)
-        # キャンセル: メニューをクリアしてキャンセルメッセージ表示
+        # Cancel: clear menu and show cancel message
         printf '\033[%dA\r' $((count + 1)) >&2
         local j
         for ((j = 0; j < count + 2; j++)); do
           printf '\033[K\n' >&2
         done
         printf '\033[%dA\r' $((count + 2)) >&2
-        printf '\033[K%b → %bキャンセル%b\n' "$title" "${YELLOW}" "${NC}" >&2
+        printf '\033[K%b → %bCancelled%b\n' "$title" "${YELLOW}" "${NC}" >&2
         printf '\033[?25h' >&2
         TUI_MULTI_RESULT=()
         return 1
         ;;
       DONE)
-        # 選択チェック
+        # Selection check
         local any=false
         for s in "${sel[@]}"; do
           [[ "$s" == "1" ]] && any=true && break
         done
         if [[ "$any" == false ]]; then
-          # 警告表示
+          # Warning display
           printf '\033[%dA\r' $((count + 1)) >&2
           printf '\033[K%b\n' "$title" >&2
           for i in "${!options[@]}"; do
             printf '\033[K    [ ] %s\n' "${options[$i]}" >&2
           done
-          printf '\033[K  %b⚠ 1つ以上選択してからdを押してください%b' "${YELLOW}" "${NC}" >&2
+          printf '\033[K  %b⚠ Select at least one item before pressing d%b' "${YELLOW}" "${NC}" >&2
           sleep 1
           printf '\033[%dA\r' $((count + 1)) >&2
           continue
         fi
 
-        # 確定: メニューをクリアして結果表示
+        # Confirm: clear menu and show result
         printf '\033[%dA\r' $((count + 1)) >&2
         local j
         for ((j = 0; j < count + 2; j++)); do
@@ -273,9 +272,9 @@ select_multi() {
         done
         printf '\n' >&2
 
-        printf '\033[?25h' >&2  # カーソル再表示
+        printf '\033[?25h' >&2  # Show cursor
 
-        # 結果配列を構築
+        # Build result array
         TUI_MULTI_RESULT=()
         for i in "${!options[@]}"; do
           [[ "${sel[$i]}" == "1" ]] && TUI_MULTI_RESULT+=("$i")
@@ -284,7 +283,7 @@ select_multi() {
         ;;
     esac
 
-    # カーソルを描画開始位置に戻す
+    # Move cursor back to draw start position
     printf '\033[%dA\r' $((count + 1)) >&2
   done
 }

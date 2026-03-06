@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # ============================================================
-# clean-volumes.sh - Docker ボリューム全削除スクリプト
+# clean-volumes.sh - Delete all Docker volumes for this project
 # ============================================================
-# ホストOSから実行し、このプロジェクトに関連する Docker named volume を
-# すべて削除します。
+# Run from the host OS to delete all Docker named volumes
+# associated with this project.
 #
-# ※ コンテナ内からは実行できません
+# Cannot be run from inside a container.
 #
-# 使い方: ./clean-volumes.sh
+# Usage: ./clean-volumes.sh
 #
-# 前提条件:
-#   - Docker がインストール・起動済みであること
+# Prerequisites:
+#   - Docker is installed and running
 # ============================================================
 
 set -euo pipefail
@@ -29,24 +29,24 @@ source "$SCRIPT_DIR/lib/utils.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-  echo -e "${RED}ERROR:${NC} このスクリプトはコンテナ内からは実行できません"
-  echo "  ホストOSから実行してください"
+  echo -e "${RED}ERROR:${NC} This script cannot be run from inside a container"
+  echo "  Please run from the host OS"
   exit 1
 fi
 
 echo ""
 echo -e "${BOLD}========================================"
-echo " Docker ボリューム削除スクリプト"
+echo " Docker Volume Cleanup Script"
 echo -e "========================================${NC}"
 echo ""
-echo -e "ワークスペース: ${BOLD}${WORKSPACE_DIR}${NC}"
+echo -e "Workspace: ${BOLD}${WORKSPACE_DIR}${NC}"
 
 # ============================================================
 # Prerequisites Check
 # ============================================================
 
 if ! command -v docker &>/dev/null; then
-  echo -e "${RED}ERROR:${NC} docker コマンドが見つかりません"
+  echo -e "${RED}ERROR:${NC} docker command not found"
   exit 1
 fi
 
@@ -59,21 +59,21 @@ PROJECT_NAME=$(read_env_var "COMPOSE_PROJECT_NAME" "$WORKSPACE_DIR/.env" || base
 VOLUME_PREFIX="${PROJECT_NAME}_${SERVICE_NAME}_"
 
 echo ""
-echo -e "プロジェクト名: ${BOLD}${PROJECT_NAME}${NC}"
-echo -e "サービス名:     ${BOLD}${SERVICE_NAME}${NC}"
-echo -e "ボリューム接頭辞: ${BOLD}${VOLUME_PREFIX}${NC}"
+echo -e "Project name:   ${BOLD}${PROJECT_NAME}${NC}"
+echo -e "Service name:   ${BOLD}${SERVICE_NAME}${NC}"
+echo -e "Volume prefix:  ${BOLD}${VOLUME_PREFIX}${NC}"
 echo ""
 
 # Find volumes matching the project prefix
 mapfile -t volumes < <(docker volume ls --format '{{.Name}}' | grep "^${VOLUME_PREFIX}" 2>/dev/null || true)
 
 if [[ ${#volumes[@]} -eq 0 ]]; then
-  echo -e "${YELLOW}削除対象のボリュームが見つかりません${NC}"
-  echo "  プレフィックス: ${VOLUME_PREFIX}"
+  echo -e "${YELLOW}No volumes found to delete${NC}"
+  echo "  Prefix: ${VOLUME_PREFIX}"
   exit 0
 fi
 
-echo -e "${CYAN}削除対象のボリューム (${#volumes[@]}件):${NC}"
+echo -e "${CYAN}Volumes to delete (${#volumes[@]}):${NC}"
 for vol in "${volumes[@]}"; do
   echo "  - $vol"
 done
@@ -83,14 +83,14 @@ done
 # ============================================================
 
 echo ""
-echo -e "${YELLOW}⚠ 注意事項:${NC}"
-echo "  ・上記のボリュームをすべて削除します"
-echo "  ・ボリューム内のデータは復元できません"
-echo "  ・コンテナが起動中の場合は先に停止してください"
+echo -e "${YELLOW}⚠ Notice:${NC}"
+echo "  - All volumes listed above will be deleted"
+echo "  - Data in volumes cannot be recovered"
+echo "  - Stop running containers first"
 echo ""
-read -rp "削除を実行しますか？ [y/N]: " confirm
+read -rp "Proceed with deletion? [y/N]: " confirm
 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-  echo "キャンセルしました"
+  echo "Cancelled"
   exit 0
 fi
 
@@ -100,7 +100,7 @@ fi
 
 if docker compose -f "$WORKSPACE_DIR/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
   echo ""
-  echo -e "${CYAN}コンテナを停止中...${NC}"
+  echo -e "${CYAN}Stopping containers...${NC}"
   docker compose -f "$WORKSPACE_DIR/docker-compose.yml" down 2>/dev/null || true
 fi
 
@@ -109,14 +109,14 @@ fi
 # ============================================================
 
 echo ""
-echo -e "${CYAN}ボリュームを削除中...${NC}"
+echo -e "${CYAN}Deleting volumes...${NC}"
 
 failed=0
 for vol in "${volumes[@]}"; do
   if docker volume rm "$vol" 2>/dev/null; then
     echo -e "  ${GREEN}✅${NC} $vol"
   else
-    echo -e "  ${RED}❌${NC} $vol (削除失敗 — 使用中の可能性があります)"
+    echo -e "  ${RED}❌${NC} $vol (deletion failed — may be in use)"
     failed=$((failed + 1))
   fi
 done
@@ -127,8 +127,8 @@ done
 
 echo ""
 if [[ "$failed" -eq 0 ]]; then
-  echo -e "${GREEN}✅ ${#volumes[@]}件のボリュームをすべて削除しました${NC}"
+  echo -e "${GREEN}✅ All ${#volumes[@]} volumes deleted successfully${NC}"
 else
-  echo -e "${YELLOW}⚠ $((${#volumes[@]} - failed))件削除、${failed}件失敗${NC}"
+  echo -e "${YELLOW}⚠ $((${#volumes[@]} - failed)) deleted, ${failed} failed${NC}"
   exit 1
 fi

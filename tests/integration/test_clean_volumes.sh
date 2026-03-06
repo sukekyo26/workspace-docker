@@ -37,7 +37,7 @@ test_container_detection() {
     local output
     output=$(bash "$SCRIPT" 2>&1 || true)
     assert_file_contains "blocks container execution" \
-      <(echo "$output") 'コンテナ内からは実行できません'
+      <(echo "$output") 'This script cannot be run from inside a container'
   else
     skip_test "container detection" "not running inside container"
   fi
