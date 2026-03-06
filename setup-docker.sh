@@ -153,6 +153,45 @@ else
     done
     plugins_toml+="]"
 
+    # Preserve [apt], [vscode], [volumes] from existing workspace.toml
+    # This allows users to pre-define these sections before running --init
+    apt_toml="packages = []"
+    vscode_toml="extensions = []"
+    volumes_toml=""
+    if [[ -f "$WORKSPACE_TOML" ]]; then
+        load_workspace_config "$WORKSPACE_TOML"
+
+        # Rebuild [apt] packages
+        if [[ ${#WS_APT_EXTRA[@]} -gt 0 && -n "${WS_APT_EXTRA[0]}" ]]; then
+            apt_toml="packages = ["
+            for ((i = 0; i < ${#WS_APT_EXTRA[@]}; i++)); do
+                [[ $i -gt 0 ]] && apt_toml+=", "
+                apt_toml+="\"${WS_APT_EXTRA[$i]}\""
+            done
+            apt_toml+="]"
+        fi
+
+        # Rebuild [vscode] extensions
+        if [[ ${#WS_VSCODE_EXTENSIONS[@]} -gt 0 && -n "${WS_VSCODE_EXTENSIONS[0]}" ]]; then
+            vscode_toml=$'extensions = [\n'
+            for ((i = 0; i < ${#WS_VSCODE_EXTENSIONS[@]}; i++)); do
+                vscode_toml+=$'\t'"\"${WS_VSCODE_EXTENSIONS[$i]}\""
+                if [[ $i -lt $((${#WS_VSCODE_EXTENSIONS[@]} - 1)) ]]; then
+                    vscode_toml+=","
+                fi
+                vscode_toml+=$'\n'
+            done
+            vscode_toml+="]"
+        fi
+
+        # Rebuild [volumes]
+        if [[ ${#WS_VOLUME_NAMES[@]} -gt 0 && -n "${WS_VOLUME_NAMES[0]}" ]]; then
+            for ((i = 0; i < ${#WS_VOLUME_NAMES[@]}; i++)); do
+                volumes_toml+="${WS_VOLUME_NAMES[$i]} = \"${WS_VOLUME_PATHS[$i]}\""$'\n'
+            done
+        fi
+    fi
+
     cat > "$WORKSPACE_TOML" << EOF
 # workspace.toml — workspace-docker configuration
 # Edit this file and run setup-docker.sh to regenerate
@@ -169,12 +208,13 @@ enable = $plugins_toml
 forward = [$forward_port]
 
 [apt]
-packages = []
+$apt_toml
 
 [vscode]
-extensions = []
+$vscode_toml
 
 [volumes]
+$volumes_toml
 EOF
 
     # Reload to set WS_* variables
