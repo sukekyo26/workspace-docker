@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `clean-volumes.sh` script to delete all Docker named volumes for the project
 - Pre-definition workflow: create `workspace.toml` before `setup-docker.sh --init` to pre-define `[apt]`, `[vscode]`, and `[volumes]` sections (preserved during interactive setup)
+- `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
+- Added `HEALTHCHECK` instruction to generated Dockerfile
 
 ### Changed
 - **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host

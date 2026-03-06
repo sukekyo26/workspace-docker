@@ -10,6 +10,8 @@
 ### 追加
 - プロジェクトの Docker named volume を全削除する `clean-volumes.sh` スクリプト
 - 事前定義ワークフロー: `setup-docker.sh --init` の前に `workspace.toml` を作成し `[apt]`、`[vscode]`、`[volumes]` セクションを事前定義可能に
+- `select_multi` に `q` キーによるキャンセル機能を追加
+- 生成される Dockerfile に `HEALTHCHECK` 命令を追加
 
 ### 変更
 - **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要
