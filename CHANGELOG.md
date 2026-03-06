@@ -13,10 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
+- **BREAKING**: Docker volume names now include `COMPOSE_PROJECT_NAME` prefix (`{project}_{service}_{volume}`) for project isolation
+- **BREAKING**: All shell scripts and TOML files converted to 2-space indentation
 - All `python3` invocations replaced with `uv run python` via `_uv_python()` helper
 - `check_python3()` renamed to `check_uv()` — verifies `uv` command availability
 - PyYAML moved from dev dependency-group to project dependency in `pyproject.toml`
-- `config/workspace-settings.json` is now tracked in git (was previously `.example` pattern)
+- `config/workspace-settings.json` renamed to `.example` — copy to `workspace-settings.json` to customize
+- Removed personal settings (`localeOverride`, `[toml]`) from example settings file
+- Fixed `[sh]` language ID to `[shellscript]` in workspace settings
 
 ## [4.0.0] - 2026-03-04
 

@@ -68,7 +68,7 @@ TUI（ターミナルUI）でフォルダを選択します:
 
 **特徴:**
 - サブディレクトリのみを含むディレクトリは自動展開（例: `group/repo1`, `group/repo2`）
-- `config/workspace-settings.json` のVS Code設定を生成ファイルに埋め込み
+- `config/workspace-settings.json`（またはフォールバックの`.example`）のVS Code設定を生成ファイルに埋め込み
 - 同名ファイルが存在する場合は上書き確認
 
 ### 完全な再構築

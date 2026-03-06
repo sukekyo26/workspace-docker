@@ -224,7 +224,9 @@ extensions = [
 
 ## ワークスペース設定
 
-`config/workspace-settings.json` は `generate-workspace.sh` で生成される `.code-workspace` ファイルに埋め込まれるVS Codeエディタ設定を定義します。
+`config/workspace-settings.json.example` は `generate-workspace.sh` で生成される `.code-workspace` ファイルに埋め込まれるデフォルトのVS Codeエディタ設定を定義します。
+
+カスタマイズするには `config/workspace-settings.json.example` を `config/workspace-settings.json` にコピーして編集してください。ジェネレーターは `workspace-settings.json` があればそちらを使用し、なければ `.example` にフォールバックします。
 
 **デフォルト設定:**
 
@@ -237,9 +239,6 @@ extensions = [
 | `editor.insertSpaces` | `true` | タブの代わりにスペースを使用 |
 | `editor.detectIndentation` | `false` | 自動検出せず設定されたtabSizeを使用 |
 | `editor.tabSize` | `2` | デフォルトインデント幅（PythonとDockerfileは4） |
-| `github.copilot.chat.localeOverride` | `ja` | Copilot Chatの言語設定 |
-
-カスタマイズするには `config/workspace-settings.json` を直接編集してください。変更は新たに生成するワークスペースファイルに反映されます。
 
 ## セキュリティ設計
 
@@ -284,7 +283,7 @@ bash tests/run_all.sh
 
 ### 設定
 - `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、VSCode拡張機能、カスタムボリューム）
-- `config/workspace-settings.json` - 生成される `.code-workspace` ファイルに埋め込まれるVS Codeエディタ設定
+- `config/workspace-settings.json.example` - デフォルトのVS Codeエディタ設定（`workspace-settings.json`にコピーしてカスタマイズ）
 - `config/apt-base-packages.conf` - 全コンテナにインストールされるベースaptパッケージ
 - `config/.bashrc_custom` - シェル起動時に読み込まれるユーザー固有のシェル設定
 

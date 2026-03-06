@@ -68,7 +68,7 @@ The script provides a TUI (Terminal User Interface) for folder selection:
 
 **Features:**
 - Auto-expands directories that contain only subdirectories (e.g., `group/repo1`, `group/repo2`)
-- Embeds VS Code settings from `config/workspace-settings.json` into generated files
+- Embeds VS Code settings from `config/workspace-settings.json` (or `.example` fallback) into generated files
 - Overwrites confirmation when creating a file with an existing name
 
 ### Complete Rebuild
