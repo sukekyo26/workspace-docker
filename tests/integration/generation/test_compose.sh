@@ -50,8 +50,8 @@ test_docker_compose_generation() {
 test_compose_yaml_validity() {
     section "docker-compose.yml YAML validity"
 
-    if ! python3 -c "import yaml" 2>/dev/null; then
-        skip_test "docker-compose.yml YAML validity" "python3 yaml module not available"
+    if ! uv run --project "$PROJECT_ROOT" python -c "import yaml" 2>/dev/null; then
+        skip_test "docker-compose.yml YAML validity" "pyyaml not available"
         return
     fi
 
@@ -73,7 +73,7 @@ test_compose_yaml_validity() {
     clean_compose=$(sed 's/\${[^}]*}/dummy/g' "$compose")
 
     # YAML parse
-    if echo "$clean_compose" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
+    if echo "$clean_compose" | uv run --project "$PROJECT_ROOT" python -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
         assert_eq "docker-compose.yml is valid YAML" "valid" "valid"
     else
         assert_eq "docker-compose.yml is valid YAML" "valid" "invalid"
@@ -81,7 +81,7 @@ test_compose_yaml_validity() {
 
     # Compose structure: services key
     local has_services
-    has_services=$(echo "$clean_compose" | python3 -c "
+    has_services=$(echo "$clean_compose" | uv run --project "$PROJECT_ROOT" python -c "
 import sys, yaml
 data = yaml.safe_load(sys.stdin)
 print('yes' if 'services' in data else 'no')
@@ -90,7 +90,7 @@ print('yes' if 'services' in data else 'no')
 
     # Compose structure: volumes key
     local has_volumes
-    has_volumes=$(echo "$clean_compose" | python3 -c "
+    has_volumes=$(echo "$clean_compose" | uv run --project "$PROJECT_ROOT" python -c "
 import sys, yaml
 data = yaml.safe_load(sys.stdin)
 print('yes' if 'volumes' in data else 'no')
@@ -99,7 +99,7 @@ print('yes' if 'volumes' in data else 'no')
 
     # Service name match
     local svc_exists
-    svc_exists=$(echo "$clean_compose" | python3 -c "
+    svc_exists=$(echo "$clean_compose" | uv run --project "$PROJECT_ROOT" python -c "
 import sys, yaml
 data = yaml.safe_load(sys.stdin)
 print('yes' if 'yaml-test' in data.get('services', {}) else 'no')

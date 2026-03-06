@@ -16,6 +16,14 @@ ERRORS=()
 PROJECT_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 export PROJECT_ROOT
 
+# Export for _uv_python() in lib/ when sourced from integration test temp dirs
+export _UV_PROJECT_ROOT="$PROJECT_ROOT"
+
+# Run Python via uv (available to all tests without sourcing lib/plugins.sh)
+_uv_python() {
+    uv run --project "${_UV_PROJECT_ROOT:-$PROJECT_ROOT}" python "$@"
+}
+
 # ===== Assert Functions =====
 
 assert_eq() {

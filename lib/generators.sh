@@ -30,7 +30,7 @@ _run_generator() {
     local tmp
     tmp=$(mktemp "${output_file}.XXXXXX")
 
-    if ! python3 "$GENERATORS_PY" "$subcommand" "$workspace_toml" "$plugins_dir" > "$tmp"; then
+    if ! _uv_python "$GENERATORS_PY" "$subcommand" "$workspace_toml" "$plugins_dir" > "$tmp"; then
         rm -f "$tmp"
         echo "ERROR: Failed to generate $output_file ($subcommand)" >&2
         return 1

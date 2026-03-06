@@ -204,7 +204,7 @@ test_init_with_yes_flag() {
     for toml_file in "$plugins_dir"/*.toml; do
         local pid pdefault
         pid=$(basename "$toml_file" .toml)
-        pdefault=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$toml_file" \
+        pdefault=$(_uv_python "$PROJECT_ROOT/lib/toml_parser.py" plugin "$toml_file" \
             | grep '^S:PLUGIN_DEFAULT=' | sed 's/^S:PLUGIN_DEFAULT=//')
         if [[ "$pdefault" == "true" ]]; then
             assert_file_contains "$pid enabled (default)" "$tmpdir/workspace.toml" "$pid"

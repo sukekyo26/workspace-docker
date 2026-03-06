@@ -207,7 +207,7 @@ test_volume_mounts() {
 
     # Load workspace config to check enabled plugins
     local enabled_plugins=""
-    enabled_plugins=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$PROJECT_ROOT/workspace.toml" 2>/dev/null | grep 'WS_PLUGINS=' || true)
+    enabled_plugins=$(_uv_python "$PROJECT_ROOT/lib/toml_parser.py" workspace "$PROJECT_ROOT/workspace.toml" 2>/dev/null | grep 'WS_PLUGINS=' || true)
 
     # Determine which plugin-specific volumes to test based on workspace.toml
     # These are literal strings for grep-matching in Dockerfile, not paths for expansion

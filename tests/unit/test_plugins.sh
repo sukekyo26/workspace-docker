@@ -21,7 +21,7 @@ source "$PROJECT_ROOT/lib/generators.sh"
 # Generate plugin install snippets via Python (single source of truth)
 # Usage: generate_plugin_installs "plugin1" "plugin2" ...
 generate_plugin_installs() {
-    python3 "$PROJECT_ROOT/lib/generators.py" plugin-installs "$PROJECT_ROOT/plugins" "$@"
+    _uv_python "$PROJECT_ROOT/lib/generators.py" plugin-installs "$PROJECT_ROOT/plugins" "$@"
 }
 
 # ============================================================
@@ -40,10 +40,10 @@ test_plugin_files() {
 # Test: Python TOML parser prerequisites
 # ============================================================
 test_python_prerequisites() {
-    section "Python TOML parser prerequisites"
+    section "uv and Python prerequisites"
 
-    assert_true "python3 is available" command -v python3
-    assert_true "check_python3 passes" check_python3
+    assert_true "uv is available" command -v uv
+    assert_true "check_uv passes" check_uv
 }
 
 # ============================================================
@@ -68,7 +68,7 @@ forward = [3000, 8080]
 EOF
 
     local output
-    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmpfile")
+    output=$(_uv_python "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmpfile")
     assert_eq "exit code 0" "0" "$?"
 
     # Eval via whitelist
@@ -117,7 +117,7 @@ pin = "1.2.3"
 TOML
 
     local output
-    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$tmpfile")
+    output=$(_uv_python "$PROJECT_ROOT/lib/toml_parser.py" plugin "$tmpfile")
     assert_eq "exit code 0" "0" "$?"
 
     _parse_toml_output "$output" \
@@ -169,7 +169,7 @@ test_all_plugins_common() {
 
         # TOML must be parseable
         assert_true "$plugin_id: TOML is valid" \
-            python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$toml_file"
+            _uv_python "$PROJECT_ROOT/lib/toml_parser.py" plugin "$toml_file"
 
         # Load and verify required fields
         load_plugin "$plugin_id"

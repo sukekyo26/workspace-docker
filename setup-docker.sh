@@ -39,7 +39,7 @@ done
 # ============================================================
 # Prerequisites
 # ============================================================
-check_python3 || exit 1
+check_uv || exit 1
 
 WORKSPACE_TOML="$SCRIPT_DIR/workspace.toml"
 

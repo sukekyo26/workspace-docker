@@ -6,13 +6,20 @@
 # files, and generating Dockerfile/docker-compose.yml content
 # from plugin definitions.
 #
-# Requires: Python 3.11+ (tomllib) or Python 3.x with tomli
+# Requires: uv (Python package manager) + Python 3.11+
 # ============================================================
 set -uo pipefail
 
 # Get the directory where this script is located
 _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_PROJECT_ROOT="$(cd "$_LIB_DIR/.." && pwd)"
 TOML_PARSER="$_LIB_DIR/toml_parser.py"
+
+# Run Python via uv with correct project root
+# Supports _UV_PROJECT_ROOT override for integration tests
+_uv_python() {
+    uv run --project "${_UV_PROJECT_ROOT:-$_PROJECT_ROOT}" python "$@"
+}
 
 # Load utility functions (_parse_toml_output)
 # shellcheck source=utils.sh
@@ -22,21 +29,19 @@ source "$_LIB_DIR/utils.sh"
 # Python/TOML Prerequisites
 # ============================================================
 
-# Check if Python 3 and TOML parser are available
-# Usage: check_python3
+# Check if uv and Python are available
+# Usage: check_uv
 # Returns: 0 if available, 1 if not (with error message)
-check_python3() {
-    if ! command -v python3 &>/dev/null; then
-        echo "ERROR: python3 is required but not found." >&2
-        echo "  Install Python 3.11+ for built-in TOML support," >&2
-        echo "  or install tomli: pip install tomli" >&2
+check_uv() {
+    if ! command -v uv &>/dev/null; then
+        echo "ERROR: uv is required but not found." >&2
+        echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
         return 1
     fi
 
-    if ! python3 "$TOML_PARSER" --check &>/dev/null; then
-        echo "ERROR: No TOML parser available." >&2
-        echo "  Python 3.11+ includes tomllib." >&2
-        echo "  For older Python: pip install tomli" >&2
+    if ! _uv_python "$TOML_PARSER" --check &>/dev/null; then
+        echo "ERROR: TOML parser check failed." >&2
+        echo "  Run: uv sync (in the project root)" >&2
         return 1
     fi
 
@@ -61,7 +66,7 @@ load_workspace_config() {
     fi
 
     local output
-    output=$(python3 "$TOML_PARSER" workspace "$config_file") || return 1
+    output=$(_uv_python "$TOML_PARSER" workspace "$config_file") || return 1
     _parse_toml_output "$output" \
         WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
         WS_PLUGINS WS_FORWARD_PORTS WS_APT_EXTRA \
@@ -92,7 +97,7 @@ list_available_plugins() {
     fi
 
     local output
-    output=$(python3 "$TOML_PARSER" list-plugins "$plugins_dir") || return 1
+    output=$(_uv_python "$TOML_PARSER" list-plugins "$plugins_dir") || return 1
     _parse_toml_output "$output" \
         PLUGIN_IDS PLUGIN_NAMES PLUGIN_DESCRIPTIONS PLUGIN_DEFAULTS
 }
@@ -115,7 +120,7 @@ load_plugin() {
     fi
 
     local output
-    output=$(python3 "$TOML_PARSER" plugin "$plugin_file") || return 1
+    output=$(_uv_python "$TOML_PARSER" plugin "$plugin_file") || return 1
     _parse_toml_output "$output" \
         PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
         PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT PLUGIN_USER_DIRS \

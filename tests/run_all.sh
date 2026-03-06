@@ -10,10 +10,13 @@ set -uo pipefail
 TESTS_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PROJECT_ROOT="$(dirname "$TESTS_DIR")"
 
-# Activate uv virtual environment if available
+# Activate uv virtual environment for dev tools (ruff, mypy, pytest)
 if [[ -d "$PROJECT_ROOT/.venv/bin" ]]; then
     export PATH="$PROJECT_ROOT/.venv/bin:$PATH"
 fi
+
+# Export for _uv_python() in lib/ when sourced from integration test temp dirs
+export _UV_PROJECT_ROOT="$PROJECT_ROOT"
 
 SUITE_RESULTS=()
 

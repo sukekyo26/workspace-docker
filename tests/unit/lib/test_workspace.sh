@@ -165,11 +165,11 @@ test_generate_workspace_file() {
     assert_file_contains "has tabSize" <(echo "$content") '"editor.tabSize"'
 
     # Valid JSON check
-    assert_true "output is valid JSON" python3 -c "import json; json.load(open('$tmpdir/output.code-workspace'))"
+    assert_true "output is valid JSON" uv run --project "$PROJECT_ROOT" python -c "import json; json.load(open('$tmpdir/output.code-workspace'))"
 
     # Single folder (no trailing comma)
     generate_workspace_file "$tmpdir/single.code-workspace" "$tmpdir/settings.json" "solo-project"
-    assert_true "single folder is valid JSON" python3 -c "import json; json.load(open('$tmpdir/single.code-workspace'))"
+    assert_true "single folder is valid JSON" uv run --project "$PROJECT_ROOT" python -c "import json; json.load(open('$tmpdir/single.code-workspace'))"
 
     rm -rf "$tmpdir"
 }

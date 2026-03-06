@@ -174,7 +174,7 @@ forward = [3000]
 EOF
 
     local output
-    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmpfile")
+    output=$(_uv_python "$PROJECT_ROOT/lib/toml_parser.py" workspace "$tmpfile")
     # Should succeed with the standard whitelist
     _parse_toml_output "$output" \
         WS_SERVICE_NAME WS_USERNAME WS_UBUNTU_VERSION \
@@ -193,7 +193,7 @@ test_real_plugin_output() {
     section "Real plugin output"
 
     local output
-    output=$(python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/proto.toml")
+    output=$(_uv_python "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/proto.toml")
     _parse_toml_output "$output" \
         PLUGIN_ID PLUGIN_NAME PLUGIN_DESCRIPTION PLUGIN_DEFAULT \
         PLUGIN_DOCKERFILE PLUGIN_REQUIRES_ROOT \

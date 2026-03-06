@@ -93,12 +93,12 @@ test_devcontainer_json_validity() {
     # Strip // comments for JSON parsing (jsonc -> json)
     # Only strip lines starting with optional whitespace + // to preserve URLs in values
     local clean_json
-    clean_json=$(python3 -c "
+    clean_json=$(uv run --project "$PROJECT_ROOT" python -c "
 import re, sys
 print(re.sub(r'^\s*//.*$', '', open(sys.argv[1]).read(), flags=re.MULTILINE))
 " "$dcjson")
 
-    if echo "$clean_json" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
+    if echo "$clean_json" | uv run --project "$PROJECT_ROOT" python -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
         assert_eq "devcontainer.json is valid JSON" "valid" "valid"
     else
         assert_eq "devcontainer.json is valid JSON" "valid" "invalid"
@@ -106,14 +106,14 @@ print(re.sub(r'^\s*//.*$', '', open(sys.argv[1]).read(), flags=re.MULTILINE))
 
     # Check required fields
     local has_name has_service
-    has_name=$(echo "$clean_json" | python3 -c "
+    has_name=$(echo "$clean_json" | uv run --project "$PROJECT_ROOT" python -c "
 import sys, json
 data = json.load(sys.stdin)
 print('yes' if 'name' in data else 'no')
 " 2>/dev/null || echo "error")
     assert_eq "devcontainer.json has name" "yes" "$has_name"
 
-    has_service=$(echo "$clean_json" | python3 -c "
+    has_service=$(echo "$clean_json" | uv run --project "$PROJECT_ROOT" python -c "
 import sys, json
 data = json.load(sys.stdin)
 print('yes' if data.get('service') == '$service' else 'no')
@@ -129,8 +129,8 @@ print('yes' if data.get('service') == '$service' else 'no')
 test_devcontainer_compose_validity() {
     section ".devcontainer/docker-compose.yml YAML validity"
 
-    if ! python3 -c "import yaml" 2>/dev/null; then
-        skip_test ".devcontainer/docker-compose.yml YAML validity" "python3 yaml module not available"
+    if ! uv run --project "$PROJECT_ROOT" python -c "import yaml" 2>/dev/null; then
+        skip_test ".devcontainer/docker-compose.yml YAML validity" "pyyaml not available"
         return
     fi
 
@@ -152,14 +152,14 @@ test_devcontainer_compose_validity() {
     local clean_compose
     clean_compose=$(sed 's/\${[^}]*}/dummy/g' "$compose")
 
-    if echo "$clean_compose" | python3 -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
+    if echo "$clean_compose" | uv run --project "$PROJECT_ROOT" python -c "import sys, yaml; yaml.safe_load(sys.stdin)" 2>/dev/null; then
         assert_eq ".devcontainer/docker-compose.yml is valid YAML" "valid" "valid"
     else
         assert_eq ".devcontainer/docker-compose.yml is valid YAML" "valid" "invalid"
     fi
 
     local svc_exists
-    svc_exists=$(echo "$clean_compose" | python3 -c "
+    svc_exists=$(echo "$clean_compose" | uv run --project "$PROJECT_ROOT" python -c "
 import sys, yaml
 data = yaml.safe_load(sys.stdin)
 print('yes' if '$service' in data.get('services', {}) else 'no')
