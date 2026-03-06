@@ -251,6 +251,7 @@ class TestComposeGenerator:
         output = ComposeGenerator(workspace_data, plugins_dir).generate()
         assert "test-data:" in output
         assert "CONTAINER_SERVICE_NAME}_test-data" in output
+        assert "COMPOSE_PROJECT_NAME}" in output
 
     def test_custom_volumes(self, plugins_dir: str) -> None:
         data: dict[str, object] = {

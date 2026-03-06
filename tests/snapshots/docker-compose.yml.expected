@@ -26,14 +26,14 @@ services:
     tty: true
 volumes:
   local:
-    name: "${CONTAINER_SERVICE_NAME}_local"
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_local"
   proto:
-    name: "${CONTAINER_SERVICE_NAME}_proto"
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_proto"
   aws:
-    name: "${CONTAINER_SERVICE_NAME}_aws"
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_aws"
   gh-config:
-    name: "${CONTAINER_SERVICE_NAME}_gh-config"
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_gh-config"
   copilot:
-    name: "${CONTAINER_SERVICE_NAME}_copilot"
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_copilot"
   claude:
-    name: "${CONTAINER_SERVICE_NAME}_claude"
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_claude"

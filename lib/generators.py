@@ -159,12 +159,12 @@ class ComposeGenerator(Generator):
 
         # Build top-level volume definitions
         vol_defs: dict[str, dict[str, str]] = {
-            "local": {"name": "${CONTAINER_SERVICE_NAME}_local"},
+            "local": {"name": "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_local"},
         }
         for _, vol_name, _ in plugin_volumes:
-            vol_defs[vol_name] = {"name": f"${{CONTAINER_SERVICE_NAME}}_{vol_name}"}
+            vol_defs[vol_name] = {"name": f"${{COMPOSE_PROJECT_NAME}}_${{CONTAINER_SERVICE_NAME}}_{vol_name}"}
         for vn in custom_volumes:
-            vol_defs[vn] = {"name": f"${{CONTAINER_SERVICE_NAME}}_{vn}"}
+            vol_defs[vn] = {"name": f"${{COMPOSE_PROJECT_NAME}}_${{CONTAINER_SERVICE_NAME}}_{vn}"}
 
         compose: dict[str, Any] = {
             "services": {self.service_name: service},
