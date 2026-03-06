@@ -29,7 +29,6 @@
 - `.env` 生成を `printf` に変更しシェル展開による値の破損を防止
 - `_parse_toml_output` の nameref スコープ汚染検証テストを追加
 - `set -e` 設計意図を文書化: lib ファイルは source されるため `set -uo pipefail`（`-e` なし）を使用
-- シェル規約（set -e ポリシー、nameref cleanup、.env 生成）を `.github/instructions/shell.instructions.md` に追加
 
 ## [4.0.0] - 2026-03-04
 

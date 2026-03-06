@@ -29,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.env` generation now uses `printf` instead of unquoted here-doc to prevent shell expansion in values
 - Added nameref scope pollution verification tests for `_parse_toml_output`
 - Documented `set -e` design intent: lib files use `set -uo pipefail` (no `-e`) because they are sourced
-- Added shell conventions (set -e policy, nameref cleanup, .env generation) to `.github/instructions/shell.instructions.md`
 
 ## [4.0.0] - 2026-03-04
 
