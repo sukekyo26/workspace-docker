@@ -7,6 +7,8 @@
 # color variables are empty strings.
 # shellcheck disable=SC2034
 
+set -uo pipefail
+
 if [[ -n "${NO_COLOR:-}" ]]; then
   RED=''
   GREEN=''
