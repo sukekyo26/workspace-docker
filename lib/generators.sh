@@ -27,6 +27,10 @@ _run_generator() {
   plugins_dir="$(cd "$(dirname "$workspace_toml")" && pwd)/plugins"
 
   mkdir -p "$(dirname "$output_file")"
+
+  # Remove stale temp files from previous interrupted runs
+  rm -f "${output_file}".??????
+
   local tmp
   tmp=$(mktemp "${output_file}.XXXXXX")
 
