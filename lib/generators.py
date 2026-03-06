@@ -582,7 +582,7 @@ WORKDIR /home/${USERNAME}/workspace
         if not os.path.exists(conf_file):
             return ""
         lines: list[str] = []
-        with open(conf_file) as f:
+        with open(conf_file, encoding="utf-8") as f:
             for raw_line in f:
                 line = raw_line.strip()
                 if not line or line.startswith("#"):
@@ -603,7 +603,7 @@ WORKDIR /home/${USERNAME}/workspace
         valid_certs: list[str] = []
         for fname in crt_files:
             filepath = os.path.join(certs_dir, fname)
-            with open(filepath) as f:
+            with open(filepath, encoding="utf-8") as f:
                 content = f.read()
             if "-----BEGIN CERTIFICATE-----" in content and "-----END CERTIFICATE-----" in content:
                 valid_certs.append(fname)
