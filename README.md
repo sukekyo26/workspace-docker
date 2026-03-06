@@ -10,7 +10,7 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 - **Persistent Storage**: Plugin data and configurations persist across container recreations via named volumes
 - **Externalized Package Management**: Base apt packages managed in `config/apt-base-packages.conf`, project-specific extras via `workspace.toml`
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
-- **Quality Assurance**: 8 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
+- **Quality Assurance**: 29 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
 
 ## Quick Start
 
@@ -18,20 +18,26 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 
 - Docker installed on host machine
 - Bash 4.3+ (uses `declare -n` nameref)
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - (Optional) VS Code + Dev Containers extension
 
 ### Setup
 
 ```bash
-# 1. Run setup script (interactive — generates workspace.toml and all config files)
+# 1. Install uv (if not installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Run setup script (interactive — generates workspace.toml and all config files)
 bash setup-docker.sh
 
-# 2. To reconfigure later, edit workspace.toml and re-run
+# 3. To reconfigure later, edit workspace.toml and re-run
 vim workspace.toml
 bash setup-docker.sh
 ```
 
 #### workspace.toml
+
+You can create `workspace.toml` before running `setup-docker.sh` to pre-define extensions, volumes, and apt packages. The interactive setup (`--init`) preserves these sections.
 
 ```toml
 [container]

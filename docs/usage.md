@@ -89,6 +89,20 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+### Volume Management
+
+Use `clean-volumes.sh` to delete all Docker named volumes associated with this project:
+
+```bash
+bash clean-volumes.sh
+```
+
+This script:
+- Detects volumes by project name prefix
+- Stops running containers if needed
+- Deletes all matching volumes
+- Cannot be run from inside the container
+
 ### Testing and Validation
 
 ```bash
@@ -111,7 +125,10 @@ cat .devcontainer/docker-compose.yml
 rm -f Dockerfile docker-compose.yml .env
 rm -f .devcontainer/devcontainer.json .devcontainer/docker-compose.yml
 
-# Delete volumes
+# Delete all project volumes
+bash clean-volumes.sh
+
+# Delete volumes via docker compose
 docker compose down --volumes
 
 # Delete everything (including images)

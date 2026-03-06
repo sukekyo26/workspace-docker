@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `clean-volumes.sh` script to delete all Docker named volumes for the project
+- Pre-definition workflow: create `workspace.toml` before `setup-docker.sh --init` to pre-define `[apt]`, `[vscode]`, and `[volumes]` sections (preserved during interactive setup)
+
+### Changed
+- **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
+- All `python3` invocations replaced with `uv run python` via `_uv_python()` helper
+- `check_python3()` renamed to `check_uv()` — verifies `uv` command availability
+- PyYAML moved from dev dependency-group to project dependency in `pyproject.toml`
+- `config/workspace-settings.json` is now tracked in git (was previously `.example` pattern)
+
 ## [4.0.0] - 2026-03-04
 
 ### Added

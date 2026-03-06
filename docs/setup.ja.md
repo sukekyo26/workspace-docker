@@ -5,6 +5,7 @@
 **必須要件:**
 - Dockerがホストマシンにインストールされていること
 - Bash 4.3+（`declare -n` namerefを使用）
+- [uv](https://docs.astral.sh/uv/)（Pythonパッケージマネージャー）
 
 **オプション:**
 - VS Code + Dev Containers 拡張機能
@@ -25,14 +26,19 @@ sudo usermod -aG docker $USER
 
 ## セットアップ
 
-1. **セットアップスクリプトの実行（初回 — 対話モード）**
+1. **uvのインストール（未インストールの場合）**
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **セットアップスクリプトの実行（初回 — 対話モード）**
    ```bash
    bash setup-docker.sh
    ```
    コンテナサービス名、ユーザー名、プラグイン選択が求められます。
    `workspace.toml`とすべてのDocker設定ファイルが生成されます。
 
-2. **再設定（workspace.tomlを編集して再生成）**
+3. **再設定（workspace.tomlを編集して再生成）**
 
    初回セットアップ後は、`workspace.toml`を編集してスクリプトを再実行するだけです：
    ```bash
@@ -44,6 +50,30 @@ sudo usermod -aG docker $USER
    ```bash
    bash setup-docker.sh --init
    ```
+
+### 拡張機能・ボリューム・パッケージの事前定義
+
+`setup-docker.sh`実行前に`workspace.toml`を作成することで、VS Code拡張機能、ボリューム、aptパッケージを事前に定義できます。`setup-docker.sh --init`を実行すると、コンテナ名・ユーザー名・プラグインのみ対話式で設定され、`[apt]`、`[vscode]`、`[volumes]`セクションは保持されます。
+
+```bash
+# 1. 必要な拡張機能やパッケージを記載した workspace.toml を作成
+cat > workspace.toml << 'EOF'
+[apt]
+packages = ["ripgrep", "fd-find"]
+
+[vscode]
+extensions = [
+    "ms-python.python",
+    "eamodio.gitlens",
+]
+
+[volumes]
+my-data = "/home/devuser/.my-tool"
+EOF
+
+# 2. 対話式セットアップを実行 — apt/vscode/volumes は保持される
+bash setup-docker.sh --init
+```
 
 ## workspace.toml 設定
 
