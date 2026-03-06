@@ -125,7 +125,6 @@ Base packages are managed in `config/apt-base-packages.conf`. Project-specific e
 - **bash-completion** - Command auto-completion
 - **procps** - Process monitoring utilities (ps, top, etc.)
 - **iproute2** - Advanced networking utilities (ip command)
-- **lsb-release** - Linux Standard Base version reporting utility
 - **uuid-runtime** - UUID generation utility (uuidgen command)
 
 ### Development Libraries

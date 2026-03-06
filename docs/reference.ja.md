@@ -125,7 +125,6 @@ strategy = "latest"
 - **bash-completion** - コマンド自動補完
 - **procps** - プロセス監視ユーティリティ（ps, topなど）
 - **iproute2** - 高度なネットワークユーティリティ（ipコマンド）
-- **lsb-release** - Linux Standard Baseバージョン報告ユーティリティ
 - **uuid-runtime** - UUID生成ユーティリティ（uuidgenコマンド）
 
 ### 開発ライブラリ
