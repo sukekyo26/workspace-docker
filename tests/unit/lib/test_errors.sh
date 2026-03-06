@@ -19,21 +19,21 @@ source "$PROJECT_ROOT/lib/logging.sh"
 # Test: logging functions
 # ============================================================
 test_error_functions() {
-    section "Error/logging functions"
+  section "Error/logging functions"
 
-    # Test error output goes to stderr
-    local output
-    output=$(error "test error" 2>&1)
-    assert_file_contains "error() outputs ERROR:" <(echo "$output") "ERROR:"
+  # Test error output goes to stderr
+  local output
+  output=$(error "test error" 2>&1)
+  assert_file_contains "error() outputs ERROR:" <(echo "$output") "ERROR:"
 
-    output=$(warn "test warning" 2>&1)
-    assert_file_contains "warn() outputs WARNING:" <(echo "$output") "WARNING:"
+  output=$(warn "test warning" 2>&1)
+  assert_file_contains "warn() outputs WARNING:" <(echo "$output") "WARNING:"
 
-    output=$(info "test info" 2>&1)
-    assert_file_contains "info() outputs INFO:" <(echo "$output") "INFO:"
+  output=$(info "test info" 2>&1)
+  assert_file_contains "info() outputs INFO:" <(echo "$output") "INFO:"
 
-    output=$(success "test success" 2>&1)
-    assert_true "success() produces output" test -n "$output"
+  output=$(success "test success" 2>&1)
+  assert_true "success() produces output" test -n "$output"
 }
 
 # ============================================================

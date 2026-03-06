@@ -17,20 +17,20 @@ echo "[ test_claude-code.sh ]"
 # Test: claude-code plugin specifics
 # ============================================================
 test_claude_code() {
-    section "claude-code specifics"
+  section "claude-code specifics"
 
-    load_plugin "claude-code"
-    assert_eq "PLUGIN_NAME" "Claude Code" "$PLUGIN_NAME"
-    local expected_default
-    expected_default=$(get_plugin_default "claude-code")
-    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
-    assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
-    assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
-    assert_eq "volume name is claude" "claude" "${PLUGIN_VOLUME_NAMES[0]}"
+  load_plugin "claude-code"
+  assert_eq "PLUGIN_NAME" "Claude Code" "$PLUGIN_NAME"
+  local expected_default
+  expected_default=$(get_plugin_default "claude-code")
+  assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
+  assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
+  assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
+  assert_eq "volume name is claude" "claude" "${PLUGIN_VOLUME_NAMES[0]}"
 
-    local result
-    result=$(generate_plugin_installs "claude-code")
-    assert_file_contains "install contains Claude" <(echo "$result") "Claude"
+  local result
+  result=$(generate_plugin_installs "claude-code")
+  assert_file_contains "install contains Claude" <(echo "$result") "Claude"
 }
 
 # ============================================================

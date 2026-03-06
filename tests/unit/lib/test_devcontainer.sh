@@ -19,31 +19,31 @@ source "$PROJECT_ROOT/lib/devcontainer.sh"
 # Test: devcontainer.sh function definitions and execution
 # ============================================================
 test_devcontainer_functions() {
-    section "devcontainer.sh functions"
+  section "devcontainer.sh functions"
 
-    # Functions are defined and callable
-    assert_true "check_docker is a function" declare -f check_docker
-    assert_true "check_devcontainer_cli is a function" declare -f check_devcontainer_cli
-    assert_true "check_all_prerequisites is a function" declare -f check_all_prerequisites
-    assert_true "is_wsl is a function" declare -f is_wsl
-    assert_true "run_devcontainer is a function" declare -f run_devcontainer
+  # Functions are defined and callable
+  assert_true "check_docker is a function" declare -f check_docker
+  assert_true "check_devcontainer_cli is a function" declare -f check_devcontainer_cli
+  assert_true "check_all_prerequisites is a function" declare -f check_all_prerequisites
+  assert_true "is_wsl is a function" declare -f is_wsl
+  assert_true "run_devcontainer is a function" declare -f run_devcontainer
 
-    # is_wsl returns meaningful result (not error)
-    is_wsl 2>/dev/null
-    local wsl_rc=$?
-    assert_true "is_wsl returns 0 or 1" test "$wsl_rc" -le 1
+  # is_wsl returns meaningful result (not error)
+  is_wsl 2>/dev/null
+  local wsl_rc=$?
+  assert_true "is_wsl returns 0 or 1" test "$wsl_rc" -le 1
 
-    # check_docker runs (Docker available in this container)
-    if command -v docker &>/dev/null; then
-        assert_true "check_docker succeeds" check_docker
-    else
-        skip_test "check_docker execution" "docker not installed"
-    fi
+  # check_docker runs (Docker available in this container)
+  if command -v docker &>/dev/null; then
+    assert_true "check_docker succeeds" check_docker
+  else
+    skip_test "check_docker execution" "docker not installed"
+  fi
 
-    # curl command uses TLS enforcement
-    local src="$PROJECT_ROOT/lib/devcontainer.sh"
-    assert_file_contains "curl uses --proto '=https'" "$src" "proto '=https'"
-    assert_file_contains "curl uses --tlsv1.2" "$src" "tlsv1.2"
+  # curl command uses TLS enforcement
+  local src="$PROJECT_ROOT/lib/devcontainer.sh"
+  assert_file_contains "curl uses --proto '=https'" "$src" "proto '=https'"
+  assert_file_contains "curl uses --tlsv1.2" "$src" "tlsv1.2"
 }
 
 # ============================================================
