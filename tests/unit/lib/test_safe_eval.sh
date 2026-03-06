@@ -204,6 +204,36 @@ test_real_plugin_output() {
 }
 
 # ============================================================
+# Test: Nameref does not pollute global scope
+# ============================================================
+test_nameref_no_scope_pollution() {
+  section "Nameref scope isolation"
+
+  # _arr_ref is the internal nameref used by _parse_toml_output.
+  # After the function returns, it must not remain as a variable.
+  unset -v _arr_ref 2>/dev/null || true
+
+  local output
+  output=$(printf 'A:TEST_SCOPE_ARR=x\x1fy')
+  _parse_toml_output "$output" TEST_SCOPE_ARR
+
+  # Target variable should be set
+  assert_eq "target array set" "2" "${#TEST_SCOPE_ARR[@]}"
+
+  # Internal nameref _arr_ref must not be resolvable as a variable
+  assert_false "_arr_ref not in scope" test -n "${_arr_ref+set}"
+
+  # Consecutive calls must not leak between invocations
+  _parse_toml_output "A:FIRST_ARR=" FIRST_ARR
+  output=$(printf 'A:SECOND_ARR=a\x1fb\x1fc')
+  _parse_toml_output "$output" SECOND_ARR
+
+  assert_eq "first array empty" "0" "${#FIRST_ARR[@]}"
+  assert_eq "second array populated" "3" "${#SECOND_ARR[@]}"
+  assert_eq "second array[0]" "a" "${SECOND_ARR[0]}"
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -218,5 +248,6 @@ test_array_parsing
 test_escape_decoding
 test_real_workspace_output
 test_real_plugin_output
+test_nameref_no_scope_pollution
 
 print_summary
