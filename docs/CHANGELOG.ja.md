@@ -7,6 +7,25 @@
 
 ## [Unreleased]
 
+### 追加
+- プロジェクトの Docker named volume を全削除する `clean-volumes.sh` スクリプト
+- 事前定義ワークフロー: `setup-docker.sh --init` の前に `workspace.toml` を作成し `[apt]`、`[vscode]`、`[volumes]` セクションを事前定義可能に
+
+### 変更
+- **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要
+- **破壊的**: Dockerボリューム名に `COMPOSE_PROJECT_NAME` プレフィックスを追加（`{project}_{service}_{volume}`）
+- **破壊的**: 全シェルスクリプト・TOMLファイルを2スペースインデントに変換
+- 全 `python3` 呼び出しを `_uv_python()` ヘルパー経由の `uv run python` に置換
+- `check_python3()` を `check_uv()` にリネーム
+- PyYAML を dev dependency-group からプロジェクト依存に移動
+- `config/workspace-settings.json` を `.example` にリネーム
+- 設定ファイルから個人設定（`localeOverride`）を削除
+
+### 修正
+- 重複テストファイル（`test_generators.sh`、`test_errors.sh`）を削除し二重実行を解消
+- `check_devcontainer_cli` の trap 上書きを修正（呼び出し元の EXIT trap を保護）
+- `validate_symlink` のパストラバーサル脆弱性を修正（末尾スラッシュによるプレフィックスガード）
+
 ## [4.0.0] - 2026-03-04
 
 ### 追加

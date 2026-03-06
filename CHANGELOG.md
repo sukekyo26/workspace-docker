@@ -19,8 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `check_python3()` renamed to `check_uv()` — verifies `uv` command availability
 - PyYAML moved from dev dependency-group to project dependency in `pyproject.toml`
 - `config/workspace-settings.json` renamed to `.example` — copy to `workspace-settings.json` to customize
-- Removed personal settings (`localeOverride`, `[toml]`) from example settings file
-- Fixed `[sh]` language ID to `[shellscript]` in workspace settings
+- Removed personal settings (`localeOverride`) from example settings file
+
+### Fixed
+- Removed duplicate test files (`test_generators.sh`, `test_errors.sh`) that caused double execution
+- Fixed `check_devcontainer_cli` trap overwrite that could clobber caller's EXIT trap
+- Fixed path traversal vulnerability in `validate_symlink` — prefix match now uses trailing slash guard
 
 ## [4.0.0] - 2026-03-04
 
