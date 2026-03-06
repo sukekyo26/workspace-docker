@@ -3,7 +3,7 @@ name = "workspace-docker"
 version = "4.0.0"
 requires-python = ">=3.11"
 dependencies = [
-    "pyyaml>=6.0.2",
+    "pyyaml>=6.0.3",
 ]
 
 [tool.mypy]
@@ -51,6 +51,6 @@ testpaths = ["tests/python"]
 dev = [
     "mypy>=1.19.1",
     "pytest>=9.0.2",
-    "ruff>=0.15.4",
+    "ruff>=0.15.5",
     "types-pyyaml>=6.0.12.20250915",
 ]
