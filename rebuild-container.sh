@@ -29,9 +29,9 @@ source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-    echo -e "${RED}ERROR:${NC} このスクリプトはコンテナ内からは実行できません"
-    echo "  ホストOSから実行してください"
-    exit 1
+  echo -e "${RED}ERROR:${NC} このスクリプトはコンテナ内からは実行できません"
+  echo "  ホストOSから実行してください"
+  exit 1
 fi
 
 echo ""
@@ -58,18 +58,18 @@ WORKSPACE_NAME=$(basename "$WORKSPACE_DIR")
 IMAGE_NAME="${WORKSPACE_NAME}-${SERVICE_NAME}"
 
 if docker image inspect "$IMAGE_NAME" &>/dev/null; then
-    CREATED_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
-    if [[ -n "$CREATED_DATE" ]]; then
-        CREATED_EPOCH=$(date -d "$CREATED_DATE" +%s 2>/dev/null || echo "0")
-        CURRENT_EPOCH=$(date +%s)
-        DAYS_OLD=$(( (CURRENT_EPOCH - CREATED_EPOCH) / 86400 ))
-        FORMATTED_DATE=$(date -d "$CREATED_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$CREATED_DATE")
+  CREATED_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
+  if [[ -n "$CREATED_DATE" ]]; then
+    CREATED_EPOCH=$(date -d "$CREATED_DATE" +%s 2>/dev/null || echo "0")
+    CURRENT_EPOCH=$(date +%s)
+    DAYS_OLD=$(( (CURRENT_EPOCH - CREATED_EPOCH) / 86400 ))
+    FORMATTED_DATE=$(date -d "$CREATED_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$CREATED_DATE")
 
-        echo -e "現在のイメージ: ${BOLD}${IMAGE_NAME}${NC}"
-        echo -e "作成日:         ${BOLD}${FORMATTED_DATE}${NC} (${DAYS_OLD}日前)"
-    fi
+    echo -e "現在のイメージ: ${BOLD}${IMAGE_NAME}${NC}"
+    echo -e "作成日:         ${BOLD}${FORMATTED_DATE}${NC} (${DAYS_OLD}日前)"
+  fi
 else
-    echo -e "イメージ ${BOLD}${IMAGE_NAME}${NC} が見つかりません（初回ビルド）"
+  echo -e "イメージ ${BOLD}${IMAGE_NAME}${NC} が見つかりません（初回ビルド）"
 fi
 
 # ============================================================
@@ -84,8 +84,8 @@ echo "  ・リビルドには数分かかる場合があります"
 echo ""
 read -rp "リビルドを実行しますか？ [y/N]: " confirm
 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-    echo "キャンセルしました"
-    exit 0
+  echo "キャンセルしました"
+  exit 0
 fi
 
 # ============================================================
@@ -98,9 +98,9 @@ echo -e "${YELLOW}   これには数分かかる場合があります${NC}"
 echo ""
 
 run_devcontainer up \
-    --workspace-folder "$WORKSPACE_DIR" \
-    --build-no-cache \
-    --remove-existing-container
+  --workspace-folder "$WORKSPACE_DIR" \
+  --build-no-cache \
+  --remove-existing-container
 
 # ============================================================
 # Done
@@ -111,11 +111,11 @@ echo -e "${GREEN}✅ リビルド & 起動が完了しました${NC}"
 
 # 新しいイメージの情報を表示
 if docker image inspect "$IMAGE_NAME" &>/dev/null; then
-    NEW_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
-    if [[ -n "$NEW_DATE" ]]; then
-        NEW_FORMATTED=$(date -d "$NEW_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$NEW_DATE")
-        echo -e "新しいイメージ作成日: ${BOLD}${NEW_FORMATTED}${NC}"
-    fi
+  NEW_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
+  if [[ -n "$NEW_DATE" ]]; then
+    NEW_FORMATTED=$(date -d "$NEW_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$NEW_DATE")
+    echo -e "新しいイメージ作成日: ${BOLD}${NEW_FORMATTED}${NC}"
+  fi
 fi
 
 echo ""

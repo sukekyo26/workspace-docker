@@ -12,7 +12,7 @@ PROJECT_ROOT="$(dirname "$TESTS_DIR")"
 
 # Activate uv virtual environment for dev tools (ruff, mypy, pytest)
 if [[ -d "$PROJECT_ROOT/.venv/bin" ]]; then
-    export PATH="$PROJECT_ROOT/.venv/bin:$PATH"
+  export PATH="$PROJECT_ROOT/.venv/bin:$PATH"
 fi
 
 # Export for _uv_python() in lib/ when sourced from integration test temp dirs
@@ -32,24 +32,24 @@ echo ""
 mapfile -t test_files < <(find "$TESTS_DIR" -name 'test_*.sh' ! -name 'test_helper.sh' | sort)
 
 if [[ ${#test_files[@]} -eq 0 ]]; then
-    echo "No test files found in $TESTS_DIR"
-    exit 1
+  echo "No test files found in $TESTS_DIR"
+  exit 1
 fi
 
 for test_file in "${test_files[@]}"; do
-    suite_name="${test_file#"$TESTS_DIR/"}"
-    suite_name="${suite_name%.sh}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Running: $suite_name"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  suite_name="${test_file#"$TESTS_DIR/"}"
+  suite_name="${suite_name%.sh}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Running: $suite_name"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    if timeout 60 bash "$test_file"; then
-        SUITE_RESULTS+=("✅ $suite_name")
-    else
-        SUITE_RESULTS+=("❌ $suite_name")
-    fi
+  if timeout 60 bash "$test_file"; then
+    SUITE_RESULTS+=("✅ $suite_name")
+  else
+    SUITE_RESULTS+=("❌ $suite_name")
+  fi
 
-    echo ""
+  echo ""
 done
 
 echo "╔══════════════════════════════════════════╗"
@@ -59,17 +59,17 @@ echo ""
 
 has_failure=false
 for result in "${SUITE_RESULTS[@]}"; do
-    echo "  $result"
-    if [[ "$result" == "❌"* ]]; then
-        has_failure=true
-    fi
+  echo "  $result"
+  if [[ "$result" == "❌"* ]]; then
+    has_failure=true
+  fi
 done
 
 echo ""
 if [[ "$has_failure" == true ]]; then
-    echo "Some test suites failed."
-    exit 1
+  echo "Some test suites failed."
+  exit 1
 else
-    echo "All test suites passed!"
-    exit 0
+  echo "All test suites passed!"
+  exit 0
 fi
