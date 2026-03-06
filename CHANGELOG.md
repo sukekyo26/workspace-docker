@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
 - **BREAKING**: Docker volume names now include `COMPOSE_PROJECT_NAME` prefix (`{project}_{service}_{volume}`) for project isolation
 - **BREAKING**: All shell scripts and TOML files converted to 2-space indentation
+- `docker-cli` plugin: replaced `lsb-release` dependency with `/etc/os-release` for Ubuntu codename detection
 - i18n policy: all user-facing output (TUI, echo) and code comments changed from Japanese to English
 - Removed Japanese comment from generated Dockerfile template
 - All `python3` invocations replaced with `uv run python` via `_uv_python()` helper

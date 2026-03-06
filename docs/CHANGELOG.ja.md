@@ -17,6 +17,7 @@
 - **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要
 - **破壊的**: Dockerボリューム名に `COMPOSE_PROJECT_NAME` プレフィックスを追加（`{project}_{service}_{volume}`）
 - **破壊的**: 全シェルスクリプト・TOMLファイルを2スペースインデントに変換
+- `docker-cli` プラグイン: Ubuntu コードネーム取得を `lsb-release` から `/etc/os-release` に変更
 - i18n ポリシー変更: ユーザー向け出力（TUI、echo）とコードコメントを日本語から英語に変更
 - 生成される Dockerfile テンプレートから日本語コメントを削除
 - 全 `python3` 呼び出しを `_uv_python()` ヘルパー経由の `uv run python` に置換
