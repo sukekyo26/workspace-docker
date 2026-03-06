@@ -74,6 +74,17 @@ test_validate_symlink() {
   echo "test" > "$tmpdir/regular"
   assert_exit_code "not a symlink returns 2" 2 validate_symlink "$tmpdir/regular" ""
 
+  # Path traversal: expected_dir="/tmp/dir" must not match "/tmp/dir2/..."
+  mkdir -p "$tmpdir/safe" "$tmpdir/safe2"
+  echo "data" > "$tmpdir/safe2/evil"
+  ln -sf "$tmpdir/safe2/evil" "$tmpdir/traversal_link"
+  assert_exit_code "path traversal with prefix match returns 1" 1 validate_symlink "$tmpdir/traversal_link" "$tmpdir/safe"
+
+  # Valid expected_dir check
+  echo "data" > "$tmpdir/safe/legit"
+  ln -sf "$tmpdir/safe/legit" "$tmpdir/safe_link"
+  assert_exit_code "symlink in expected dir returns 0" 0 validate_symlink "$tmpdir/safe_link" "$tmpdir/safe"
+
   rm -rf "$tmpdir"
 }
 

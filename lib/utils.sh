@@ -146,8 +146,10 @@ validate_symlink() {
   # Optionally check if target is in expected directory
   if [[ -n "$expected_dir" ]]; then
     local target
-    target=$(readlink "$symlink")
-    if [[ ! "$target" =~ ^"$expected_dir" ]]; then
+    target=$(readlink -f "$symlink")
+    # Ensure trailing slash to prevent prefix match (e.g. /home/user vs /home/user2)
+    [[ "$expected_dir" != */ ]] && expected_dir="${expected_dir}/"
+    if [[ "$target/" != "$expected_dir"* ]]; then
       return 1
     fi
   fi
