@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `starship` plugin: cross-shell prompt with checksum verification (alternative to `custom-ps1`)
 - `custom-ps1` plugin: extracted PS1 prompt configuration into a plugin (default enabled, can be replaced by starship)
 - `rust` plugin: Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
 - `go` plugin: Go programming language with checksum verification and GOPATH volume
@@ -23,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
 
 ### Changed
+- `generators.py`: fix sequence item indentation in generated `docker-compose.yml` (`args`, `environment`, `volumes` list items are now properly indented)
+- `generators.py`: reduce excessive comments in generated `.devcontainer/docker-compose.yml` to minimal
+- `generators.py`: error on duplicate volume names between `[volumes]` in `workspace.toml` and enabled plugins
 - `generators.py`: cache plugin TOML data to eliminate duplicate file reads (DRY)
 - `generators.py`: emit WARNING to stderr when an enabled plugin ID is not found
 - `github-cli` plugin: replaced `wget` with `curl` for GPG key download

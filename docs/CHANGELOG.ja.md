@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 追加
+- `starship` プラグイン: クロスシェルプロンプト（チェックサム検証付き、`custom-ps1` の代替）
 - `custom-ps1` プラグイン: PS1 プロンプト設定をプラグインに抽出（デフォルト有効、starship で置換可）
 - `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
 - `go` プラグイン: Go 言語（チェックサム検証・GOPATH ボリューム付き）
@@ -23,6 +24,9 @@
 - `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
 
 ### 変更
+- `generators.py`: 生成される `docker-compose.yml` のシーケンスアイテムのインデントを修正（`args`、`environment`、`volumes` のリスト項目が適切にインデントされるように）
+- `generators.py`: 生成される `.devcontainer/docker-compose.yml` の過剰なコメントを最小限に削減
+- `generators.py`: `workspace.toml` の `[volumes]` と有効化プラグインのボリューム名が重複する場合はエラーを出力するように
 - `generators.py`: プラグイン TOML データをキャッシュして二重読み込みを解消（DRY）
 - `generators.py`: 有効化されたプラグイン ID が見つからない場合に stderr に WARNING を出力
 - `github-cli` プラグイン: GPG キーのダウンロードを `wget` から `curl` に変更
