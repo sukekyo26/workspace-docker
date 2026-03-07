@@ -134,7 +134,7 @@ jobs:
           ubuntu_version = "24.04"
 
           [plugins]
-          enable = ["custom-ps1", "docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "claude-code", "copilot-cli", "proto", "uv", "zig", "rust", "go", "lazygit"]
+          enable = ["custom-ps1", "docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "claude-code", "copilot-cli", "proto", "uv", "zig", "rust", "go", "lazygit", "starship"]
 
           [ports]
           forward = [3000]

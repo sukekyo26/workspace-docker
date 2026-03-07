@@ -1,0 +1,28 @@
+[metadata]
+name = "Starship"
+description = "Cross-shell prompt. Alternative to custom-ps1"
+default = false
+
+[install]
+requires_root = false
+dockerfile = '''
+# Install Starship
+USER root
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="{{CHECKSUM_ARM64}}" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/starship/starship/releases/download/v{{VERSION}}/starship-${DOWNLOAD_ARCH}-unknown-linux-musl.tar.gz" -o /tmp/starship.tar.gz && \
+    echo "${CHECKSUM}  /tmp/starship.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/starship.tar.gz -C /usr/local/bin starship && \
+    rm /tmp/starship.tar.gz
+USER ${USERNAME}
+RUN echo 'eval "$(starship init bash)"' >> ~/.bashrc
+'''
+
+[version]
+pin = "1.24.2"
+checksum_amd64 = "00ff3c1f8ffb59b5c15d4b44c076bcca04d92cf0055c86b916248c14f3ae714a"
+checksum_arm64 = "56b9ff412bbf374d29b99e5ac09a849124cb37a0a13121e8470df32de53c1ea6"
