@@ -78,6 +78,10 @@ class Generator(ABC):
         for plugin_id in enabled_plugins:
             plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
             if not os.path.exists(plugin_file):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
+                    file=sys.stderr,
+                )
                 continue
             data = load_toml(plugin_file)
             name = data.get("metadata", {}).get("name", plugin_id)
@@ -450,13 +454,21 @@ WORKDIR /home/${USERNAME}/workspace
         enabled_plugins: list[str],
     ) -> str:
         """Generate combined Dockerfile install snippets for enabled plugins."""
-        # Phase 1: Collect user_dirs from all enabled plugins
-        all_user_dirs: list[str] = []
+        # Load all plugin data once and cache
+        plugin_data: dict[str, dict[str, Any]] = {}
         for plugin_id in enabled_plugins:
             plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
             if not os.path.exists(plugin_file):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
+                    file=sys.stderr,
+                )
                 continue
-            data = load_toml(plugin_file)
+            plugin_data[plugin_id] = load_toml(plugin_file)
+
+        # Phase 1: Collect user_dirs from all enabled plugins
+        all_user_dirs: list[str] = []
+        for _plugin_id, data in plugin_data.items():
             user_dirs: list[str] = data.get("install", {}).get("user_dirs", [])
             all_user_dirs.extend(user_dirs)
 
@@ -468,11 +480,7 @@ WORKDIR /home/${USERNAME}/workspace
         if dir_block:
             parts.append(dir_block)
 
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                continue
-            data = load_toml(plugin_file)
+        for plugin_id, data in plugin_data.items():
 
             install = data.get("install", {})
             snippet = install.get("dockerfile", "")
@@ -564,6 +572,10 @@ WORKDIR /home/${USERNAME}/workspace
         for plugin_id in enabled_plugins:
             plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
             if not os.path.exists(plugin_file):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
+                    file=sys.stderr,
+                )
                 continue
             data = load_toml(plugin_file)
             apt_pkgs: list[str] = data.get("apt", {}).get("packages", [])
