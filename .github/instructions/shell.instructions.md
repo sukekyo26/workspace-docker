@@ -12,3 +12,4 @@ applyTo: "lib/**/*.sh,*.sh,plugins/**"
 - `lib/*.sh` は `set -uo pipefail`（`-e` なし）を使う。sourced script の `set -e` は呼び出し元のエラー処理に影響し、算術式やサブシェルで意図しない exit を起こす。`set -euo pipefail` はエントリポイントスクリプトのみで使用する
 - `declare -n`（nameref）使用後は `unset -n` で参照を解放する。解放しないとグローバルスコープに変数が残存する
 - `.env` 等の設定ファイル生成で here-doc を使う場合、変数展開させないために `<< 'EOF'` を使い、値は `printf '%s\n'` で安全に書き込む
+- プラグイン追加時は `.github/workflows/ci.yml` の `docker-build` ジョブのプラグインリストにも追加する。CI でビルドテストされないプラグインは品質が保証されない
