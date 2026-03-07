@@ -10,6 +10,7 @@
 ### 追加
 - `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
 - `go` プラグイン: Go 言語（チェックサム検証・GOPATH ボリューム付き）
+- `lazygit` プラグイン: Git 操作用ターミナル UI（チェックサム検証付き）
 - プロジェクトの Docker named volume を全削除する `clean-volumes.sh` スクリプト
 - 事前定義ワークフロー: `setup-docker.sh --init` の前に `workspace.toml` を作成し `[apt]`、`[vscode]`、`[volumes]` セクションを事前定義可能に
 - `select_multi` に `q` キーによるキャンセル機能を追加
