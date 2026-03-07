@@ -1,0 +1,31 @@
+[metadata]
+name = "Go"
+description = "Go programming language"
+default = false
+
+[install]
+requires_root = true
+user_dirs = ["/home/${USERNAME}/go"]
+dockerfile = '''
+# Install Go
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+    amd64) CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
+    arm64) CHECKSUM="{{CHECKSUM_ARM64}}" ;; \
+    *) CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://go.dev/dl/go{{VERSION}}.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
+    echo "${CHECKSUM}  /tmp/go.tar.gz" | sha256sum -c - && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
+ENV GOPATH="/home/${USERNAME}/go"
+ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
+'''
+
+[volumes]
+go = "/home/${USERNAME}/go"
+
+[version]
+pin = "1.26.1"
+checksum_amd64 = "031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a"
+checksum_arm64 = "a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7"
