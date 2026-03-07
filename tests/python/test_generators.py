@@ -772,3 +772,128 @@ class TestUserDirs:
         )
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["empty-install"])
         assert result == ""
+
+
+class TestComposeGeneratorSequenceIndent:
+    """Test that list items (args, environment, volumes) are indented properly."""
+
+    def _parse(self, output: str) -> dict[str, object]:
+        return yaml.safe_load(output)  # type: ignore[no-any-return]
+
+    def test_args_indented(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        # args: is under build: (6 spaces), so list items must be at 8 spaces
+        for line in output.splitlines():
+            if "UBUNTU_VERSION" in line and line.lstrip().startswith("-"):
+                assert line.startswith("        -"), f"Expected 8-space indent: {line!r}"
+
+    def test_environment_indented(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        for line in output.splitlines():
+            if "CONTAINER_SERVICE_NAME" in line and line.lstrip().startswith("-"):
+                assert line.startswith("      -"), f"Expected 6-space indent: {line!r}"
+
+    def test_volumes_indented(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        # Volume mounts under service must be indented
+        in_service_volumes = False
+        for line in output.splitlines():
+            if line.strip() == "volumes:" and not line.startswith("volumes:"):
+                in_service_volumes = True
+            elif line.startswith("volumes:"):
+                in_service_volumes = False
+            elif in_service_volumes and line.lstrip().startswith("-"):
+                assert line.startswith("      -"), f"Expected 6-space indent: {line!r}"
+                break
+
+    def test_output_is_valid_yaml(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        parsed = self._parse(output)
+        assert isinstance(parsed, dict)
+
+
+class TestComposeGeneratorDuplicateVolume:
+    """Test that duplicate volume names between plugins and workspace.toml raise an error."""
+
+    def test_duplicate_raises_systemexit(self, tmp_path: Path) -> None:
+        """Volume name matching an enabled plugin's volume must exit with error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            '[volumes]\nmydata = "/home/${USERNAME}/.mydata"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"mydata": "/home/${USERNAME}/.mydata"},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+
+    def test_no_error_when_different_names(self, tmp_path: Path) -> None:
+        """Different volume names between plugin and workspace.toml are allowed."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            '[volumes]\nplugin-data = "/home/${USERNAME}/.plugindata"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"custom-data": "/home/${USERNAME}/.customdata"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        assert "plugin-data:" in output
+        assert "custom-data:" in output
+
+    def test_no_error_when_plugin_disabled(self, tmp_path: Path) -> None:
+        """Same name as a disabled plugin's volume is allowed in workspace.toml."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            '[volumes]\nmydata = "/home/${USERNAME}/.mydata"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},  # plugin disabled
+            "ports": {"forward": [3000]},
+            "volumes": {"mydata": "/home/${USERNAME}/.mydata"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        assert "mydata:" in output
+
+
+class TestDevcontainerComposeGeneratorMinimalComments:
+    """Test that DevcontainerComposeGenerator produces minimal comments."""
+
+    def test_no_commented_out_build_section(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "# build:" not in output
+        assert "# dockerfile:" not in output
+
+    def test_no_ptrace_comments(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "SYS_PTRACE" not in output
+        assert "seccomp" not in output
+
+    def test_header_comment_present(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "Auto-generated" in output
+
+    def test_essential_content_present(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "volumes:" in output
+        assert "group_add:" in output
+        assert "DOCKER_GID" in output
+        assert "sleep infinity" in output

@@ -115,7 +115,20 @@ class ComposeGenerator(Generator):
     @staticmethod
     def make_dumper() -> type[yaml.SafeDumper]:
         """Create a customized YAML dumper for docker-compose output."""
-        dumper: type[yaml.SafeDumper] = type("ComposeDumper", (yaml.SafeDumper,), {})
+
+        def increase_indent(
+            self: yaml.SafeDumper,
+            flow: bool = False,
+            indentless: bool = False,
+        ) -> None:
+            # Force sequence items to be indented relative to their parent key.
+            yaml.SafeDumper.increase_indent(self, flow=flow, indentless=False)
+
+        dumper: type[yaml.SafeDumper] = type(
+            "ComposeDumper",
+            (yaml.SafeDumper,),
+            {"increase_indent": increase_indent},
+        )
         dumper.add_representer(str, ComposeGenerator.str_representer)  # type: ignore[arg-type]
         return dumper
 
@@ -125,6 +138,18 @@ class ComposeGenerator(Generator):
             self.enabled_plugins,
         )
         custom_volumes = self._data.get("volumes", {})
+
+        # Error on duplicate volume names between plugins and workspace.toml
+        plugin_vol_names = {vol_name for _, vol_name, _ in plugin_volumes}
+        duplicates = [vn for vn in custom_volumes if vn in plugin_vol_names]
+        if duplicates:
+            for vn in duplicates:
+                print(
+                    f"ERROR: Volume '{vn}' in [volumes] is already defined by an enabled plugin. "
+                    "Remove it from workspace.toml to avoid duplicate definitions.",
+                    file=sys.stderr,
+                )
+            sys.exit(1)
 
         # Build volumes list for service
         volume_mounts: list[str] = [
@@ -266,36 +291,17 @@ class DevcontainerComposeGenerator(Generator):
         )
 
         lines = [
+            "# Auto-generated from workspace.toml — do not edit directly.",
             "services:",
-            "  # Update this to the name of the service you want to work with in your docker-compose.yml file",
             f"  {safe_name}:",
-            "    # Uncomment if you want to override the service's Dockerfile to one in the .devcontainer",
-            "    # folder. Note that the path of the Dockerfile and context is relative to the *primary*",
-            '    # docker-compose.yml file (the first in the devcontainer.json "dockerComposeFile"',
-            "    # array). The sample below assumes your primary file is in the root of your project.",
-            "    #",
-            "    # build:",
-            "    #   context: .",
-            "    #   dockerfile: .devcontainer/Dockerfile",
-            "",
             "    volumes:",
-            "      # Update this to wherever you want VS Code to mount the folder of your project",
             "      - ..:/home/${USERNAME}/workspace:cached",
-            "      # Mount host Docker socket to use host's Docker daemon",
             "      - /var/run/docker.sock:/var/run/docker.sock",
             "",
-            "    # Add host's docker group GID to allow socket access.",
-            "    # This is automatically detected and set by setup-docker.sh",
+            "    # GID is set automatically by setup-docker.sh",
             "    group_add:",
             '      - "${DOCKER_GID}"',
             "",
-            "    # Uncomment the next four lines if you will use a ptrace-based debugger like C++, Go, and Rust.",
-            "    # cap_add:",
-            "    #   - SYS_PTRACE",
-            "    # security_opt:",
-            "    #   - seccomp:unconfined",
-            "",
-            "    # Overrides default command so things don't shut down after the process ends.",
             "    command: sleep infinity",
         ]
 
