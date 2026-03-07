@@ -46,8 +46,10 @@ EOF
   val=$(read_env_var "VALUE_WITH_EQUALS" "$tmpfile")
   assert_eq "reads value containing =" "a=b=c" "$val"
 
-  val=$(read_env_var "NONEXISTENT" "$tmpfile")
+  val=$(read_env_var "NONEXISTENT" "$tmpfile") || true
   assert_eq "non-existent var returns empty" "" "$val"
+
+  assert_false "non-existent var returns non-zero" read_env_var "NONEXISTENT" "$tmpfile"
 
   rm -f "$tmpfile"
 }

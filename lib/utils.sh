@@ -109,7 +109,7 @@ read_env_var() {
   fi
 
   # Use awk to properly handle values containing '='
-  value=$(awk -F= -v key="$var_name" '
+  if ! value=$(awk -F= -v key="$var_name" '
     $1 == key {
       # Join all fields after the first with "=" to handle values containing "="
       val = ""
@@ -119,9 +119,13 @@ read_env_var() {
       # Remove surrounding quotes if present
       gsub(/^["'\'']|["'\'']$/, "", val)
       print val
+      found = 1
       exit
     }
-  ' "$env_file")
+    END { if (!found) exit 1 }
+  ' "$env_file"); then
+    return 1
+  fi
 
   printf '%s' "$value"
 }
