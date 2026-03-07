@@ -151,6 +151,32 @@ class ComposeGenerator(Generator):
                 )
             sys.exit(1)
 
+        # Error on duplicate volume paths (same container path, different names)
+        path_to_source: dict[str, str] = {}
+        dup_path_errors: list[str] = []
+        for plugin_name, vol_name, vol_path in plugin_volumes:
+            if vol_path in path_to_source:
+                dup_path_errors.append(
+                    f"ERROR: Volume path '{vol_path}' is used by both "
+                    f"'{path_to_source[vol_path]}' and plugin '{plugin_name}' (volume '{vol_name}'). "
+                    "Each container path must be mounted by only one volume.",
+                )
+            else:
+                path_to_source[vol_path] = f"plugin '{plugin_name}' (volume '{vol_name}')"
+        for vol_name, vol_path in custom_volumes.items():
+            if vol_path in path_to_source:
+                dup_path_errors.append(
+                    f"ERROR: Volume path '{vol_path}' is used by both "
+                    f"'{path_to_source[vol_path]}' and workspace.toml volume '{vol_name}'. "
+                    "Each container path must be mounted by only one volume.",
+                )
+            else:
+                path_to_source[vol_path] = f"workspace.toml volume '{vol_name}'"
+        if dup_path_errors:
+            for msg in dup_path_errors:
+                print(msg, file=sys.stderr)
+            sys.exit(1)
+
         # Build volumes list for service
         volume_mounts: list[str] = [
             "..:/home/${USERNAME}/workspace",

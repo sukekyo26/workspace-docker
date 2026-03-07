@@ -8,6 +8,9 @@
 ## [Unreleased]
 
 ### 追加
+- `generators.py`: ボリュームパス重複チェック追加 — プラグインと `workspace.toml` で異なる名前が同一コンテナパスにマウントされる場合をエラー検出
+- `tests/unit/lib/test_colors.sh`: `lib/colors.sh` のユニットテスト追加（NO_COLOR モード・ANSI エスケープ形式）
+- `tests/unit/lib/test_tui.sh`: `lib/tui.sh` のユニットテスト追加（グローバル状態初期化・関数定義確認・カラー継承）
 - `starship` プラグイン: クロスシェルプロンプト（チェックサム検証付き、`custom-ps1` の代替）
 - `custom-ps1` プラグイン: PS1 プロンプト設定をプラグインに抽出（デフォルト有効、starship で置換可）
 - `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム

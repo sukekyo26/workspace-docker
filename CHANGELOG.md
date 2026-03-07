@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `generators.py`: error on duplicate volume paths — detects when two volumes (across plugins and `workspace.toml`) mount to the same container path with different names
+- `tests/unit/lib/test_colors.sh`: unit tests for `lib/colors.sh` (NO_COLOR mode, ANSI escape format)
+- `tests/unit/lib/test_tui.sh`: unit tests for `lib/tui.sh` (global state init, function definitions, color inheritance)
 - `starship` plugin: cross-shell prompt with checksum verification (alternative to `custom-ps1`)
 - `custom-ps1` plugin: extracted PS1 prompt configuration into a plugin (default enabled, can be replaced by starship)
 - `rust` plugin: Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes

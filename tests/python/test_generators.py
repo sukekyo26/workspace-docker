@@ -874,6 +874,63 @@ class TestComposeGeneratorDuplicateVolume:
         assert "mydata:" in output
 
 
+class TestComposeGeneratorDuplicateVolumePath:
+    """Test that duplicate volume paths (same container path, different names) raise an error."""
+
+    def test_duplicate_paths_in_custom_volumes(self, plugins_dir: str) -> None:
+        """Two custom volumes with the same path must exit with error."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "volumes": {
+                "vol-a": "/home/${USERNAME}/.cache",
+                "vol-b": "/home/${USERNAME}/.cache",
+            },
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, plugins_dir).generate()
+
+    def test_custom_vol_path_conflicts_with_plugin_vol_path(self, tmp_path: Path) -> None:
+        """Custom volume with same path as enabled plugin's volume must exit with error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            '[volumes]\nplugin-data = "/home/${USERNAME}/.shared"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"custom-data": "/home/${USERNAME}/.shared"},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+
+    def test_distinct_paths_no_error(self, tmp_path: Path) -> None:
+        """Volumes with distinct paths must not raise an error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            '[volumes]\nplugin-data = "/home/${USERNAME}/.plugin"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"custom-data": "/home/${USERNAME}/.custom"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        assert "plugin-data:" in output
+        assert "custom-data:" in output
+
+
 class TestDevcontainerComposeGeneratorMinimalComments:
     """Test that DevcontainerComposeGenerator produces minimal comments."""
 
