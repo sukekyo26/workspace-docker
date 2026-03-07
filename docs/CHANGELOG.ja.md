@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 追加
+- `custom-ps1` プラグイン: PS1 プロンプト設定をプラグインに抽出（デフォルト有効、starship で置換可）
 - `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
 - `go` プラグイン: Go 言語（チェックサム検証・GOPATH ボリューム付き）
 - `lazygit` プラグイン: Git 操作用ターミナル UI（チェックサム検証付き）
@@ -18,6 +19,8 @@
 
 ### 修正
 - `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
+- `clean-volumes.sh`: Docker デーモン起動確認（`docker info`）を追加
+- `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
 
 ### 変更
 - `generators.py`: プラグイン TOML データをキャッシュして二重読み込みを解消（DRY）

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `custom-ps1` plugin: extracted PS1 prompt configuration into a plugin (default enabled, can be replaced by starship)
 - `rust` plugin: Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
 - `go` plugin: Go programming language with checksum verification and GOPATH volume
 - `lazygit` plugin: terminal UI for git commands with checksum verification
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
+- `clean-volumes.sh`: add Docker daemon running check (`docker info`)
+- `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
 
 ### Changed
 - `generators.py`: cache plugin TOML data to eliminate duplicate file reads (DRY)
