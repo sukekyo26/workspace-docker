@@ -211,7 +211,7 @@ class ListPluginsCommand(TomlCommand):
                         "default": metadata.get("default", False),
                     }
                 )
-            except Exception as e:
+            except (tomllib.TOMLDecodeError, OSError) as e:
                 print(
                     f"WARNING: Failed to parse {fname}: {e}",
                     file=sys.stderr,
