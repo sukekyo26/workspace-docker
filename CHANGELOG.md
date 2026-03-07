@@ -8,12 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `rust` plugin: Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
+- `go` plugin: Go programming language with checksum verification and GOPATH volume
 - `clean-volumes.sh` script to delete all Docker named volumes for the project
 - Pre-definition workflow: create `workspace.toml` before `setup-docker.sh --init` to pre-define `[apt]`, `[vscode]`, and `[volumes]` sections (preserved during interactive setup)
 - `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
 - Added `HEALTHCHECK` instruction to generated Dockerfile
 
 ### Changed
+- Removed Rust/Cargo example from `config/.bashrc_custom.example` (now handled by rust plugin)
 - **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
 - **BREAKING**: Docker volume names now include `COMPOSE_PROJECT_NAME` prefix (`{project}_{service}_{volume}`) for project isolation
 - **BREAKING**: All shell scripts and TOML files converted to 2-space indentation
@@ -38,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added explicit `encoding="utf-8"` to `open()` calls in `generators.py`
 - `_run_generator` now cleans up stale temp files from previous interrupted runs
 - Fixed missing `uv` setup in CI docker-build job
+- `read_env_var` now returns non-zero when key is not found (enables fallback with `||`)
+- Narrowed exception catch in `toml_parser.py` `list-plugins` from `Exception` to `(TOMLDecodeError, OSError)`
 
 ## [4.0.0] - 2026-03-04
 

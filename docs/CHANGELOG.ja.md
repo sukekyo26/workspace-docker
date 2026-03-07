@@ -8,12 +8,15 @@
 ## [Unreleased]
 
 ### 追加
+- `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
+- `go` プラグイン: Go 言語（チェックサム検証・GOPATH ボリューム付き）
 - プロジェクトの Docker named volume を全削除する `clean-volumes.sh` スクリプト
 - 事前定義ワークフロー: `setup-docker.sh --init` の前に `workspace.toml` を作成し `[apt]`、`[vscode]`、`[volumes]` セクションを事前定義可能に
 - `select_multi` に `q` キーによるキャンセル機能を追加
 - 生成される Dockerfile に `HEALTHCHECK` 命令を追加
 
 ### 変更
+- `config/.bashrc_custom.example` から Rust/Cargo の例を削除（rust プラグインで管理）
 - **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要
 - **破壊的**: Dockerボリューム名に `COMPOSE_PROJECT_NAME` プレフィックスを追加（`{project}_{service}_{volume}`）
 - **破壊的**: 全シェルスクリプト・TOMLファイルを2スペースインデントに変換
@@ -38,6 +41,8 @@
 - `generators.py` の `open()` に `encoding="utf-8"` を明示
 - `_run_generator` が前回中断時の古い一時ファイルをクリーンアップするように改善
 - CI の docker-build ジョブに `uv` セットアップを追加
+- `read_env_var` がキー未検出時に非ゼロを返すように修正（`||` によるフォールバックが機能するように）
+- `toml_parser.py` の `list-plugins` の例外キャッチを `Exception` から `(TOMLDecodeError, OSError)` に具体化
 
 ## [4.0.0] - 2026-03-04
 
