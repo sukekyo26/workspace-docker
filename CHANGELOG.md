@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `HEALTHCHECK` instruction to generated Dockerfile
 
 ### Changed
+- `github-cli` plugin: replaced `wget` with `curl` for GPG key download
 - Removed Rust/Cargo example from `config/.bashrc_custom.example` (now handled by rust plugin)
 - **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
 - **BREAKING**: Docker volume names now include `COMPOSE_PROJECT_NAME` prefix (`{project}_{service}_{volume}`) for project isolation
@@ -43,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed missing `uv` setup in CI docker-build job
 - `read_env_var` now returns non-zero when key is not found (enables fallback with `||`)
 - Narrowed exception catch in `toml_parser.py` `list-plugins` from `Exception` to `(TOMLDecodeError, OSError)`
+- Enforced TLS 1.2 (`--proto '=https' --tlsv1.2`) on all plugin download commands (docker-cli, github-cli, zig)
 
 ## [4.0.0] - 2026-03-04
 

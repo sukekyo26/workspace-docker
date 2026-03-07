@@ -16,6 +16,7 @@
 - 生成される Dockerfile に `HEALTHCHECK` 命令を追加
 
 ### 変更
+- `github-cli` プラグイン: GPG キーのダウンロードを `wget` から `curl` に変更
 - `config/.bashrc_custom.example` から Rust/Cargo の例を削除（rust プラグインで管理）
 - **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要
 - **破壊的**: Dockerボリューム名に `COMPOSE_PROJECT_NAME` プレフィックスを追加（`{project}_{service}_{volume}`）
@@ -43,6 +44,7 @@
 - CI の docker-build ジョブに `uv` セットアップを追加
 - `read_env_var` がキー未検出時に非ゼロを返すように修正（`||` によるフォールバックが機能するように）
 - `toml_parser.py` の `list-plugins` の例外キャッチを `Exception` から `(TOMLDecodeError, OSError)` に具体化
+- 全プラグインのダウンロードコマンドに TLS 1.2 を強制（`--proto '=https' --tlsv1.2`）（docker-cli, github-cli, zig）
 
 ## [4.0.0] - 2026-03-04
 
