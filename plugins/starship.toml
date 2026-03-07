@@ -2,6 +2,7 @@
 name = "Starship"
 description = "Cross-shell prompt. Alternative to custom-ps1"
 default = false
+conflicts = ["custom-ps1"]
 
 [install]
 requires_root = false

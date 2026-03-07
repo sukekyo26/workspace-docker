@@ -954,3 +954,156 @@ class TestDevcontainerComposeGeneratorMinimalComments:
         assert "group_add:" in output
         assert "DOCKER_GID" in output
         assert "sleep infinity" in output
+
+
+class TestPluginConflicts:
+    """Test plugin conflict detection."""
+
+    def test_conflicting_plugins_exit(self, tmp_path: Path) -> None:
+        """Enabling two plugins that declare conflicts must exit with error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\nconflicts = ["plug-a"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins))
+
+    def test_one_sided_conflict_exits(self, tmp_path: Path) -> None:
+        """Even if only one side declares the conflict, it must still exit."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins))
+
+    def test_conflict_error_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Error message should contain plugin names and 'conflicts with'."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins))
+        captured = capsys.readouterr()
+        assert "conflicts with" in captured.err
+        assert "Plugin A" in captured.err
+        assert "Plugin B" in captured.err
+
+    def test_no_conflict_when_disabled(self, tmp_path: Path) -> None:
+        """Conflicting plugin not in enable list should not trigger error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a"]},
+            "ports": {"forward": [3000]},
+        }
+        # Should not raise
+        gen = ComposeGenerator(data, str(plugins))
+        output = gen.generate()
+        assert "services:" in output
+
+    def test_no_conflict_field_no_error(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        """Plugins without conflicts field should work normally."""
+        gen = ComposeGenerator(workspace_data, plugins_dir)
+        output = gen.generate()
+        assert "services:" in output
+
+    def test_conflict_with_nonexistent_plugin(self, tmp_path: Path) -> None:
+        """Conflict with a plugin ID that doesn't exist (not enabled) is silently ignored."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["nonexistent"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a"]},
+            "ports": {"forward": [3000]},
+        }
+        gen = ComposeGenerator(data, str(plugins))
+        output = gen.generate()
+        assert "services:" in output
+
+    def test_cli_conflict_error(self, tmp_path: Path) -> None:
+        """CLI should return non-zero and user-friendly error on conflicts."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        workspace_toml = tmp_path / "workspace.toml"
+        workspace_toml.write_text(
+            '[container]\nservice_name = "test"\nusername = "u"\n'
+            'ubuntu_version = "24.04"\n\n'
+            '[plugins]\nenable = ["plug-a", "plug-b"]\n\n'
+            "[ports]\nforward = [3000]\n"
+        )
+        result = subprocess.run(
+            [sys.executable, str(LIB_DIR / "generators.py"), "compose", str(workspace_toml), str(plugins)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "conflicts with" in result.stderr
+        assert "Traceback" not in result.stderr

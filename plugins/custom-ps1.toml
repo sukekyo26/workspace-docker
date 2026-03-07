@@ -2,6 +2,7 @@
 name = "Custom PS1"
 description = "Custom bash prompt with Docker container name, git status, and colorized output"
 default = true
+conflicts = ["starship"]
 
 [install]
 requires_root = false

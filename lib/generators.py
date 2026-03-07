@@ -48,6 +48,44 @@ class Generator(ABC):
     def __init__(self, workspace_data: dict[str, Any], plugins_dir: str) -> None:
         self._data = workspace_data
         self._plugins_dir = plugins_dir
+        self._plugin_cache = self._load_plugin_data(plugins_dir, self.enabled_plugins)
+        self._check_plugin_conflicts()
+
+    @staticmethod
+    def _load_plugin_data(
+        plugins_dir: str,
+        enabled_plugins: list[str],
+    ) -> dict[str, dict[str, Any]]:
+        """Load all enabled plugin TOML files and return a dict keyed by plugin ID."""
+        cache: dict[str, dict[str, Any]] = {}
+        for plugin_id in enabled_plugins:
+            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
+            if not os.path.exists(plugin_file):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
+                    file=sys.stderr,
+                )
+                continue
+            cache[plugin_id] = load_toml(plugin_file)
+        return cache
+
+    def _check_plugin_conflicts(self) -> None:
+        """Abort if any enabled plugin declares a conflict with another enabled plugin."""
+        enabled_set = set(self._plugin_cache)
+        for plugin_id, data in self._plugin_cache.items():
+            conflicts = data.get("metadata", {}).get("conflicts", [])
+            for conflict_id in conflicts:
+                if conflict_id in enabled_set:
+                    name_a = data.get("metadata", {}).get("name", plugin_id)
+                    conflict_data = self._plugin_cache.get(conflict_id, {})
+                    name_b = conflict_data.get("metadata", {}).get("name", conflict_id)
+                    print(
+                        f"ERROR: Plugin '{name_a}' ({plugin_id}) conflicts with "
+                        f"'{name_b}' ({conflict_id}). "
+                        f"Disable one of them in workspace.toml [plugins].enable.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
 
     @abstractmethod
     def generate(self) -> str:
@@ -69,21 +107,16 @@ class Generator(ABC):
     def get_plugin_volumes(
         plugins_dir: str,
         enabled_plugins: list[str],
+        *,
+        plugin_cache: dict[str, dict[str, Any]] | None = None,
     ) -> list[tuple[str, str, str]]:
         """Get volumes from enabled plugins.
 
         Returns list of (plugin_name, vol_name, vol_path) tuples.
         """
+        cache = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
         volumes: list[tuple[str, str, str]] = []
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                print(
-                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
-                    file=sys.stderr,
-                )
-                continue
-            data = load_toml(plugin_file)
+        for plugin_id, data in cache.items():
             name = data.get("metadata", {}).get("name", plugin_id)
             vols = data.get("volumes", {})
             for vol_name, vol_path in vols.items():
@@ -136,6 +169,7 @@ class ComposeGenerator(Generator):
         plugin_volumes = self.get_plugin_volumes(
             self._plugins_dir,
             self.enabled_plugins,
+            plugin_cache=self._plugin_cache,
         )
         custom_volumes = self._data.get("volumes", {})
 
@@ -421,6 +455,7 @@ WORKDIR /home/${USERNAME}/workspace
         plugin_installs = self.generate_plugin_installs(
             self._plugins_dir,
             self.enabled_plugins,
+            plugin_cache=self._plugin_cache,
         )
         certificate_install = self._generate_certificate_install(certs_dir)
 
@@ -438,6 +473,7 @@ WORKDIR /home/${USERNAME}/workspace
             self._plugins_dir,
             self.enabled_plugins,
             base_pkg_names,
+            plugin_cache=self._plugin_cache,
         )
 
         apt_extra_pkgs: list[str] = self._data.get("apt", {}).get(
@@ -478,19 +514,12 @@ WORKDIR /home/${USERNAME}/workspace
     def generate_plugin_installs(
         plugins_dir: str,
         enabled_plugins: list[str],
+        *,
+        plugin_cache: dict[str, dict[str, Any]] | None = None,
     ) -> str:
         """Generate combined Dockerfile install snippets for enabled plugins."""
         # Load all plugin data once and cache
-        plugin_data: dict[str, dict[str, Any]] = {}
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                print(
-                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
-                    file=sys.stderr,
-                )
-                continue
-            plugin_data[plugin_id] = load_toml(plugin_file)
+        plugin_data = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
 
         # Phase 1: Collect user_dirs from all enabled plugins
         all_user_dirs: list[str] = []
@@ -588,22 +617,17 @@ WORKDIR /home/${USERNAME}/workspace
         plugins_dir: str,
         enabled_plugins: list[str],
         base_packages: set[str],
+        *,
+        plugin_cache: dict[str, dict[str, Any]] | None = None,
     ) -> str:
         """Collect apt packages from enabled plugins.
 
         Packages in base_packages and duplicates across plugins are deduplicated.
         """
+        cache = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
         seen: set[str] = set()
         packages: list[str] = []
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                print(
-                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
-                    file=sys.stderr,
-                )
-                continue
-            data = load_toml(plugin_file)
+        for _plugin_id, data in cache.items():
             apt_pkgs: list[str] = data.get("apt", {}).get("packages", [])
             for pkg in apt_pkgs:
                 if pkg not in seen and pkg not in base_packages:
