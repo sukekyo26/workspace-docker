@@ -20,6 +20,3 @@
 #   *":$PNPM_HOME:"*) ;;
 #   *) export PATH="$PNPM_HOME:$PATH" ;;
 # esac
-
-# # Rust & Cargo
-# . "$HOME/.cargo/env"
