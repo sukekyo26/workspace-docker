@@ -22,6 +22,7 @@ WORKSPACE_DIR="$SCRIPT_DIR"
 
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/logging.sh"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ============================================================
@@ -29,9 +30,7 @@ source "$SCRIPT_DIR/lib/utils.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-  echo -e "${RED}ERROR:${NC} This script cannot be run from inside a container"
-  echo "  Please run from the host OS"
-  exit 1
+  die "This script cannot be run from inside a container"
 fi
 
 echo ""
@@ -46,8 +45,11 @@ echo -e "Workspace: ${BOLD}${WORKSPACE_DIR}${NC}"
 # ============================================================
 
 if ! command -v docker &>/dev/null; then
-  echo -e "${RED}ERROR:${NC} docker command not found"
-  exit 1
+  die "docker command not found"
+fi
+
+if ! docker info &>/dev/null; then
+  die "Docker daemon is not running"
 fi
 
 # ============================================================

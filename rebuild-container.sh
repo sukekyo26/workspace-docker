@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/logging.sh"
 source "$SCRIPT_DIR/lib/utils.sh"
 source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
@@ -29,9 +30,7 @@ source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-  echo -e "${RED}ERROR:${NC} This script cannot be run from inside a container"
-  echo "  Please run from the host OS"
-  exit 1
+  die "This script cannot be run from inside a container"
 fi
 
 echo ""
