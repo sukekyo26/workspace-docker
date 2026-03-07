@@ -28,6 +28,7 @@
 name = "My Tool"                  # 表示名
 description = "ツールの説明"
 default = false                   # true = デフォルトで有効
+conflicts = ["other-plugin"]      # オプション: 排他的プラグイン
 
 [apt]
 packages = ["libfoo-dev"]         # オプション: apt依存パッケージ
@@ -56,6 +57,19 @@ pin = ""                          # strategy = "pin" 時のバージョン文字
 - **`[apt].packages`**: プラグインが有効な場合のみインストールされます。ベースパッケージリスト（`config/apt-base-packages.conf`）との重複は自動検知されます。
 - **`[volumes]`**: パスは絶対パスでなければなりません。ボリューム名はdocker-compose.ymlでサービス名がプレフィックスとして付与されます。マウント先ディレクトリはDockerfile内でユーザー権限で作成されます。
 - **`dockerfile`**: トリプルクォート文字列（`'''...'''`）を使用します。各命令は後始末を行ってください（`apt-get clean`、`rm -rf /tmp/*`）。
+- **`conflicts`**: 同時に有効化できないプラグインIDのリスト。競合する2つのプラグインが `[plugins].enable` に含まれている場合、ジェネレータはエラー終了します。ドキュメントの明瞭性のため競合関係の両方で宣言することを推奨しますが、片方の宣言だけでも検出は機能します。
+
+### プラグインの競合
+
+一部のプラグインは排他的であり、両方を有効化すると問題が発生します（例: PS1の二重設定）。`[metadata]` の `conflicts` フィールドでこれらの関係を宣言します。
+
+| プラグイン | 競合先 | 理由 |
+|:----------|:-------|:-----|
+| `starship` | `custom-ps1` | 両方が `~/.bashrc` にPS1設定を書き込む。Starshipはプロンプトを完全制御し、custom-ps1は静的なPS1文字列を設定する。 |
+
+**選択基準：**
+- **Starship** — 多機能なクロスシェルプロンプト。git統合、実行時間表示、言語バージョン表示、`starship.toml` による豊富なテーマ設定が可能
+- **Custom PS1** — 軽量、依存なしのbashプロンプト。コンテナ名、gitブランチ/ステータス、カラー表示に対応
 
 ### 例: 最小構成のプラグイン
 
@@ -312,9 +326,14 @@ bash tests/run_all.sh
 - `lib/certificates.sh` - 証明書の検証と管理
 - `lib/toml_parser.py` - TOMLパーサー（Python 3.11+ tomllib）
 - `lib/validators.sh` - 入力検証ライブラリ（サービス名、ユーザー名）
+- `lib/i18n.sh` - 国際化フレームワーク（`msg()`, `msgln()`）
 - `lib/logging.sh` - エラーハンドリングとメッセージングライブラリ
 - `lib/colors.sh` - ターミナル出力用の共有カラー定数
 - `lib/devcontainer.sh` - devcontainer CLIの前提条件チェックとWSL対応ラッパー
+
+### メッセージカタログ（`locale/`）
+- `locale/en.sh` - 英語メッセージ（デフォルト）
+- `locale/ja.sh` - 日本語メッセージ
 
 ### テスト（`tests/`）
 - `tests/run_all.sh` - 全8スイートのテストランナー
@@ -329,13 +348,34 @@ bash tests/run_all.sh
   - HadolintによるDockerfile Lint
   - Dockerビルド検証
 
-## i18n ポリシー
+## i18n
 
-本プロジェクトは i18n フレームワークを使用しない。言語の使い分けは以下の規約に従う。
+すべてのユーザー向けメッセージは `lib/i18n.sh` フレームワークにより国際化対応しています。
+
+### 仕組み
+
+- メッセージカタログは `locale/en.sh`（英語、デフォルト）と `locale/ja.sh`（日本語）に格納されています。
+- `WORKSPACE_LANG=ja` を設定すると日本語でメッセージが表示されます。デフォルトは英語です。
+- メッセージは `printf` 形式の `%s` プレースホルダーで動的な値を埋め込みます。
+
+### 関数
+
+| 関数 | 出力 | 用途 |
+|:-----|:-----|:-----|
+| `msg key [args...]` | 改行なし（printf） | インライン展開: `info "$(msg key)"` |
+| `msgln key [args...]` | 改行あり（printf） | 単独出力: `msgln key` |
+
+### メッセージの追加方法
+
+1. `locale/en.sh` にキーを追加: `_MSG[my_key]="English text %s"`
+2. `locale/ja.sh` に翻訳を追加: `_MSG[my_key]="日本語 %s"`
+3. スクリプトで使用: `msgln my_key "$value"` または `info "$(msg my_key "$value")"`
+
+### 言語ポリシー
 
 | コンテキスト | 言語 | 理由 |
 |:-----------|:-----|:-----|
-| ユーザー向け出力（TUI、echo） | 英語 | ログとの一貫性・国際的な可読性 |
-| `logging.sh` 経由のログ/エラー | 英語 | ログや CI 出力での検索性 |
+| ユーザー向け出力（TUI、echo） | 設定可能（EN/JA） | `WORKSPACE_LANG` で制御 |
+| `logging.sh` 経由のログ/エラー | 設定可能（EN/JA） | `msg()` でメッセージ参照 |
 | コードコメント | 英語 | GitHub 上の公開リポジトリ |
 | ドキュメント | 英日両方 | `docs/*.md` と `docs/*.ja.md` を並行管理 |

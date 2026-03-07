@@ -19,6 +19,8 @@ setup_workspace() {
   WORK_DIR=$(mktemp -d)
   # Copy libs
   cp -r "$PROJECT_ROOT/lib" "$WORK_DIR/"
+  # Copy locale
+  cp -r "$PROJECT_ROOT/locale" "$WORK_DIR/"
   # Copy plugins
   cp -r "$PROJECT_ROOT/plugins" "$WORK_DIR/"
   # Copy config

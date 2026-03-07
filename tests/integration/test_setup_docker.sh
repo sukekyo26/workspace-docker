@@ -38,6 +38,7 @@ setup_test_dir() {
 
   cp "$SCRIPT" "$tmpdir/"
   cp -r "$PROJECT_ROOT/lib" "$tmpdir/"
+  cp -r "$PROJECT_ROOT/locale" "$tmpdir/"
   cp -r "$PROJECT_ROOT/plugins" "$tmpdir/"
   cp -r "$PROJECT_ROOT/config" "$tmpdir/"
   mkdir -p "$tmpdir/certs"

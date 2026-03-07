@@ -23,6 +23,8 @@ set -uo pipefail
 _TUI_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=colors.sh
 source "$_TUI_LIB_DIR/colors.sh"
+# shellcheck source=i18n.sh
+source "$_TUI_LIB_DIR/i18n.sh"
 
 # ===== Global State =====
 TUI_SINGLE_RESULT=""
@@ -96,7 +98,7 @@ select_single() {
         printf '    %s\n' "${options[$i]}" >&2
       fi
     done
-    printf '\033[K  %b↑↓: Move  Enter: Confirm%b' "${DIM}" "${NC}" >&2
+    printf '\033[K  %b%s%b' "${DIM}" "$(msg tui_move_confirm)" "${NC}" >&2
 
     # Wait for key input
     read_key
@@ -186,7 +188,7 @@ select_multi() {
         fi
       fi
     done
-    printf '\033[K  %b↑↓: Move  Enter: Toggle  a: Select all  d: Done  q: Cancel%b' "${DIM}" "${NC}" >&2
+    printf '\033[K  %b%s%b' "${DIM}" "$(msg tui_move_toggle)" "${NC}" >&2
 
     # Wait for key input
     read_key
@@ -244,7 +246,7 @@ select_multi() {
           for i in "${!options[@]}"; do
             printf '\033[K    [ ] %s\n' "${options[$i]}" >&2
           done
-          printf '\033[K  %b⚠ Select at least one item before pressing d%b' "${YELLOW}" "${NC}" >&2
+          printf '\033[K  %b%s%b' "${YELLOW}" "$(msg tui_select_at_least_one)" "${NC}" >&2
           sleep 1
           printf '\033[%dA\r' $((count + 1)) >&2
           continue

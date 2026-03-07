@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- i18n framework (`lib/i18n.sh`, `locale/en.sh`, `locale/ja.sh`) — all user-facing messages support English/Japanese via `WORKSPACE_LANG` environment variable
 - `generators.py`: plugin conflict detection — mutually exclusive plugins (e.g., `starship` + `custom-ps1`) are rejected at generation time via `[metadata].conflicts`
 - `schemas/workspace.schema.json`: JSON Schema for `workspace.toml` — enables IDE autocompletion and static validation via [taplo](https://taplo.tamasfe.dev/)
 - `.taplo.toml`: taplo configuration associating the schema with `workspace.toml` and `workspaces/*.toml`

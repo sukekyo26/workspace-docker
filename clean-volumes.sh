@@ -22,6 +22,7 @@ WORKSPACE_DIR="$SCRIPT_DIR"
 
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/i18n.sh"
 source "$SCRIPT_DIR/lib/logging.sh"
 source "$SCRIPT_DIR/lib/utils.sh"
 
@@ -30,26 +31,26 @@ source "$SCRIPT_DIR/lib/utils.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-  die "This script cannot be run from inside a container"
+  die "$(msg clean_inside_container)"
 fi
 
 echo ""
 echo -e "${BOLD}========================================"
-echo " Docker Volume Cleanup Script"
+echo " $(msg clean_header)"
 echo -e "========================================${NC}"
 echo ""
-echo -e "Workspace: ${BOLD}${WORKSPACE_DIR}${NC}"
+echo -e "$(msg clean_workspace) ${BOLD}${WORKSPACE_DIR}${NC}"
 
 # ============================================================
 # Prerequisites Check
 # ============================================================
 
 if ! command -v docker &>/dev/null; then
-  die "docker command not found"
+  die "$(msg clean_docker_not_found)"
 fi
 
 if ! docker info &>/dev/null; then
-  die "Docker daemon is not running"
+  die "$(msg clean_docker_not_running)"
 fi
 
 # ============================================================
@@ -61,21 +62,21 @@ PROJECT_NAME=$(read_env_var "COMPOSE_PROJECT_NAME" "$WORKSPACE_DIR/.env" || base
 VOLUME_PREFIX="${PROJECT_NAME}_${SERVICE_NAME}_"
 
 echo ""
-echo -e "Project name:   ${BOLD}${PROJECT_NAME}${NC}"
-echo -e "Service name:   ${BOLD}${SERVICE_NAME}${NC}"
-echo -e "Volume prefix:  ${BOLD}${VOLUME_PREFIX}${NC}"
+echo -e "$(msg clean_project_name)   ${BOLD}${PROJECT_NAME}${NC}"
+echo -e "$(msg clean_service_name)   ${BOLD}${SERVICE_NAME}${NC}"
+echo -e "$(msg clean_volume_prefix)  ${BOLD}${VOLUME_PREFIX}${NC}"
 echo ""
 
 # Find volumes matching the project prefix
 mapfile -t volumes < <(docker volume ls --format '{{.Name}}' | grep "^${VOLUME_PREFIX}" 2>/dev/null || true)
 
 if [[ ${#volumes[@]} -eq 0 ]]; then
-  echo -e "${YELLOW}No volumes found to delete${NC}"
-  echo "  Prefix: ${VOLUME_PREFIX}"
+  echo -e "${YELLOW}$(msg clean_no_volumes)${NC}"
+  echo "  $(msg clean_prefix_info "$VOLUME_PREFIX")"
   exit 0
 fi
 
-echo -e "${CYAN}Volumes to delete (${#volumes[@]}):${NC}"
+echo -e "${CYAN}$(msg clean_volumes_header "${#volumes[@]}")${NC}"
 for vol in "${volumes[@]}"; do
   echo "  - $vol"
 done
@@ -85,14 +86,14 @@ done
 # ============================================================
 
 echo ""
-echo -e "${YELLOW}⚠ Notice:${NC}"
-echo "  - All volumes listed above will be deleted"
-echo "  - Data in volumes cannot be recovered"
-echo "  - Stop running containers first"
+echo -e "${YELLOW}$(msg clean_notice)${NC}"
+msgln clean_notice_1
+msgln clean_notice_2
+msgln clean_notice_3
 echo ""
-read -rp "Proceed with deletion? [y/N]: " confirm
+read -rp "$(msg clean_confirm)" confirm
 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-  echo "Cancelled"
+  msgln clean_cancelled
   exit 0
 fi
 
@@ -102,7 +103,7 @@ fi
 
 if docker compose -f "$WORKSPACE_DIR/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
   echo ""
-  echo -e "${CYAN}Stopping containers...${NC}"
+  echo -e "${CYAN}$(msg clean_stopping)${NC}"
   docker compose -f "$WORKSPACE_DIR/docker-compose.yml" down 2>/dev/null || true
 fi
 
@@ -111,14 +112,14 @@ fi
 # ============================================================
 
 echo ""
-echo -e "${CYAN}Deleting volumes...${NC}"
+echo -e "${CYAN}$(msg clean_deleting)${NC}"
 
 failed=0
 for vol in "${volumes[@]}"; do
   if docker volume rm "$vol" 2>/dev/null; then
     echo -e "  ${GREEN}✅${NC} $vol"
   else
-    echo -e "  ${RED}❌${NC} $vol (deletion failed — may be in use)"
+    echo -e "  ${RED}❌${NC} $(msg clean_vol_failed "$vol")"
     failed=$((failed + 1))
   fi
 done
@@ -129,8 +130,8 @@ done
 
 echo ""
 if [[ "$failed" -eq 0 ]]; then
-  echo -e "${GREEN}✅ All ${#volumes[@]} volumes deleted successfully${NC}"
+  echo -e "${GREEN}$(msg clean_all_deleted "${#volumes[@]}")${NC}"
 else
-  echo -e "${YELLOW}⚠ $((${#volumes[@]} - failed)) deleted, ${failed} failed${NC}"
+  echo -e "${YELLOW}$(msg clean_partial "$((${#volumes[@]} - failed))" "$failed")${NC}"
   exit 1
 fi

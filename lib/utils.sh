@@ -7,6 +7,11 @@
 # ============================================================
 set -uo pipefail
 
+# Load i18n
+_UTILS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=i18n.sh
+source "$_UTILS_LIB_DIR/i18n.sh"
+
 # ============================================================
 # TOML output parser (eval-free)
 # ============================================================
@@ -35,7 +40,7 @@ _parse_toml_output() {
 
     # Validate variable name (strict alphanumeric + underscore)
     if [[ ! "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
-      echo "ERROR: Invalid variable name in TOML output: $key" >&2
+      echo "ERROR: $(msg err_invalid_var_name "$key")" >&2
       return 1
     fi
 
@@ -48,7 +53,7 @@ _parse_toml_output() {
       fi
     done
     if [[ "$allowed" != true ]]; then
-      echo "ERROR: Unexpected variable in TOML output: $key" >&2
+      echo "ERROR: $(msg err_unexpected_var "$key")" >&2
       return 1
     fi
 
@@ -86,7 +91,7 @@ _parse_toml_output() {
       printf -v _decoded_val '%b' "$value"
       printf -v "$key" '%s' "$_decoded_val"
     else
-      echo "ERROR: Unknown type prefix in TOML output: ${type}" >&2
+      echo "ERROR: $(msg err_unknown_type_prefix "${type}")" >&2
       return 1
     fi
   done <<< "$output"

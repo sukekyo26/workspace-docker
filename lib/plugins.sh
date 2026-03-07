@@ -24,6 +24,8 @@ _uv_python() {
 # Load utility functions (_parse_toml_output)
 # shellcheck source=utils.sh
 source "$_LIB_DIR/utils.sh"
+# shellcheck source=i18n.sh
+source "$_LIB_DIR/i18n.sh"
 
 # ============================================================
 # Python/TOML Prerequisites
@@ -34,14 +36,14 @@ source "$_LIB_DIR/utils.sh"
 # Returns: 0 if available, 1 if not (with error message)
 check_uv() {
   if ! command -v uv &>/dev/null; then
-    echo "ERROR: uv is required but not found." >&2
-    echo "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+    echo "ERROR: $(msg err_uv_not_found)" >&2
+    msgln err_uv_install_hint >&2
     return 1
   fi
 
   if ! _uv_python "$TOML_PARSER" --check &>/dev/null; then
-    echo "ERROR: TOML parser check failed." >&2
-    echo "  Run: uv sync (in the project root)" >&2
+    echo "ERROR: $(msg err_toml_check_failed)" >&2
+    msgln err_toml_run_sync >&2
     return 1
   fi
 
@@ -61,7 +63,7 @@ load_workspace_config() {
   local config_file="$1"
 
   if [[ ! -f "$config_file" ]]; then
-    echo "ERROR: workspace.toml not found: $config_file" >&2
+    echo "ERROR: $(msg err_workspace_toml_not_found "$config_file")" >&2
     return 1
   fi
 
@@ -92,7 +94,7 @@ list_available_plugins() {
   plugins_dir=$(get_plugins_dir)
 
   if [[ ! -d "$plugins_dir" ]]; then
-    echo "ERROR: plugins directory not found: $plugins_dir" >&2
+    echo "ERROR: $(msg err_plugins_dir_not_found "$plugins_dir")" >&2
     return 1
   fi
 
@@ -115,7 +117,7 @@ load_plugin() {
   local plugin_file="$plugins_dir/${plugin_id}.toml"
 
   if [[ ! -f "$plugin_file" ]]; then
-    echo "ERROR: Plugin not found: $plugin_file" >&2
+    echo "ERROR: $(msg err_plugin_not_found "$plugin_file")" >&2
     return 1
   fi
 

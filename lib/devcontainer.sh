@@ -19,6 +19,8 @@ set -uo pipefail
 _DC_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=colors.sh
 source "$_DC_LIB_DIR/colors.sh"
+# shellcheck source=i18n.sh
+source "$_DC_LIB_DIR/i18n.sh"
 
 # ============================================================
 # check_docker
@@ -27,13 +29,13 @@ source "$_DC_LIB_DIR/colors.sh"
 # Exits with code 1 on failure.
 check_docker() {
   if ! command -v docker &> /dev/null; then
-    echo -e "  ${RED}✗${NC} Docker is not installed"
-    echo "    → https://docs.docker.com/get-docker/"
+    echo -e "  ${RED}✗${NC} $(msg dc_docker_not_installed)"
+    echo "    $(msg dc_docker_install_url)"
     exit 1
   fi
   if ! docker info &> /dev/null 2>&1; then
-    echo -e "  ${RED}✗${NC} Docker daemon is not running"
-    echo "    → Start Docker Desktop or run: sudo systemctl start docker"
+    echo -e "  ${RED}✗${NC} $(msg dc_docker_not_running)"
+    echo "    $(msg dc_docker_start_hint)"
     exit 1
   fi
   echo -e "  ${GREEN}✓${NC} Docker"
@@ -47,24 +49,24 @@ check_docker() {
 #   https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh
 check_devcontainer_cli() {
   if ! command -v devcontainer &> /dev/null; then
-    echo -e "  ${YELLOW}✗${NC} devcontainer CLI not found"
+    echo -e "  ${YELLOW}✗${NC} $(msg dc_cli_not_found)"
 
     if command -v curl &> /dev/null; then
-      echo -e "    ${CYAN}→ Installing...${NC}"
+      echo -e "    ${CYAN}$(msg dc_installing)${NC}"
       local install_script
       install_script=$(mktemp)
       # Do NOT use trap here to avoid overwriting caller's EXIT trap (ARCH-01)
       if ! curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"; then
         rm -f "$install_script"
-        echo -e "  ${RED}✗${NC} Failed to download install script"
+        echo -e "  ${RED}✗${NC} $(msg dc_install_failed)"
         exit 1
       fi
       sh "$install_script"
       rm -f "$install_script"
       echo -e "  ${GREEN}✓${NC} devcontainer CLI installed"
     else
-      echo -e "  ${RED}✗${NC} curl not found"
-      echo "    curl is required to install devcontainer CLI:"
+      echo -e "  ${RED}✗${NC} $(msg dc_curl_not_found)"
+      echo "    $(msg dc_curl_install_hint)"
       echo "      curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh"
       exit 1
     fi
@@ -79,8 +81,8 @@ check_devcontainer_cli() {
 check_devcontainer_json() {
   local workspace_dir="$1"
   if [[ ! -f "$workspace_dir/.devcontainer/devcontainer.json" ]]; then
-    echo -e "  ${RED}✗${NC} .devcontainer/devcontainer.json not found"
-    echo "    → Run setup-docker.sh first"
+    echo -e "  ${RED}✗${NC} $(msg dc_json_not_found)"
+    echo "    $(msg dc_run_setup_first)"
     exit 1
   fi
   echo -e "  ${GREEN}✓${NC} devcontainer.json"
@@ -92,8 +94,8 @@ check_devcontainer_json() {
 check_env_file() {
   local workspace_dir="$1"
   if [[ ! -f "$workspace_dir/.env" ]]; then
-    echo -e "  ${RED}✗${NC} .env not found"
-    echo "    → Run setup-docker.sh first"
+    echo -e "  ${RED}✗${NC} $(msg dc_env_not_found)"
+    echo "    $(msg dc_run_setup_first)"
     exit 1
   fi
   echo -e "  ${GREEN}✓${NC} .env"
@@ -107,7 +109,7 @@ check_all_prerequisites() {
   local workspace_dir="$1"
 
   echo ""
-  echo -e "${CYAN}Checking prerequisites...${NC}"
+  echo -e "${CYAN}$(msg dc_checking_prereqs)${NC}"
 
   check_docker
   check_devcontainer_cli
@@ -157,7 +159,7 @@ run_devcontainer() {
     docker_path=$(command -v docker 2>/dev/null || true)
 
     if [[ -z "$docker_path" ]]; then
-      echo -e "  ${RED}✗${NC} docker not found inside WSL"
+      echo -e "  ${RED}✗${NC} $(msg dc_docker_not_found_wsl)"
       exit 1
     fi
 

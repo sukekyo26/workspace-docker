@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 追加
+- i18n フレームワーク（`lib/i18n.sh`, `locale/en.sh`, `locale/ja.sh`）— 全ユーザー向けメッセージを `WORKSPACE_LANG` 環境変数で英語/日本語切り替え可能に
 - `generators.py`: プラグイン競合検出追加 — 排他的プラグイン（例: `starship` + `custom-ps1`）の同時有効化を `[metadata].conflicts` で検出・エラー終了
 - `schemas/workspace.schema.json`: `workspace.toml` の JSON Schema 追加 — [taplo](https://taplo.tamasfe.dev/) による IDE 補完・静的バリデーションを実現
 - `.taplo.toml`: taplo 設定ファイル（スキーマを `workspace.toml` と `workspaces/*.toml` に紐付け）

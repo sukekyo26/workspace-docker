@@ -3,6 +3,11 @@
 # This library provides reusable validation functions
 set -uo pipefail
 
+# Load i18n
+_VALIDATORS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=i18n.sh
+source "$_VALIDATORS_LIB_DIR/i18n.sh"
+
 # Validate container service name
 # Usage: validate_service_name "name"
 # Returns: 0 if valid, 1 if invalid
@@ -11,19 +16,19 @@ validate_service_name() {
 
   # Check if empty
   if [[ -z "$name" ]]; then
-    echo "ERROR: Container service name cannot be empty" >&2
+    echo "ERROR: $(msg err_service_name_empty)" >&2
     return 1
   fi
 
   # Check for valid characters (alphanumeric, dash, underscore)
   if [[ ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "ERROR: Container service name must contain only alphanumeric characters, dashes, and underscores" >&2
+    echo "ERROR: $(msg err_service_name_invalid)" >&2
     return 1
   fi
 
   # Check length (Docker container names have limits)
   if [[ ${#name} -gt 64 ]]; then
-    echo "ERROR: Container service name must be 64 characters or less" >&2
+    echo "ERROR: $(msg err_service_name_too_long)" >&2
     return 1
   fi
 
@@ -38,19 +43,19 @@ validate_username() {
 
   # Check if empty
   if [[ -z "$username" ]]; then
-    echo "ERROR: Username cannot be empty" >&2
+    echo "ERROR: $(msg err_username_empty)" >&2
     return 1
   fi
 
   # Check for valid Unix username format
   if [[ ! "$username" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
-    echo "ERROR: Username must start with lowercase letter or underscore, followed by lowercase letters, digits, underscores, or hyphens" >&2
+    echo "ERROR: $(msg err_username_invalid)" >&2
     return 1
   fi
 
   # Check length (Unix usernames are typically limited)
   if [[ ${#username} -gt 32 ]]; then
-    echo "ERROR: Username must be 32 characters or less" >&2
+    echo "ERROR: $(msg err_username_too_long)" >&2
     return 1
   fi
 
@@ -64,7 +69,7 @@ validate_boolean() {
   local value="$1"
 
   if [[ "$value" != "true" && "$value" != "false" ]]; then
-    echo "ERROR: Value must be 'true' or 'false'" >&2
+    echo "ERROR: $(msg err_boolean_invalid)" >&2
     return 1
   fi
 
@@ -79,7 +84,7 @@ validate_file_exists() {
   local description="$2"
 
   if [[ ! -f "$filepath" ]]; then
-    echo "ERROR: $description not found: $filepath" >&2
+    echo "ERROR: $(msg err_file_not_found "$description" "$filepath")" >&2
     return 1
   fi
 
@@ -94,7 +99,7 @@ validate_dir_exists() {
   local description="$2"
 
   if [[ ! -d "$dirpath" ]]; then
-    echo "ERROR: $description not found: $dirpath" >&2
+    echo "ERROR: $(msg err_dir_not_found "$description" "$dirpath")" >&2
     return 1
   fi
 
@@ -127,14 +132,14 @@ validate_no_duplicate_apt_packages() {
 
     for extra in "${extra_packages[@]}"; do
       if [[ "$extra" == "$pkg" ]]; then
-        echo "WARNING: [apt] packages contains '${extra}', which is already in apt-base-packages.conf" >&2
+        echo "WARNING: $(msg warn_apt_duplicate "$extra")" >&2
         found_duplicates=true
       fi
     done
   done < "$base_conf"
 
   if [[ "$found_duplicates" == true ]]; then
-    echo "WARNING: Remove duplicates from [apt] packages in workspace.toml to avoid redundant installs" >&2
+    echo "WARNING: $(msg warn_apt_remove_duplicates)" >&2
     return 1
   fi
 

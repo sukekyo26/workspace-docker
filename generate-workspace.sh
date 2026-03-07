@@ -31,6 +31,10 @@ WORKSPACES_DIR="$SCRIPT_DIR/workspaces"
 # shellcheck source=lib/colors.sh
 source "$SCRIPT_DIR/lib/colors.sh"
 
+# ===== i18n =====
+# shellcheck source=lib/i18n.sh
+source "$SCRIPT_DIR/lib/i18n.sh"
+
 # ===== TUI Components =====
 # shellcheck source=lib/tui.sh
 source "$SCRIPT_DIR/lib/tui.sh"
@@ -65,7 +69,7 @@ interactive_select_folders() {
   done < <(get_available_dirs "$PARENT_DIR")
 
   if [[ ${#dirs[@]} -eq 0 ]]; then
-    echo -e "${RED}ERROR:${NC} No folders found in parent directory" >&2
+    echo -e "${RED}ERROR:${NC} $(msg gen_ws_no_folders)" >&2
     exit 1
   fi
 
@@ -94,13 +98,13 @@ interactive_select_folders() {
   fi
 
   # Run TUI multi-select (result stored in TUI_MULTI_RESULT)
-  select_multi "${BOLD}Select folders to include in workspace:${NC}" "$preselected" "${dirs[@]}" || {
-    echo "Cancelled" >&2
+  select_multi "${BOLD}$(msg gen_ws_select_folders)${NC}" "$preselected" "${dirs[@]}" || {
+    msgln gen_ws_cancelled >&2
     exit 0
   }
 
   if [[ ${#TUI_MULTI_RESULT[@]} -eq 0 ]]; then
-    echo -e "${RED}ERROR:${NC} No folders selected" >&2
+    echo -e "${RED}ERROR:${NC} $(msg gen_ws_no_selection)" >&2
     exit 1
   fi
 
@@ -125,10 +129,10 @@ _generate_workspace_file_with_output() {
   generate_workspace_file "$output_file" "$settings_file" "${folders[@]}"
 
   echo "" >&2
-  echo -e "${GREEN}✅ Workspace file generated:${NC}" >&2
+  echo -e "${GREEN}$(msg gen_ws_file_generated)${NC}" >&2
   echo -e "   ${BOLD}workspaces/$(basename "$output_file")${NC}" >&2
   echo "" >&2
-  echo "Included projects:" >&2
+  msgln gen_ws_included_projects >&2
   for folder in "${folders[@]}"; do
     echo "  - $folder" >&2
   done
@@ -141,22 +145,22 @@ create_new_workspace() {
 
   while true; do
     echo "" >&2
-    read -rp "Enter filename (.code-workspace is appended automatically): " filename
+    read -rp "$(msg gen_ws_prompt_filename)" filename
     filename=$(echo "$filename" | xargs)
     if [[ -n "$filename" ]]; then
       break
     fi
-    echo -e "${YELLOW}⚠ Please enter a filename${NC}" >&2
+    echo -e "${YELLOW}$(msg gen_ws_empty_filename)${NC}" >&2
   done
 
   filename="${filename%.code-workspace}"
   local output_path="$WORKSPACES_DIR/${filename}.code-workspace"
 
   if [[ -f "$output_path" ]]; then
-    echo -e "${YELLOW}⚠ ${filename}.code-workspace already exists. Overwrite?${NC}" >&2
-    read -rp "[y/N]: " confirm
+    echo -e "${YELLOW}$(msg gen_ws_overwrite "$filename")${NC}" >&2
+    read -rp "$(msg gen_ws_confirm_yn)" confirm
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-      echo "Cancelled" >&2
+      msgln gen_ws_cancelled >&2
       exit 0
     fi
   fi
@@ -176,11 +180,11 @@ main() {
 
   echo "" >&2
   echo -e "${BOLD}========================================" >&2
-  echo " .code-workspace File Generator" >&2
+  echo " $(msg gen_ws_header)" >&2
   echo -e "========================================${NC}" >&2
   echo "" >&2
-  echo -e "Scan target:    ${BOLD}${PARENT_DIR}${NC}" >&2
-  echo -e "Output dir:     ${BOLD}workspaces/${NC}" >&2
+  echo -e "$(msg gen_ws_scan_target)    ${BOLD}${PARENT_DIR}${NC}" >&2
+  echo -e "$(msg gen_ws_output_dir)     ${BOLD}workspaces/${NC}" >&2
   echo "" >&2
 
   # Search for existing .code-workspace files
@@ -191,7 +195,7 @@ main() {
 
   if [[ ${#workspace_files[@]} -gt 0 ]]; then
     # ===== Existing files found =====
-    echo -e "${CYAN}Existing workspace files:${NC}" >&2
+    echo -e "${CYAN}$(msg gen_ws_existing_files)${NC}" >&2
     local f
     for f in "${workspace_files[@]}"; do
       echo "  - $f" >&2
@@ -199,14 +203,14 @@ main() {
     echo "" >&2
 
     # Select update / create new
-    select_single "${BOLD}Select action:${NC}" "Update existing file" "Create new"
+    select_single "${BOLD}$(msg gen_ws_select_action)${NC}" "$(msg gen_ws_update_existing)" "$(msg gen_ws_create_new)"
     local action_idx="$TUI_SINGLE_RESULT"
 
     case "$action_idx" in
       0)
         # === Update existing file ===
         echo "" >&2
-        select_single "${BOLD}Select file to update:${NC}" "${workspace_files[@]}"
+        select_single "${BOLD}$(msg gen_ws_select_file)${NC}" "${workspace_files[@]}"
         local file_idx="$TUI_SINGLE_RESULT"
 
         local target_file="${workspace_files[$file_idx]}"
@@ -225,7 +229,7 @@ main() {
     esac
   else
     # ===== No existing files — create new =====
-    echo "No workspace files found. Creating new one." >&2
+    msgln gen_ws_no_files >&2
     echo "" >&2
 
     interactive_select_folders

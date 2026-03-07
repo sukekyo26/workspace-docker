@@ -13,6 +13,8 @@ _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Load plugin system
 # shellcheck source=plugins.sh
 source "$_LIB_DIR/plugins.sh"
+# shellcheck source=i18n.sh
+source "$_LIB_DIR/i18n.sh"
 
 GENERATORS_PY="$_LIB_DIR/generators.py"
 
@@ -36,7 +38,7 @@ _run_generator() {
 
   if ! _uv_python "$GENERATORS_PY" "$subcommand" "$workspace_toml" "$plugins_dir" > "$tmp"; then
     rm -f "$tmp"
-    echo "ERROR: Failed to generate $output_file ($subcommand)" >&2
+    echo "ERROR: $(msg err_generate_failed "$output_file" "$subcommand")" >&2
     return 1
   fi
 

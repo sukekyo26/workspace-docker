@@ -28,6 +28,7 @@ To add a new tool, create `plugins/<name>.toml` with the following structure:
 name = "My Tool"                  # Display name
 description = "What this tool does"
 default = false                   # true = enabled by default
+conflicts = ["other-plugin"]      # Optional: mutually exclusive plugins
 
 [apt]
 packages = ["libfoo-dev"]         # Optional: apt dependencies
@@ -56,6 +57,19 @@ pin = ""                          # Version string when strategy = "pin"
 - **`[apt].packages`**: Dependencies are only installed when the plugin is enabled. Duplicates with the base package list (`config/apt-base-packages.conf`) are automatically detected.
 - **`[volumes]`**: Paths must be absolute. The volume name is prefixed with the service name in docker-compose.yml. Mount target directories are created with user permissions in the Dockerfile.
 - **`dockerfile`**: Use triple-quoted strings (`'''...'''`). Each instruction should clean up after itself (`apt-get clean`, `rm -rf /tmp/*`).
+- **`conflicts`**: List of plugin IDs that cannot be enabled simultaneously. When two plugins that conflict are both in the `[plugins].enable` list, the generator exits with an error. Both sides of the conflict should declare each other for documentation clarity, though a one-sided declaration is sufficient for detection.
+
+### Plugin Conflicts
+
+Some plugins are mutually exclusive — enabling both causes broken behavior (e.g., duplicate PS1 settings). Use the `conflicts` field in `[metadata]` to declare these relationships.
+
+| Plugin | Conflicts With | Reason |
+|--------|----------------|--------|
+| `starship` | `custom-ps1` | Both write PS1 configuration to `~/.bashrc`. Starship takes full control of the prompt; custom-ps1 sets a static PS1 string. |
+
+**Choosing between them:**
+- **Starship** — Feature-rich, cross-shell prompt with git integration, execution time, language versions, and extensive theming via `starship.toml`
+- **Custom PS1** — Lightweight, zero-dependency bash prompt with container name, git branch/status, and color coding
 
 ### Example: minimal plugin
 
@@ -312,9 +326,14 @@ All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: t
 - `lib/certificates.sh` - Certificate validation and management
 - `lib/toml_parser.py` - TOML parser (Python 3.11+ tomllib)
 - `lib/validators.sh` - Input validation library (service names, usernames)
+- `lib/i18n.sh` - Internationalization framework (`msg()`, `msgln()`)
 - `lib/logging.sh` - Error handling and messaging library
 - `lib/colors.sh` - Shared color constants for terminal output
 - `lib/devcontainer.sh` - devcontainer CLI prerequisite checks and WSL-compatible wrapper
+
+### Message Catalogs (`locale/`)
+- `locale/en.sh` - English messages (default)
+- `locale/ja.sh` - Japanese messages
 
 ### Tests (`tests/`)
 - `tests/run_all.sh` - Test runner for all 8 suites
@@ -329,13 +348,34 @@ All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: t
   - Dockerfile linting with Hadolint
   - Docker build verification
 
-## i18n Policy
+## i18n
 
-This project does not use an i18n framework. Language usage follows these conventions:
+All user-facing messages support internationalization via the `lib/i18n.sh` framework.
+
+### How It Works
+
+- Message catalogs are stored in `locale/en.sh` (English, default) and `locale/ja.sh` (Japanese).
+- Set `WORKSPACE_LANG=ja` to display messages in Japanese. Default is English.
+- Messages use `printf`-style `%s` placeholders for dynamic values.
+
+### Functions
+
+| Function | Output | Use Case |
+|----------|--------|----------|
+| `msg key [args...]` | No newline (printf) | Inline interpolation: `info "$(msg key)"` |
+| `msgln key [args...]` | With newline (printf) | Standalone output: `msgln key` |
+
+### Adding Messages
+
+1. Add the key to `locale/en.sh`: `_MSG[my_key]="English text %s"`
+2. Add the translation to `locale/ja.sh`: `_MSG[my_key]="日本語 %s"`
+3. Use in scripts: `msgln my_key "$value"` or `info "$(msg my_key "$value")"`
+
+### Language Policy
 
 | Context | Language | Rationale |
 |---------|----------|----------|
-| User-facing output (TUI, echo) | English | Consistency with logs and international readability |
-| Log/error messages via `logging.sh` | English | Searchability in logs and CI output |
+| User-facing output (TUI, echo) | Configurable (EN/JA) | Controlled via `WORKSPACE_LANG` |
+| Log/error messages via `logging.sh` | Configurable (EN/JA) | Uses `msg()` for message lookup |
 | Code comments | English | Public repository on GitHub |
 | Documentation | Both (EN + JA) | Maintain `docs/*.md` and `docs/*.ja.md` in parallel |

@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/i18n.sh"
 source "$SCRIPT_DIR/lib/logging.sh"
 source "$SCRIPT_DIR/lib/utils.sh"
 source "$SCRIPT_DIR/lib/devcontainer.sh"
@@ -30,15 +31,15 @@ source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-  die "This script cannot be run from inside a container"
+  die "$(msg rebuild_inside_container)"
 fi
 
 echo ""
 echo -e "${BOLD}========================================"
-echo " No-cache Rebuild Script"
+echo " $(msg rebuild_header)"
 echo -e "========================================${NC}"
 echo ""
-echo -e "Workspace: ${BOLD}${WORKSPACE_DIR}${NC}"
+echo -e "$(msg rebuild_workspace) ${BOLD}${WORKSPACE_DIR}${NC}"
 
 # ============================================================
 # Prerequisites Check (via lib/devcontainer.sh)
@@ -64,11 +65,11 @@ if docker image inspect "$IMAGE_NAME" &>/dev/null; then
     DAYS_OLD=$(( (CURRENT_EPOCH - CREATED_EPOCH) / 86400 ))
     FORMATTED_DATE=$(date -d "$CREATED_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$CREATED_DATE")
 
-    echo -e "Current image: ${BOLD}${IMAGE_NAME}${NC}"
-    echo -e "Created:       ${BOLD}${FORMATTED_DATE}${NC} (${DAYS_OLD} days ago)"
+    echo -e "$(msg rebuild_current_image "${BOLD}${IMAGE_NAME}${NC}")"
+    echo -e "$(msg rebuild_created "${BOLD}${FORMATTED_DATE}${NC}" "${DAYS_OLD}")"
   fi
 else
-  echo -e "Image ${BOLD}${IMAGE_NAME}${NC} not found (first build)"
+  echo -e "$(msg rebuild_image_not_found "${BOLD}${IMAGE_NAME}${NC}")"
 fi
 
 # ============================================================
@@ -76,14 +77,14 @@ fi
 # ============================================================
 
 echo ""
-echo -e "${YELLOW}⚠ Notice:${NC}"
-echo "  - The Docker image will be rebuilt without cache"
-echo "  - The existing container will be deleted and recreated"
-echo "  - The rebuild may take several minutes"
+echo -e "${YELLOW}$(msg rebuild_notice)${NC}"
+msgln rebuild_notice_1
+msgln rebuild_notice_2
+msgln rebuild_notice_3
 echo ""
-read -rp "Proceed with rebuild? [y/N]: " confirm
+read -rp "$(msg rebuild_confirm)" confirm
 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-  echo "Cancelled"
+  msgln rebuild_cancelled
   exit 0
 fi
 
@@ -92,8 +93,8 @@ fi
 # ============================================================
 
 echo ""
-echo -e "${CYAN}🔨 Rebuilding without cache & starting...${NC}"
-echo -e "${YELLOW}   This may take several minutes${NC}"
+echo -e "${CYAN}$(msg rebuild_starting)${NC}"
+echo -e "${YELLOW}$(msg rebuild_please_wait)${NC}"
 echo ""
 
 run_devcontainer up \
@@ -106,18 +107,18 @@ run_devcontainer up \
 # ============================================================
 
 echo ""
-echo -e "${GREEN}✅ Rebuild & startup complete${NC}"
+echo -e "${GREEN}$(msg rebuild_complete)${NC}"
 
 # Show new image info
 if docker image inspect "$IMAGE_NAME" &>/dev/null; then
   NEW_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
   if [[ -n "$NEW_DATE" ]]; then
     NEW_FORMATTED=$(date -d "$NEW_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$NEW_DATE")
-    echo -e "New image created: ${BOLD}${NEW_FORMATTED}${NC}"
+    echo -e "$(msg rebuild_new_image "${BOLD}${NEW_FORMATTED}${NC}")"
   fi
 fi
 
 echo ""
-echo -e "${CYAN}📌 In VS Code, press Ctrl+Shift+P →${NC}"
-echo -e "${CYAN}   'Dev Containers: Reopen in Container'${NC}"
+echo -e "${CYAN}$(msg rebuild_vscode_1)${NC}"
+echo -e "${CYAN}$(msg rebuild_vscode_2)${NC}"
 echo ""

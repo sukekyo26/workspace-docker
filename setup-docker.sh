@@ -8,6 +8,8 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load shared libraries
+# shellcheck source=lib/i18n.sh
+source "$SCRIPT_DIR/lib/i18n.sh"
 # shellcheck source=lib/logging.sh
 source "$SCRIPT_DIR/lib/logging.sh"
 # shellcheck source=lib/utils.sh
@@ -32,7 +34,7 @@ for arg in "$@"; do
   case "$arg" in
     --init) FORCE_INIT=true ;;
     --yes|-y) AUTO_YES=true ;;
-    *) die "Unknown argument: $arg" ;;
+    *) die "$(msg setup_unknown_arg "$arg")" ;;
   esac
 done
 
@@ -47,29 +49,29 @@ WORKSPACE_TOML="$SCRIPT_DIR/workspace.toml"
 # Mode: Regenerate (workspace.toml exists and not --init)
 # ============================================================
 if [[ -f "$WORKSPACE_TOML" && "$FORCE_INIT" = false ]]; then
-  section_header "Regenerate from workspace.toml"
+  section_header "$(msg setup_header_regenerate)"
 
   load_workspace_config "$WORKSPACE_TOML"
 
-  info "Service: $WS_SERVICE_NAME"
-  info "Username: $WS_USERNAME"
-  info "Plugins: ${WS_PLUGINS[*]}"
+  info "$(msg setup_service_info "$WS_SERVICE_NAME")"
+  info "$(msg setup_username_info "$WS_USERNAME")"
+  info "$(msg setup_plugins_info "${WS_PLUGINS[*]}")"
 else
   # ============================================================
   # Mode: Interactive setup (first run or --init)
   # ============================================================
-  section_header "Generate Dockerfile for Ubuntu on Docker"
+  section_header "$(msg setup_header_generate)"
 
   if [[ "$AUTO_YES" = true ]]; then
     # Non-interactive: use sensible defaults
     container_service_name="dev"
     username="$(whoami)"
-    info "Service name: $container_service_name (default)"
-    info "Username: $username (current user)"
+    info "$(msg setup_service_default "$container_service_name")"
+    info "$(msg setup_username_current "$username")"
   else
     # Set container service name
     while true; do
-      read -rp "Enter container service name: " container_service_name
+      read -rp "$(msg setup_prompt_service_name)" container_service_name
 
       if validate_service_name "$container_service_name" 2>&1; then
         break
@@ -78,7 +80,7 @@ else
 
     # Set username
     while true; do
-      read -rp "Enter Ubuntu on Docker username: " username
+      read -rp "$(msg setup_prompt_username)" username
 
       if validate_username "$username" 2>&1; then
         break
@@ -87,7 +89,7 @@ else
   fi
 
   # Software installation selection
-  subsection_header "Software Installation Selection"
+  subsection_header "$(msg setup_header_software)"
 
   # Dynamic plugin selection from plugins/ directory
   list_available_plugins
@@ -100,9 +102,9 @@ else
       plugin_default="${PLUGIN_DEFAULTS[$i]}"
       if [[ "$plugin_default" == "true" ]]; then
         local_enabled_plugins+=("$plugin_id")
-        info "  ${plugin_id}: enabled (default)"
+        info "$(msg setup_plugin_enabled "$plugin_id")"
       else
-        info "  ${plugin_id}: skipped"
+        info "$(msg setup_plugin_skipped "$plugin_id")"
       fi
     done
   else
@@ -116,8 +118,8 @@ else
     done
 
     # TUI multi-select for plugins
-    select_multi "Select plugins to install:" "$preselected_csv" "${PLUGIN_NAMES[@]}" || {
-      echo "Cancelled" >&2
+    select_multi "$(msg setup_select_plugins)" "$preselected_csv" "${PLUGIN_NAMES[@]}" || {
+      msgln gen_ws_cancelled >&2
       exit 0
     }
 
@@ -129,22 +131,22 @@ else
   # Port forwarding
   if [[ "$AUTO_YES" = true ]]; then
     forward_port=3000
-    info "Forward port: $forward_port (default)"
+    info "$(msg setup_port_default "$forward_port")"
   else
-    subsection_header "Port Configuration"
+    subsection_header "$(msg setup_header_port)"
     while true; do
-      read -rp "Forward port [3000]: " forward_port
+      read -rp "$(msg setup_prompt_port)" forward_port
       forward_port=${forward_port:-3000}
       if [[ "$forward_port" =~ ^[0-9]+$ ]] && [ "$forward_port" -ge 1 ] && [ "$forward_port" -le 65535 ]; then
         break
       else
-        error "Please enter a valid port number (1-65535)"
+        error "$(msg setup_invalid_port)"
       fi
     done
   fi
 
   # Generate workspace.toml
-  echo "Generating workspace.toml..."
+  msgln setup_gen_workspace_toml
 
   # Build plugins enable list for TOML
   plugins_toml="["
@@ -232,9 +234,9 @@ gid=$(id -g)
 
 docker_gid=$(detect_docker_gid)
 if [ -z "$docker_gid" ]; then
-  die_with_hint "Failed to detect Docker GID" "Tried: /var/run/docker.sock, rootless socket, docker group\nPlease ensure Docker is installed and running"
+  die_with_hint "$(msg setup_docker_gid_failed)" "$(msg setup_docker_gid_hint)"
 fi
-success "Detected Docker GID: $docker_gid"
+success "$(msg setup_detected_docker_gid "$docker_gid")"
 
 # ============================================================
 # Template file validation
@@ -248,17 +250,17 @@ validate_no_duplicate_apt_packages \
 # ============================================================
 # File generation
 # ============================================================
-echo "Generating docker-compose.yml..."
+msgln setup_gen_compose
 generate_compose \
   "docker-compose.yml" \
   "$WORKSPACE_TOML"
 
-echo "Generating Dockerfile..."
+msgln setup_gen_dockerfile
 
 # Check for custom CA certificates in certs/ directory
 if has_valid_certificates; then
-  subsection_header "Custom CA Certificates Detected"
-  echo "The following certificates will be installed from certs/:"
+  subsection_header "$(msg setup_header_certs)"
+  msgln setup_certs_will_install
   while IFS= read -r cert; do
     info "  $cert"
   done <<< "$(list_valid_certificates)"
@@ -269,18 +271,18 @@ generate_dockerfile_from_template \
   "Dockerfile" \
   "$WORKSPACE_TOML"
 
-echo "Generating .devcontainer/devcontainer.json..."
+msgln setup_gen_devcontainer_json
 generate_devcontainer_json \
   ".devcontainer/devcontainer.json" \
   "$WORKSPACE_TOML"
 
-echo "Generating .devcontainer/docker-compose.yml..."
+msgln setup_gen_devcontainer_compose
 generate_devcontainer_compose \
   ".devcontainer/docker-compose.yml" \
   "$WORKSPACE_TOML"
 
 # Generate .env file for docker-compose
-echo "Generating .env..."
+msgln setup_gen_env
 {
   cat << 'EOF'
 # Environment variables for docker-compose
@@ -302,27 +304,27 @@ chmod 600 ".env"
 # Copy .bashrc_custom skeleton if not exists
 if [[ ! -f "config/.bashrc_custom" && -f "config/.bashrc_custom.example" ]]; then
   cp "config/.bashrc_custom.example" "config/.bashrc_custom"
-  echo "Created config/.bashrc_custom from example"
+  msgln setup_created_bashrc
 fi
 
 # ============================================================
 # Result display
 # ============================================================
-echo -e "${GREEN}=== Setup Complete ===${NC}"
-echo "Container service name: $WS_SERVICE_NAME"
-echo "Username: $WS_USERNAME"
-echo "UID/GID: $uid/$gid (automatically detected)"
-echo "Docker GID: $docker_gid (automatically detected)"
+echo -e "${GREEN}$(msg setup_complete)${NC}"
+msgln setup_result_service "$WS_SERVICE_NAME"
+msgln setup_result_username "$WS_USERNAME"
+msgln setup_result_uid_gid "$uid" "$gid"
+msgln setup_result_docker_gid "$docker_gid"
 echo ""
-echo "Enabled plugins:"
+msgln setup_result_plugins
 for plugin_id in "${WS_PLUGINS[@]}"; do
-  echo "  - ${plugin_id}: Yes"
+  msgln setup_result_plugin_item "$plugin_id"
 done
-has_valid_certificates && echo "  - Custom CA Certificates: Yes (from certs/)"
+has_valid_certificates && msgln setup_result_certs
 echo ""
-echo "Port forwarding: ${WS_FORWARD_PORTS[0]:-3000}"
+msgln setup_result_port "${WS_FORWARD_PORTS[0]:-3000}"
 echo ""
-echo "Generated files:"
+msgln setup_result_files
 echo "  - workspace.toml (configuration — edit this file)"
 echo "  - Dockerfile"
 echo "  - docker-compose.yml"
@@ -330,20 +332,20 @@ echo "  - .devcontainer/devcontainer.json"
 echo "  - .devcontainer/docker-compose.yml"
 echo "  - .env (auto-generated from workspace.toml)"
 echo ""
-echo "You can build the Docker image with the following command:"
+msgln setup_build_hint
 echo -e "  ${YELLOW}docker compose${NC} build"
 echo -e "  ${YELLOW}docker compose${NC} build --no-cache  ${CYAN}# to rebuild without cache${NC}"
 echo ""
-echo "To start the container:"
+msgln setup_start_hint
 echo -e "  ${YELLOW}docker compose${NC} up ${CYAN}-d${NC}"
 echo ""
-echo "To access the container:"
+msgln setup_access_hint
 echo -e "  ${YELLOW}docker compose${NC} exec $WS_SERVICE_NAME bash"
 echo ""
-echo "To stop the container:"
+msgln setup_stop_hint
 echo -e "  ${YELLOW}docker compose${NC} down"
 echo ""
-echo "To reconfigure:"
+msgln setup_reconfig_hint
 echo -e "  Edit ${YELLOW}workspace.toml${NC} and run ${YELLOW}./setup-docker.sh${NC}"
 echo -e "  Or run ${YELLOW}./setup-docker.sh --init${NC} for interactive setup"
 echo -e "  Or run ${YELLOW}./setup-docker.sh --init --yes${NC} for non-interactive setup with defaults"
