@@ -16,7 +16,12 @@
 - `select_multi` に `q` キーによるキャンセル機能を追加
 - 生成される Dockerfile に `HEALTHCHECK` 命令を追加
 
+### 修正
+- `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
+
 ### 変更
+- `generators.py`: プラグイン TOML データをキャッシュして二重読み込みを解消（DRY）
+- `generators.py`: 有効化されたプラグイン ID が見つからない場合に stderr に WARNING を出力
 - `github-cli` プラグイン: GPG キーのダウンロードを `wget` から `curl` に変更
 - `config/.bashrc_custom.example` から Rust/Cargo の例を削除（rust プラグインで管理）
 - **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要

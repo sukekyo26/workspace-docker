@@ -16,7 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
 - Added `HEALTHCHECK` instruction to generated Dockerfile
 
+### Fixed
+- `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
+
 ### Changed
+- `generators.py`: cache plugin TOML data to eliminate duplicate file reads (DRY)
+- `generators.py`: emit WARNING to stderr when an enabled plugin ID is not found
 - `github-cli` plugin: replaced `wget` with `curl` for GPG key download
 - Removed Rust/Cargo example from `config/.bashrc_custom.example` (now handled by rust plugin)
 - **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
