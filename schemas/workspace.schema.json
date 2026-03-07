@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "workspace-docker configuration",
+  "description": "workspace.toml configuration schema for workspace-docker",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "container",
+    "plugins",
+    "ports"
+  ],
+  "properties": {
+    "container": {
+      "type": "object",
+      "description": "Container configuration",
+      "additionalProperties": false,
+      "required": [
+        "service_name",
+        "username",
+        "ubuntu_version"
+      ],
+      "properties": {
+        "service_name": {
+          "type": "string",
+          "description": "Docker Compose service name and container name",
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "username": {
+          "type": "string",
+          "description": "Linux username inside the container",
+          "minLength": 1,
+          "pattern": "^[a-z_][a-z0-9_-]*$"
+        },
+        "ubuntu_version": {
+          "type": "string",
+          "description": "Ubuntu base image version (e.g. \"24.04\")",
+          "pattern": "^\\d+\\.\\d+$"
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "description": "Plugin selection",
+      "additionalProperties": false,
+      "required": [
+        "enable"
+      ],
+      "properties": {
+        "enable": {
+          "type": "array",
+          "description": "List of plugin IDs to enable",
+          "items": {
+            "type": "string",
+            "enum": [
+              "aws-cli",
+              "aws-sam-cli",
+              "claude-code",
+              "copilot-cli",
+              "custom-ps1",
+              "docker-cli",
+              "github-cli",
+              "go",
+              "lazygit",
+              "proto",
+              "rust",
+              "starship",
+              "uv",
+              "zig"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "description": "Port forwarding configuration",
+      "additionalProperties": false,
+      "required": [
+        "forward"
+      ],
+      "properties": {
+        "forward": {
+          "type": "array",
+          "description": "List of ports to forward from container to host",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        }
+      }
+    },
+    "apt": {
+      "type": "object",
+      "description": "Additional APT packages to install",
+      "additionalProperties": false,
+      "properties": {
+        "packages": {
+          "type": "array",
+          "description": "APT package names to install in addition to base packages",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "vscode": {
+      "type": "object",
+      "description": "VS Code configuration",
+      "additionalProperties": false,
+      "properties": {
+        "extensions": {
+          "type": "array",
+          "description": "VS Code extension IDs to install in devcontainer",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_.-]+$"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "volumes": {
+      "type": "object",
+      "description": "Named Docker volumes to mount. Key = volume name, value = container path. Use ${USERNAME} for the container username.",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Absolute container path for the volume mount"
+      }
+    }
+  }
+}

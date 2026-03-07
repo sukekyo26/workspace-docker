@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `schemas/workspace.schema.json`: JSON Schema for `workspace.toml` — enables IDE autocompletion and static validation via [taplo](https://taplo.tamasfe.dev/)
+- `.taplo.toml`: taplo configuration associating the schema with `workspace.toml` and `workspaces/*.toml`
 - `generators.py`: error on duplicate volume paths — detects when two volumes (across plugins and `workspace.toml`) mount to the same container path with different names
 - `tests/unit/lib/test_colors.sh`: unit tests for `lib/colors.sh` (NO_COLOR mode, ANSI escape format)
 - `tests/unit/lib/test_tui.sh`: unit tests for `lib/tui.sh` (global state init, function definitions, color inheritance)

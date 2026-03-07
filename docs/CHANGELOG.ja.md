@@ -8,6 +8,8 @@
 ## [Unreleased]
 
 ### 追加
+- `schemas/workspace.schema.json`: `workspace.toml` の JSON Schema 追加 — [taplo](https://taplo.tamasfe.dev/) による IDE 補完・静的バリデーションを実現
+- `.taplo.toml`: taplo 設定ファイル（スキーマを `workspace.toml` と `workspaces/*.toml` に紐付け）
 - `generators.py`: ボリュームパス重複チェック追加 — プラグインと `workspace.toml` で異なる名前が同一コンテナパスにマウントされる場合をエラー検出
 - `tests/unit/lib/test_colors.sh`: `lib/colors.sh` のユニットテスト追加（NO_COLOR モード・ANSI エスケープ形式）
 - `tests/unit/lib/test_tui.sh`: `lib/tui.sh` のユニットテスト追加（グローバル状態初期化・関数定義確認・カラー継承）
