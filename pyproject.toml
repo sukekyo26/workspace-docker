@@ -50,6 +50,7 @@ testpaths = ["tests/python"]
 [dependency-groups]
 dev = [
     "mypy>=1.19.1",
+    "pyright>=1.1.408",
     "pytest>=9.0.2",
     "ruff>=0.15.5",
     "types-pyyaml>=6.0.12.20250915",
