@@ -348,12 +348,6 @@ RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bash
     echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \\
     echo 'fi' >> ~/.bashrc
 
-# Custom PS1 with Docker container name, user/host, working directory, and git status
-RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \\
-    echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \\
-    echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \\
-    echo 'PS1='"'"'\\\\[\\\\033[01;35m\\\\][Docker $CONTAINER_SERVICE_NAME]\\\\[\\\\033[00m\\\\] \\\\[\\\\033[01;32m\\\\]\\\\u@\\\\h:\\\\[\\\\033[01;34m\\\\]\\\\w\\\\[\\\\033[00m\\\\]$(__git_ps1 " \\\\[\\\\033[01;33m\\\\](%s)\\\\[\\\\033[00m\\\\]" 2>/dev/null) \\\\$ '"'"'' >> ~/.bashrc
-
 {{CUSTOM_CERTIFICATES}}
 
 {{PLUGIN_INSTALLS}}
