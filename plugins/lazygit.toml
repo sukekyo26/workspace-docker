@@ -1,0 +1,25 @@
+[metadata]
+name = "lazygit"
+description = "Terminal UI for git commands"
+default = false
+
+[install]
+requires_root = true
+dockerfile = '''
+# Install lazygit
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
+        arm64) DOWNLOAD_ARCH="arm64" ; CHECKSUM="{{CHECKSUM_ARM64}}" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/jesseduffield/lazygit/releases/download/v{{VERSION}}/lazygit_{{VERSION}}_linux_${DOWNLOAD_ARCH}.tar.gz" -o /tmp/lazygit.tar.gz && \
+    echo "${CHECKSUM}  /tmp/lazygit.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit && \
+    rm /tmp/lazygit.tar.gz
+'''
+
+[version]
+pin = "0.59.0"
+checksum_amd64 = "264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2"
+checksum_arm64 = "a334a6c125169f21942f1a8b02043932575547a6250a1a734d62111efd92aa8f"

@@ -200,6 +200,19 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 ENV GOPATH="/home/${USERNAME}/go"
 ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
 USER ${USERNAME}
+USER root
+# Install lazygit
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2" ;; \
+        arm64) DOWNLOAD_ARCH="arm64" ; CHECKSUM="a334a6c125169f21942f1a8b02043932575547a6250a1a734d62111efd92aa8f" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/jesseduffield/lazygit/releases/download/v0.59.0/lazygit_0.59.0_linux_${DOWNLOAD_ARCH}.tar.gz" -o /tmp/lazygit.tar.gz && \
+    echo "${CHECKSUM}  /tmp/lazygit.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit && \
+    rm /tmp/lazygit.tar.gz
+USER ${USERNAME}
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.local
