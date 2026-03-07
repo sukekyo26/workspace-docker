@@ -733,3 +733,42 @@ class TestUserDirs:
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["simple"])
         assert "Prepare plugin directories" not in result
         assert "RUN echo simple" in result
+
+    def test_empty_plugin_list(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), [])
+        assert result == ""
+
+    def test_nonexistent_plugin_warns(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["nonexistent"])
+        assert result == ""
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert "nonexistent" in captured.err
+
+    def test_duplicate_plugin_ids(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "dup.toml").write_text(
+            '[metadata]\nname = "Dup"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo dup"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["dup", "dup"])
+        # Duplicate IDs are deduplicated by the cache (dict keyed by plugin_id)
+        assert result.count("RUN echo dup") == 1
+
+    def test_plugin_without_dockerfile_key(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "empty-install.toml").write_text(
+            '[metadata]\nname = "Empty"\n\n'
+            "[install]\nrequires_root = false\n\n"
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["empty-install"])
+        assert result == ""
