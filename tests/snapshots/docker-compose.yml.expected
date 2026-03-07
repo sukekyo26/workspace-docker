@@ -21,6 +21,9 @@ services:
     - "gh-config:/home/${USERNAME}/.config/gh"
     - "copilot:/home/${USERNAME}/.copilot"
     - "claude:/home/${USERNAME}/.claude"
+    - "cargo:/home/${USERNAME}/.cargo"
+    - "rustup:/home/${USERNAME}/.rustup"
+    - "go:/home/${USERNAME}/go"
     ports:
     - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
     tty: true
@@ -37,3 +40,9 @@ volumes:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_copilot"
   claude:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_claude"
+  cargo:
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_cargo"
+  rustup:
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_rustup"
+  go:
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_go"

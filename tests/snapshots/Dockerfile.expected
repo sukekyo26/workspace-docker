@@ -89,8 +89,8 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
 
 # Prepare plugin directories with correct ownership
 USER root
-RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto && \
-    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto
+RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go && \
+    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go
 USER ${USERNAME}
 # proto (multi-language version manager)
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
@@ -104,7 +104,7 @@ USER root
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 ARG DOCKER_GID
 RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
     . /etc/os-release && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
     > /etc/apt/sources.list.d/docker.list && \
@@ -141,9 +141,9 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 USER root
 # Install GitHub CLI
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
-    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
@@ -166,7 +166,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
     echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
     mkdir -p /usr/local/zig && \
     tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
@@ -179,6 +179,27 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tm
     rm -f /tmp/install-uv.sh && \
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+# Install Rust toolchain via rustup
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh && \
+    sh /tmp/rustup-init.sh -y --default-toolchain stable --component clippy rustfmt && \
+    rm -f /tmp/rustup-init.sh && \
+    echo '. "$HOME/.cargo/env"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.cargo/bin:$PATH"
+USER root
+# Install Go
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+    amd64) CHECKSUM="031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a" ;; \
+    arm64) CHECKSUM="a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7" ;; \
+    *) CHECKSUM="031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://go.dev/dl/go1.26.1.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
+    echo "${CHECKSUM}  /tmp/go.tar.gz" | sha256sum -c - && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
+ENV GOPATH="/home/${USERNAME}/go"
+ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
+USER ${USERNAME}
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.local

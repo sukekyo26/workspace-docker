@@ -7,7 +7,7 @@ username = "testuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["proto", "docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "copilot-cli", "claude-code", "zig", "uv"]
+enable = ["proto", "docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "copilot-cli", "claude-code", "zig", "uv", "rust", "go"]
 
 [ports]
 forward = [3000]
