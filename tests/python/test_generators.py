@@ -717,7 +717,7 @@ class TestUserDirs:
             '[version]\nstrategy = "latest"\n'
         )
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["dir-plugin"])
-        assert "Prepare plugin directories" in result
+        assert "Prepare volume mount directories" in result
         assert "/home/${USERNAME}/.mydir" in result
         assert "RUN echo install" in result
 
@@ -731,7 +731,7 @@ class TestUserDirs:
             '[version]\nstrategy = "latest"\n'
         )
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["simple"])
-        assert "Prepare plugin directories" not in result
+        assert "Prepare volume mount directories" not in result
         assert "RUN echo simple" in result
 
     def test_empty_plugin_list(self, tmp_path: Path) -> None:

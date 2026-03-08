@@ -82,10 +82,10 @@ RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bash
     echo 'fi' >> ~/.bashrc
 
 
-# Prepare plugin directories with correct ownership
+# Prepare volume mount directories with correct ownership
 USER root
-RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go && \
-    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go
+RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.deno /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go && \
+    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.deno /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go
 USER ${USERNAME}
 # Custom PS1 with Docker container name, user/host, working directory, and git status
 RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
