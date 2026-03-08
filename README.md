@@ -12,7 +12,6 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 - **Persistent Storage**: Plugin data and configurations persist across container recreations via named volumes
 - **Externalized Package Management**: Base apt packages managed in `config/apt-base-packages.conf`, project-specific extras via `workspace.toml`
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
-- **Quality Assurance**: 35 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
 
 ## Quick Start
 
@@ -36,6 +35,10 @@ bash setup-docker.sh
 vim workspace.toml
 bash setup-docker.sh
 ```
+
+> **Note:** On the first run (or when `workspace.toml` does not exist), the interactive setup starts automatically.
+> To re-run the interactive setup, use `bash setup-docker.sh --init`.
+> For non-interactive setup with defaults, use `bash setup-docker.sh --init --yes`.
 
 #### workspace.toml
 
@@ -65,7 +68,9 @@ extensions = ["ms-python.python", "eamodio.gitlens"]
 my-data = "/home/devuser/.my-tool"
 ```
 
-Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `custom-ps1`, `docker-cli`, `github-cli`, `go`, `lazygit`, `rust`, `starship`, `uv`, `zig` (defined in `plugins/*.toml`)
+See [Reference — Pre-installed Applications](docs/reference.md) for the full list of available plugins.
+
+> **TOML Validation:** Install the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) VS Code extension to enable IDE autocompletion and validation for `workspace.toml` via the bundled `.taplo.toml` configuration.
 
 ### Starting the Development Environment
 
