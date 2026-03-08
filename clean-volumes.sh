@@ -19,7 +19,15 @@ set -euo pipefail
 # ===== Resolve Script Location =====
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
-
+# Pre-parse --lang option (must be set before i18n.sh is loaded)
+_prev=""
+for _arg in "$@"; do
+  if [[ "$_prev" == "--lang" ]]; then
+    export WORKSPACE_LANG="$_arg"
+  fi
+  _prev="$_arg"
+done
+unset _arg _prev
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
 source "$SCRIPT_DIR/lib/i18n.sh"
@@ -101,10 +109,14 @@ fi
 # Stop Containers if Running
 # ============================================================
 
-if docker compose -f "$WORKSPACE_DIR/docker-compose.yml" ps -q 2>/dev/null | grep -q .; then
+# Use project label to find containers (handles devcontainer-managed containers
+# that are started with additional temporary compose files)
+mapfile -t running_containers < <(docker ps -q --filter "label=com.docker.compose.project=${PROJECT_NAME}" 2>/dev/null || true)
+if [[ ${#running_containers[@]} -gt 0 && -n "${running_containers[0]}" ]]; then
   echo ""
   echo -e "${CYAN}$(msg clean_stopping)${NC}"
-  docker compose -f "$WORKSPACE_DIR/docker-compose.yml" down 2>/dev/null || true
+  docker stop "${running_containers[@]}" 2>/dev/null || true
+  docker rm "${running_containers[@]}" 2>/dev/null || true
 fi
 
 # ============================================================
@@ -127,6 +139,20 @@ done
 # ============================================================
 # Done
 # ============================================================
+
+# Remove associated Docker images (including devcontainer-generated images)
+mapfile -t images < <(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^(vsc-.*${PROJECT_NAME}|${PROJECT_NAME}-${SERVICE_NAME}):" 2>/dev/null || true)
+if [[ ${#images[@]} -gt 0 && -n "${images[0]}" ]]; then
+  echo ""
+  echo -e "${CYAN}$(msg clean_removing_images "${#images[@]}")${NC}"
+  for img in "${images[@]}"; do
+    if docker rmi "$img" 2>/dev/null; then
+      echo -e "  ${GREEN}✅${NC} $img"
+    else
+      echo -e "  ${RED}❌${NC} $(msg clean_image_failed "$img")"
+    fi
+  done
+fi
 
 echo ""
 if [[ "$failed" -eq 0 ]]; then

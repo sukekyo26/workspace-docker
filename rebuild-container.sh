@@ -20,6 +20,15 @@ set -euo pipefail
 # ===== Resolve Script Location =====
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
+# Pre-parse --lang option (must be set before i18n.sh is loaded)
+_prev=""
+for _arg in "$@"; do
+  if [[ "$_prev" == "--lang" ]]; then
+    export WORKSPACE_LANG="$_arg"
+  fi
+  _prev="$_arg"
+done
+unset _arg _prev
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
 source "$SCRIPT_DIR/lib/i18n.sh"

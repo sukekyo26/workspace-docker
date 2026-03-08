@@ -26,7 +26,15 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 WORKSPACES_DIR="$SCRIPT_DIR/workspaces"
-
+# Pre-parse --lang option (must be set before i18n.sh is loaded)
+_prev=""
+for _arg in "$@"; do
+  if [[ "$_prev" == "--lang" ]]; then
+    export WORKSPACE_LANG="$_arg"
+  fi
+  _prev="$_arg"
+done
+unset _arg _prev
 # ===== Colors =====
 # shellcheck source=lib/colors.sh
 source "$SCRIPT_DIR/lib/colors.sh"

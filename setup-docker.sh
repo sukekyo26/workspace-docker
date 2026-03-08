@@ -7,6 +7,16 @@ IFS=$'\n\t'
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Pre-parse --lang option (must be set before i18n.sh is loaded)
+_prev=""
+for _arg in "$@"; do
+  if [[ "$_prev" == "--lang" ]]; then
+    export WORKSPACE_LANG="$_arg"
+  fi
+  _prev="$_arg"
+done
+unset _arg _prev
+
 # Load shared libraries
 # shellcheck source=lib/i18n.sh
 source "$SCRIPT_DIR/lib/i18n.sh"
@@ -30,13 +40,20 @@ trap tui_cleanup EXIT
 # ============================================================
 FORCE_INIT=false
 AUTO_YES=false
+_skip_next=false
 for arg in "$@"; do
+  if $_skip_next; then
+    _skip_next=false
+    continue
+  fi
   case "$arg" in
     --init) FORCE_INIT=true ;;
     --yes|-y) AUTO_YES=true ;;
+    --lang) _skip_next=true ;; # handled in pre-parse
     *) die "$(msg setup_unknown_arg "$arg")" ;;
   esac
 done
+unset _skip_next
 
 # ============================================================
 # Prerequisites
