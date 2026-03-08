@@ -25,6 +25,7 @@ services:
       - "cargo:/home/${USERNAME}/.cargo"
       - "rustup:/home/${USERNAME}/.rustup"
       - "go:/home/${USERNAME}/go"
+      - "deno:/home/${USERNAME}/.deno"
     ports:
       - "${FORWARD_PORT:-3000}:${FORWARD_PORT:-3000}"
     tty: true
@@ -47,3 +48,5 @@ volumes:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_rustup"
   go:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_go"
+  deno:
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_deno"

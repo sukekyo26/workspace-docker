@@ -26,6 +26,9 @@ enable = [
 [ports]
 forward = [3000]
 
+[volumes]
+deno = "/home/${USERNAME}/.deno"
+
 [vscode]
 extensions = [
     "MS-CEINTL.vscode-language-pack-ja",

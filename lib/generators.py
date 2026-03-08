@@ -473,10 +473,12 @@ WORKDIR /home/${USERNAME}/workspace
         config_dir = os.path.join(self._workspace_root, "config")
         certs_dir = os.path.join(self._workspace_root, "certs")
 
+        custom_volume_paths = list(self._data.get("volumes", {}).values())
         plugin_installs = self.generate_plugin_installs(
             self._plugins_dir,
             self.enabled_plugins,
             plugin_cache=self._plugin_cache,
+            extra_user_dirs=custom_volume_paths,
         )
         certificate_install = self._generate_certificate_install(certs_dir)
 
@@ -537,16 +539,19 @@ WORKDIR /home/${USERNAME}/workspace
         enabled_plugins: list[str],
         *,
         plugin_cache: dict[str, dict[str, Any]] | None = None,
+        extra_user_dirs: list[str] | None = None,
     ) -> str:
         """Generate combined Dockerfile install snippets for enabled plugins."""
         # Load all plugin data once and cache
         plugin_data = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
 
-        # Phase 1: Collect user_dirs from all enabled plugins
+        # Phase 1: Collect user_dirs from all enabled plugins + workspace volumes
         all_user_dirs: list[str] = []
         for _plugin_id, data in plugin_data.items():
             user_dirs: list[str] = data.get("install", {}).get("user_dirs", [])
             all_user_dirs.extend(user_dirs)
+        if extra_user_dirs:
+            all_user_dirs.extend(extra_user_dirs)
 
         # Phase 2: Generate directory setup block
         dir_block = DockerfileGenerator._generate_user_dirs_block(all_user_dirs)
@@ -626,7 +631,7 @@ WORKDIR /home/${USERNAME}/workspace
         user_var = "${USERNAME}"
 
         return (
-            "# Prepare plugin directories with correct ownership\n"
+            "# Prepare volume mount directories with correct ownership\n"
             "USER root\n"
             f"RUN mkdir -p {dirs_str} && \\\n"
             f"    chown {user_var}:{user_var} {dirs_str}\n"
