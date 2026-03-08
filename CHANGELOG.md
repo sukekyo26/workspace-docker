@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Workspace volumes defined in `[volumes]` section of `workspace.toml` now get `mkdir -p` and `chown` in `Dockerfile` — previously these directories were created with root ownership on first container start
+
 ## [4.1.0] - 2026-03-08
 
 ### Added
