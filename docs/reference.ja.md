@@ -299,6 +299,7 @@ bash tests/run_all.sh
 - `rebuild-container.sh` - devcontainer CLIを使用したキャッシュなしリビルドスクリプト
 - `generate-workspace.sh` - マルチルートワークスペース生成スクリプト
 - `clean-volumes.sh` - プロジェクトのDockerボリュームを全削除
+- `clean-docker.sh` - 対話式Dockerリソースクリーンアップ（コンテナ、ビルドキャッシュ、イメージ、ネットワーク、ボリューム）
 
 ### 設定
 - `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、VSCode拡張機能、カスタムボリューム）
@@ -329,7 +330,7 @@ bash tests/run_all.sh
 
 ### ライブラリ（`lib/`）
 
-全 `lib/*.sh` は `set -uo pipefail`（`-e` なし）を使用します。これは意図的な設計です。これらのファイルはエントリポイントスクリプトから source されるため、`set -e` は呼び出し元に伝播し、算術式やサブシェルの戻り値で意図しない終了を引き起こします。`set -euo pipefail` はスタンドアロンのエントリポイントスクリプト（`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`）のみで使用します。
+全 `lib/*.sh` は `set -uo pipefail`（`-e` なし）を使用します。これは意図的な設計です。これらのファイルはエントリポイントスクリプトから source されるため、`set -e` は呼び出し元に伝播し、算術式やサブシェルの戻り値で意図しない終了を引き起こします。`set -euo pipefail` はスタンドアロンのエントリポイントスクリプト（`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`, `clean-docker.sh`）のみで使用します。
 
 - `lib/generators.sh` - Python生成器ラッパー関数
 - `lib/plugins.sh` - プラグイン読み込みとDockerfileスニペット生成

@@ -299,6 +299,7 @@ bash tests/run_all.sh
 - `rebuild-container.sh` - No-cache rebuild of Dev Container image using devcontainer CLI
 - `generate-workspace.sh` - Multi-root workspace generator
 - `clean-volumes.sh` - Delete all Docker volumes for this project
+- `clean-docker.sh` - Interactive Docker resource cleanup (containers, build cache, images, networks, volumes)
 
 ### Configuration
 - `workspace.toml` - User configuration (container name, username, plugins, ports, vscode extensions, custom volumes)
@@ -329,7 +330,7 @@ Each plugin TOML contains `[metadata]` (name, description, default), `[install]`
 
 ### Libraries (`lib/`)
 
-All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: these files are sourced (not executed) by entry-point scripts, so `set -e` would propagate to the caller and cause unexpected exits on arithmetic expressions or subshell return codes. Only standalone entry-point scripts (`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`) use `set -euo pipefail`.
+All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: these files are sourced (not executed) by entry-point scripts, so `set -e` would propagate to the caller and cause unexpected exits on arithmetic expressions or subshell return codes. Only standalone entry-point scripts (`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`, `clean-docker.sh`) use `set -euo pipefail`.
 
 - `lib/generators.sh` - Python generator wrapper functions
 - `lib/plugins.sh` - Plugin loading and Dockerfile snippet generation

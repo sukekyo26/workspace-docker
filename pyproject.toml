@@ -1,11 +1,8 @@
 [project]
 name = "workspace-docker"
-version = "4.0.0"
+version = "4.1.0"
 requires-python = ">=3.11"
-dependencies = [
-    "jsonschema>=4.23.0",
-    "pyyaml>=6.0.3",
-]
+dependencies = ["jsonschema>=4.23.0", "pyyaml>=6.0.3"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -26,24 +23,29 @@ line-length = 120
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "N",    # pep8-naming
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear
-    "SIM",  # flake8-simplify
-    "TC",   # flake8-type-checking
-    "RUF",  # ruff-specific
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "TC",  # flake8-type-checking
+    "RUF", # ruff-specific
 ]
 ignore = [
-    "RUF001",  # ambiguous unicode — Japanese full-width parentheses are intentional
+    "RUF001", # ambiguous unicode — Japanese full-width parentheses are intentional
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"lib/generators.py" = ["E501"]  # Dockerfile template constant contains long lines
-"tests/python/*.py" = ["E402", "TC"]  # sys.path manipulation; pytest import at runtime
+"lib/generators.py" = [
+    "E501",
+] # Dockerfile template constant contains long lines
+"tests/python/*.py" = [
+    "E402",
+    "TC",
+] # sys.path manipulation; pytest import at runtime
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
