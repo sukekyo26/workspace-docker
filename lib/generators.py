@@ -434,8 +434,6 @@ RUN echo '' >> ~/.bashrc && \\
     echo '# Load custom configuration from config/.bashrc_custom' >> ~/.bashrc && \\
     echo '[ -f "$HOME/workspace/{{REPO_DIR}}/config/.bashrc_custom" ] && . "$HOME/workspace/{{REPO_DIR}}/config/.bashrc_custom"' >> ~/.bashrc
 
-HEALTHCHECK --interval=60s --timeout=10s --retries=3 CMD ["true"]
-
 WORKDIR /home/${USERNAME}/workspace
 """
 
