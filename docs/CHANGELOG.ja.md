@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-03-08
+
 ### 修正
 - `workspace.toml` の `[volumes]` セクションで定義したボリュームのディレクトリが `Dockerfile` 内で `mkdir -p` と `chown` されるように修正 — これまではコンテナ初回起動時に root 権限でディレクトリが作成されていた
 
