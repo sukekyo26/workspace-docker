@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-03-08
+
 ### Added
+- `clean-docker.sh`: interactive Docker resource cleanup script — select which resources to prune (stopped containers, build cache, dangling images, unused networks, unused volumes) via multi-select TUI menu. Shows disk usage before and after cleanup. Supports `--lang` option.
 - `--lang` option for all shell scripts (`setup-docker.sh`, `clean-volumes.sh`, `rebuild-container.sh`, `generate-workspace.sh`) — alternative to `WORKSPACE_LANG` environment variable for language selection
 - `docs/setup.md` / `docs/setup.ja.md`: `${USERNAME}` variable substitution section documenting usage in `[volumes]` paths
 - `sync-schema` command in `toml_parser.py` — automatically syncs `workspace.schema.json` plugins enum from `plugins/` directory during `setup-docker.sh` execution

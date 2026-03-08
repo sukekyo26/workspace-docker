@@ -7,7 +7,10 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-03-08
+
 ### 追加
+- `clean-docker.sh`: 対話式 Docker リソースクリーンアップスクリプト — マルチセレクト TUI メニューで削除対象リソースを選択（停止済みコンテナ、ビルドキャッシュ、不要イメージ、未使用ネットワーク、未使用ボリューム）。クリーンアップ前後のディスク使用量を表示。`--lang` オプション対応。
 - 全シェルスクリプト（`setup-docker.sh`、`clean-volumes.sh`、`rebuild-container.sh`、`generate-workspace.sh`）に `--lang` オプション追加 — `WORKSPACE_LANG` 環境変数の代替として言語選択が可能に
 - `docs/setup.md` / `docs/setup.ja.md`: `[volumes]` パスでの `${USERNAME}` 変数置換についてのドキュメントセクション追加
 - `toml_parser.py` に `sync-schema` コマンド追加 — `setup-docker.sh` 実行時に `workspace.schema.json` の plugins enum を `plugins/` ディレクトリから自動同期
