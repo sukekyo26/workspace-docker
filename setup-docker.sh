@@ -180,7 +180,7 @@ else
     if [[ ${#WS_VSCODE_EXTENSIONS[@]} -gt 0 && -n "${WS_VSCODE_EXTENSIONS[0]}" ]]; then
       vscode_toml=$'extensions = [\n'
       for ((i = 0; i < ${#WS_VSCODE_EXTENSIONS[@]}; i++)); do
-        vscode_toml+="  \"${WS_VSCODE_EXTENSIONS[$i]}\""
+        vscode_toml+="    \"${WS_VSCODE_EXTENSIONS[$i]}\""
         if [[ $i -lt $((${#WS_VSCODE_EXTENSIONS[@]} - 1)) ]]; then
           vscode_toml+=","
         fi
