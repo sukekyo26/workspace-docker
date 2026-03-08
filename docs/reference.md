@@ -5,15 +5,20 @@
 ### Development Tools
 
 **Plugin Tools** (configured via `workspace.toml`, defined in `plugins/*.toml`):
-- **proto** (`proto`, default: on) — Unified multi-language version manager (Python, Node.js, Bun, Deno, Go, Rust, 100+ tools)
 - **Docker CLI** (`docker-cli`, default: on) — Container operations (using host Docker daemon via socket mount)
+- **proto** (`proto`) — Unified multi-language version manager (Python, Node.js, Bun, Deno, Go, Rust, 100+ tools)
 - **AWS CLI v2** (`aws-cli`) — AWS resource management
 - **AWS SAM CLI** (`aws-sam-cli`) — Build, test and invoke serverless Lambda functions locally
 - **GitHub CLI** (`github-cli`) — GitHub command-line interface for repository management and workflows
 - **GitHub Copilot CLI** (`copilot-cli`) — AI-powered command-line assistant
 - **Claude Code** (`claude-code`) — AI-powered coding assistant by Anthropic
 - **uv** (`uv`) — Fast Python package and project manager by Astral
+- **Go** (`go`) — Go programming language with checksum verification and GOPATH volume
+- **Rust** (`rust`) — Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
 - **Zig** (`zig`) — Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
+- **lazygit** (`lazygit`) — Terminal UI for git commands with checksum verification
+- **Starship** (`starship`) — Cross-shell prompt with rich customization (conflicts with `custom-ps1`)
+- **Custom PS1** (`custom-ps1`) — Lightweight bash prompt with container name, git status, and colors (conflicts with `starship`)
 
 Each plugin is a self-contained TOML file in `plugins/` with metadata, Dockerfile instructions, and version info. To add a new tool, create a new `plugins/<name>.toml` file.
 
@@ -293,6 +298,7 @@ bash tests/run_all.sh
 - `setup-docker.sh` - Setup script (interactive or regenerate from `workspace.toml`)
 - `rebuild-container.sh` - No-cache rebuild of Dev Container image using devcontainer CLI
 - `generate-workspace.sh` - Multi-root workspace generator
+- `clean-volumes.sh` - Delete all Docker volumes and images for this project
 
 ### Configuration
 - `workspace.toml` - User configuration (container name, username, plugins, ports, vscode extensions, custom volumes)
@@ -301,13 +307,18 @@ bash tests/run_all.sh
 - `config/.bashrc_custom` - User-specific shell configuration loaded on shell startup
 
 ### Plugins (`plugins/`)
-- `plugins/proto.toml` - proto version manager plugin (default: on)
 - `plugins/aws-cli.toml` - AWS CLI v2 plugin
 - `plugins/aws-sam-cli.toml` - AWS SAM CLI plugin
 - `plugins/claude-code.toml` - Claude Code plugin
 - `plugins/copilot-cli.toml` - GitHub Copilot CLI plugin
+- `plugins/custom-ps1.toml` - Custom PS1 prompt plugin (conflicts with starship)
 - `plugins/docker-cli.toml` - Docker CLI plugin (default: on)
 - `plugins/github-cli.toml` - GitHub CLI plugin
+- `plugins/go.toml` - Go programming language plugin
+- `plugins/lazygit.toml` - lazygit terminal UI plugin
+- `plugins/proto.toml` - proto version manager plugin
+- `plugins/rust.toml` - Rust toolchain plugin
+- `plugins/starship.toml` - Starship cross-shell prompt plugin (conflicts with custom-ps1)
 - `plugins/uv.toml` - uv package manager plugin
 - `plugins/zig.toml` - Zig compiler plugin
 
@@ -356,6 +367,7 @@ All user-facing messages support internationalization via the `lib/i18n.sh` fram
 
 - Message catalogs are stored in `locale/en.sh` (English, default) and `locale/ja.sh` (Japanese).
 - Set `WORKSPACE_LANG=ja` to display messages in Japanese. Default is English.
+- All scripts also accept `--lang ja` option (e.g., `bash setup-docker.sh --lang ja`).
 - Messages use `printf`-style `%s` placeholders for dynamic values.
 
 ### Functions

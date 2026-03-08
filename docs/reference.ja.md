@@ -5,15 +5,20 @@
 ### 開発ツール
 
 **プラグインツール**（`workspace.toml`で設定、`plugins/*.toml`で定義）:
-- **proto** (`proto`, デフォルト: on) — 統合的な多言語バージョンマネージャー（Python, Node.js, Bun, Deno, Go, Rust, 100以上のツール）
 - **Docker CLI** (`docker-cli`, デフォルト: on) — コンテナ操作（ホストのDockerデーモンをソケットマウント経由で利用）
+- **proto** (`proto`) — 統合的な多言語バージョンマネージャー（Python, Node.js, Bun, Deno, Go, Rust, 100以上のツール）
 - **AWS CLI v2** (`aws-cli`) — AWSリソース管理
 - **AWS SAM CLI** (`aws-sam-cli`) — サーバーレスLambda関数のローカルでのビルド、テスト、実行
 - **GitHub CLI** (`github-cli`) — リポジトリ管理、プルリクエスト、Issue、ワークフロー操作のためのCLI
 - **GitHub Copilot CLI** (`copilot-cli`) — AIパワードのコマンドラインアシスタント
 - **Claude Code** (`claude-code`) — AnthropicのAIコーディングアシスタント
 - **uv** (`uv`) — Astral製の高速Pythonパッケージ・プロジェクトマネージャー
+- **Go** (`go`) — Go言語（チェックサム検証・GOPATHボリューム付き）
+- **Rust** (`rust`) — rustupによるRustツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
 - **Zig** (`zig`) — cargo-lambdaのクロスコンパイルに必要なZigコンパイラ（x86_64とaarch64をサポート）
+- **lazygit** (`lazygit`) — Git操作用ターミナルUI（チェックサム検証付き）
+- **Starship** (`starship`) — 豊富なカスタマイズが可能なクロスシェルプロンプト（`custom-ps1` と競合）
+- **Custom PS1** (`custom-ps1`) — 軽量なbashプロンプト。コンテナ名、gitステータス、カラー表示に対応（`starship` と競合）
 
 各プラグインは`plugins/`ディレクトリ内の自己完結型TOMLファイルで、メタデータ、Dockerfile命令、バージョン情報を含みます。新しいツールを追加するには、`plugins/<name>.toml`ファイルを作成するだけです。
 
@@ -293,6 +298,7 @@ bash tests/run_all.sh
 - `setup-docker.sh` - セットアップスクリプト（対話式または`workspace.toml`から再生成）
 - `rebuild-container.sh` - devcontainer CLIを使用したキャッシュなしリビルドスクリプト
 - `generate-workspace.sh` - マルチルートワークスペース生成スクリプト
+- `clean-volumes.sh` - プロジェクトのDockerボリュームとイメージを全削除
 
 ### 設定
 - `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、VSCode拡張機能、カスタムボリューム）
@@ -301,13 +307,18 @@ bash tests/run_all.sh
 - `config/.bashrc_custom` - シェル起動時に読み込まれるユーザー固有のシェル設定
 
 ### プラグイン（`plugins/`）
-- `plugins/proto.toml` - protoバージョンマネージャープラグイン（デフォルト: on）
 - `plugins/aws-cli.toml` - AWS CLI v2プラグイン
 - `plugins/aws-sam-cli.toml` - AWS SAM CLIプラグイン
 - `plugins/claude-code.toml` - Claude Codeプラグイン
 - `plugins/copilot-cli.toml` - GitHub Copilot CLIプラグイン
+- `plugins/custom-ps1.toml` - Custom PS1プロンプトプラグイン（starshipと競合）
 - `plugins/docker-cli.toml` - Docker CLIプラグイン（デフォルト: on）
 - `plugins/github-cli.toml` - GitHub CLIプラグイン
+- `plugins/go.toml` - Go言語プラグイン
+- `plugins/lazygit.toml` - lazygitターミナルUIプラグイン
+- `plugins/proto.toml` - protoバージョンマネージャープラグイン
+- `plugins/rust.toml` - Rustツールチェーンプラグイン
+- `plugins/starship.toml` - Starshipクロスシェルプロンプトプラグイン（custom-ps1と競合）
 - `plugins/uv.toml` - uvパッケージマネージャープラグイン
 - `plugins/zig.toml` - Zigコンパイラプラグイン
 
@@ -356,6 +367,7 @@ bash tests/run_all.sh
 
 - メッセージカタログは `locale/en.sh`（英語、デフォルト）と `locale/ja.sh`（日本語）に格納されています。
 - `WORKSPACE_LANG=ja` を設定すると日本語でメッセージが表示されます。デフォルトは英語です。
+- 全スクリプトは `--lang ja` オプションも受け付けます（例: `bash setup-docker.sh --lang ja`）。
 - メッセージは `printf` 形式の `%s` プレースホルダーで動的な値を埋め込みます。
 
 ### 関数
