@@ -25,24 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/unit/lib/test_colors.sh`: unit tests for `lib/colors.sh` (NO_COLOR mode, ANSI escape format)
 - `tests/unit/lib/test_tui.sh`: unit tests for `lib/tui.sh` (global state init, function definitions, color inheritance)
 - `starship` plugin: cross-shell prompt with checksum verification (alternative to `custom-ps1`)
-- `custom-ps1` plugin: extracted PS1 prompt configuration into a plugin (default enabled, can be replaced by starship)
+- `custom-ps1` plugin: extracted PS1 prompt configuration into a plugin (can be replaced by starship)
 - `rust` plugin: Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
 - `go` plugin: Go programming language with checksum verification and GOPATH volume
 - `lazygit` plugin: terminal UI for git commands with checksum verification
 - `clean-volumes.sh` script to delete all Docker named volumes for the project
 - Pre-definition workflow: create `workspace.toml` before `setup-docker.sh --init` to pre-define `[apt]`, `[vscode]`, and `[volumes]` sections (preserved during interactive setup)
 - `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
-- Added `HEALTHCHECK` instruction to generated Dockerfile
-
-### Fixed
-- Generated TOML arrays (e.g., `[vscode].extensions`) now use 4-space indentation instead of 2-space, following TOML convention
-- `validate_service_name` pattern unified with JSON Schema (`^[a-z][a-z0-9_-]*$`) — uppercase and digit/underscore-leading names are now rejected consistently
-- `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
-- `clean-volumes.sh`: add Docker daemon running check (`docker info`)
-- `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
 
 ### Changed
-- Removed `HEALTHCHECK CMD ["true"]` from generated Dockerfile — dev containers have no service to health-check; the previous directive always returned healthy
 - Moved available plugins list from README to reference docs link to prevent README bloat
 - Removed "Quality Assurance" feature line from README (internal detail, not a user-facing feature)
 - `_uv_python()`: added `--no-dev` flag to `uv run` to skip dev dependency installation for end users
@@ -66,6 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed personal settings (`localeOverride`) from example settings file
 
 ### Fixed
+- Generated TOML arrays (e.g., `[vscode].extensions`) now use 4-space indentation instead of 2-space, following TOML convention
+- `validate_service_name` pattern unified with JSON Schema (`^[a-z][a-z0-9_-]*$`) — uppercase and digit/underscore-leading names are now rejected consistently
+- `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
+- `clean-volumes.sh`: add Docker daemon running check (`docker info`)
+- `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
 - Removed duplicate test files (`test_generators.sh`, `test_errors.sh`) that caused double execution
 - Fixed `check_devcontainer_cli` trap overwrite that could clobber caller's EXIT trap
 - Fixed path traversal vulnerability in `validate_symlink` — prefix match now uses trailing slash guard

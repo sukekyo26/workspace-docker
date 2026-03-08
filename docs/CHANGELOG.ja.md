@@ -25,24 +25,15 @@
 - `tests/unit/lib/test_colors.sh`: `lib/colors.sh` のユニットテスト追加（NO_COLOR モード・ANSI エスケープ形式）
 - `tests/unit/lib/test_tui.sh`: `lib/tui.sh` のユニットテスト追加（グローバル状態初期化・関数定義確認・カラー継承）
 - `starship` プラグイン: クロスシェルプロンプト（チェックサム検証付き、`custom-ps1` の代替）
-- `custom-ps1` プラグイン: PS1 プロンプト設定をプラグインに抽出（デフォルト有効、starship で置換可）
+- `custom-ps1` プラグイン: PS1 プロンプト設定をプラグインに抽出（starship で置換可）
 - `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
 - `go` プラグイン: Go 言語（チェックサム検証・GOPATH ボリューム付き）
 - `lazygit` プラグイン: Git 操作用ターミナル UI（チェックサム検証付き）
 - プロジェクトの Docker named volume を全削除する `clean-volumes.sh` スクリプト
 - 事前定義ワークフロー: `setup-docker.sh --init` の前に `workspace.toml` を作成し `[apt]`、`[vscode]`、`[volumes]` セクションを事前定義可能に
 - `select_multi` に `q` キーによるキャンセル機能を追加
-- 生成される Dockerfile に `HEALTHCHECK` 命令を追加
-
-### 修正
-- 生成される TOML 配列（例: `[vscode].extensions`）のインデントを2スペースから4スペースに修正（TOML 規約に準拠）
-- `validate_service_name` のパターンを JSON Schema と統一（`^[a-z][a-z0-9_-]*$`）— 大文字や数字/アンダースコア開始の名前を一貫して拒否
-- `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
-- `clean-volumes.sh`: Docker デーモン起動確認（`docker info`）を追加
-- `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
 
 ### 変更
-- 生成される Dockerfile から `HEALTHCHECK CMD ["true"]` を削除 — 開発コンテナにはヘルスチェック対象のサービスがなく、常に healthy を返す無意味な設定だった
 - README の利用可能プラグインリストをリファレンスドキュメントへのリンクに変更（README 肍大化防止）
 - README から「品質保証」の特徴行を削除（内部詳細でありユーザー向け機能ではない）
 - `_uv_python()`: `uv run` に `--no-dev` フラグを追加—エンドユーザー環境で dev 依存のインストールをスキップ
@@ -66,6 +57,11 @@
 - 設定ファイルから個人設定（`localeOverride`）を削除
 
 ### 修正
+- 生成される TOML 配列（例: `[vscode].extensions`）のインデントを2スペースから4スペースに修正（TOML 規約に準拠）
+- `validate_service_name` のパターンを JSON Schema と統一（`^[a-z][a-z0-9_-]*$`）— 大文字や数字/アンダースコア開始の名前を一貫して拒否
+- `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
+- `clean-volumes.sh`: Docker デーモン起動確認（`docker info`）を追加
+- `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
 - 重複テストファイル（`test_generators.sh`、`test_errors.sh`）を削除し二重実行を解消
 - `check_devcontainer_cli` の trap 上書きを修正（呼び出し元の EXIT trap を保護）
 - `validate_symlink` のパストラバーサル脆弱性を修正（末尾スラッシュによるプレフィックスガード）
