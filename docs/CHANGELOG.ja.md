@@ -45,8 +45,8 @@
 - `starship` プラグイン: 永続的な設定保存のため `~/.config` ボリューム宣言を追加
 - `custom-ps1` プラグイン: デフォルトを `true` から `false` に変更（オプション扱い、デフォルトでは無効）
 - `clean-volumes.sh`: devcontainer 互換性のため `docker compose down` の代わりに Docker ラベルベースのコンテナ検索に変更
-- `docs/reference.md` / `docs/reference.ja.md`: プラグインリスト更新（全14個）、`--lang` オプションのドキュメント追加、コアスクリプトに `clean-volumes.sh` を追加
-- README の利用可能プラグインリストをリファレンスドキュメントへのリンクに変更（README 肍大化防止）
+- `docs/reference.md` / `docs/reference.ja.md`: プラグインリスト更新（全14個）、`--lang` オプションのドキュメント追加、コアスクリプトに `clean-volumes.sh` を追加、プラグイン作成ガイドを新ボリューム配列形式に更新
+- README の利用可能プラグインリストをリファレンスドキュメントへのリンクに変更（README 肥大化防止）
 - README から「品質保証」の特徴行を削除（内部詳細でありユーザー向け機能ではない）
 - `_uv_python()`: `uv run` に `--no-dev` フラグを追加—エンドユーザー環境で dev 依存のインストールをスキップ
 - `generators.py`: 生成される `docker-compose.yml` のシーケンスアイテムのインデントを修正（`args`、`environment`、`volumes` のリスト項目が適切にインデントされるように）

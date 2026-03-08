@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `starship` plugin: added `~/.config` volume declaration for persistent configuration
 - `custom-ps1` plugin: changed default from `true` to `false` (optional, not enabled by default)
 - `clean-volumes.sh`: use Docker label-based container lookup instead of `docker compose down` for devcontainer compatibility
-- `docs/reference.md` / `docs/reference.ja.md`: updated plugin list (all 14 plugins), added `--lang` option docs, added `clean-volumes.sh` to core scripts
+- `docs/reference.md` / `docs/reference.ja.md`: updated plugin list (all 14 plugins), added `--lang` option docs, added `clean-volumes.sh` to core scripts, updated plugin creation guide with new volume array syntax
 - Moved available plugins list from README to reference docs link to prevent README bloat
 - Removed "Quality Assurance" feature line from README (internal detail, not a user-facing feature)
 - `_uv_python()`: added `--no-dev` flag to `uv run` to skip dev dependency installation for end users

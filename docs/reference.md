@@ -41,13 +41,11 @@ packages = ["libfoo-dev"]         # Optional: apt dependencies
 [install]
 requires_root = false             # true = runs as root (USER switch is automatic)
 user_dirs = ["/home/${USERNAME}/.tool"]  # Optional: dirs to create with user ownership
+volumes = ["/home/${USERNAME}/.tool"]    # Optional: persistent volume mounts (name auto-derived from path)
 dockerfile = '''
 # Dockerfile RUN instructions to install the tool
 RUN curl -fsSL https://example.com/install.sh | sh
 '''
-
-[volumes]
-tool-data = "/home/${USERNAME}/.tool"  # Optional: persistent volume mounts
 
 [version]
 strategy = "latest"               # "latest" or "pin"
@@ -60,7 +58,7 @@ pin = ""                          # Version string when strategy = "pin"
 - **`user_dirs`**: Directories that need to exist with user ownership before installation. All enabled plugins' directories are merged and created in a single `USER root` block before any plugin installs. Intermediate parent directories are automatically included.
 - **`${USERNAME}`**: Use this variable in volume paths and dockerfile instructions. It is substituted at build time with the value from `workspace.toml`.
 - **`[apt].packages`**: Dependencies are only installed when the plugin is enabled. Duplicates with the base package list (`config/apt-base-packages.conf`) are automatically detected.
-- **`[volumes]`**: Paths must be absolute. The volume name is prefixed with the service name in docker-compose.yml. Mount target directories are created with user permissions in the Dockerfile.
+- **`volumes`** (inside `[install]`): An array of absolute paths under `/home/${USERNAME}/`. Volume names are auto-derived from the path basename (leading dot stripped, e.g., `/home/${USERNAME}/.aws` → `aws`). Mount target directories are created with user permissions in the Dockerfile.
 - **`dockerfile`**: Use triple-quoted strings (`'''...'''`). Each instruction should clean up after itself (`apt-get clean`, `rm -rf /tmp/*`).
 - **`conflicts`**: List of plugin IDs that cannot be enabled simultaneously. When two plugins that conflict are both in the `[plugins].enable` list, the generator exits with an error. Both sides of the conflict should declare each other for documentation clarity, though a one-sided declaration is sufficient for detection.
 

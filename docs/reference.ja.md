@@ -41,13 +41,11 @@ packages = ["libfoo-dev"]         # オプション: apt依存パッケージ
 [install]
 requires_root = false             # true = root権限で実行（USER切替は自動）
 user_dirs = ["/home/${USERNAME}/.tool"]  # オプション: ユーザー所有で作成するディレクトリ
+volumes = ["/home/${USERNAME}/.tool"]    # オプション: 永続ボリュームマウント（名前はパスから自動導出）
 dockerfile = '''
 # ツールをインストールするDockerfile RUN命令
 RUN curl -fsSL https://example.com/install.sh | sh
 '''
-
-[volumes]
-tool-data = "/home/${USERNAME}/.tool"  # オプション: 永続ボリュームマウント
 
 [version]
 strategy = "latest"               # "latest" または "pin"
@@ -60,7 +58,7 @@ pin = ""                          # strategy = "pin" 時のバージョン文字
 - **`user_dirs`**: インストール前にユーザー所有で存在する必要があるディレクトリ。有効な全プラグインのディレクトリがマージされ、プラグインインストール前に `USER root` ブロックで一括作成されます。中間の親ディレクトリは自動的に含まれます。
 - **`${USERNAME}`**: ボリュームパスやdockerfile命令でこの変数を使用します。ビルド時に `workspace.toml` の値で置換されます。
 - **`[apt].packages`**: プラグインが有効な場合のみインストールされます。ベースパッケージリスト（`config/apt-base-packages.conf`）との重複は自動検知されます。
-- **`[volumes]`**: パスは絶対パスでなければなりません。ボリューム名はdocker-compose.ymlでサービス名がプレフィックスとして付与されます。マウント先ディレクトリはDockerfile内でユーザー権限で作成されます。
+- **`volumes`**（`[install]` 内）: `/home/${USERNAME}/` 配下の絶対パスの配列。ボリューム名はパスの basename から自動導出されます（先頭ドット除去、例: `/home/${USERNAME}/.aws` → `aws`）。マウント先ディレクトリはDockerfile内でユーザー権限で作成されます。
 - **`dockerfile`**: トリプルクォート文字列（`'''...'''`）を使用します。各命令は後始末を行ってください（`apt-get clean`、`rm -rf /tmp/*`）。
 - **`conflicts`**: 同時に有効化できないプラグインIDのリスト。競合する2つのプラグインが `[plugins].enable` に含まれている場合、ジェネレータはエラー終了します。ドキュメントの明瞭性のため競合関係の両方で宣言することを推奨しますが、片方の宣言だけでも検出は機能します。
 
