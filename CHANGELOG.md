@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `schemas/workspace.schema.json`: JSON Schema for `workspace.toml` — enables IDE autocompletion and static validation via [taplo](https://taplo.tamasfe.dev/)
 - `.taplo.toml`: taplo configuration associating the schema with `workspace.toml` and `workspaces/*.toml`
 - `generators.py`: error on duplicate volume paths — detects when two volumes (across plugins and `workspace.toml`) mount to the same container path with different names
+- `generators.py`: duplicate volume paths now produce a warning and merge instead of an error — duplicate volume names between plugins remain an error
+- `schemas/plugin.schema.json`: volume paths restricted to `/home/${USERNAME}/<name>` (direct children of home directory only)
+- `github-cli` plugin: volume changed from `gh-config` (`~/.config/gh`) to `config` (`~/.config`) for home-direct path normalization
 - `tests/unit/lib/test_colors.sh`: unit tests for `lib/colors.sh` (NO_COLOR mode, ANSI escape format)
 - `tests/unit/lib/test_tui.sh`: unit tests for `lib/tui.sh` (global state init, function definitions, color inheritance)
 - `starship` plugin: cross-shell prompt with checksum verification (alternative to `custom-ps1`)
