@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "workspace-docker plugin configuration",
+  "description": "Plugin TOML configuration schema for workspace-docker",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata",
+    "install"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Plugin metadata",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "default"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the plugin",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description of the plugin",
+          "minLength": 1
+        },
+        "default": {
+          "type": "boolean",
+          "description": "Whether the plugin is selected by default"
+        },
+        "conflicts": {
+          "type": "array",
+          "description": "List of plugin IDs that conflict with this plugin",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "apt": {
+      "type": "object",
+      "description": "APT packages required by the plugin",
+      "additionalProperties": false,
+      "properties": {
+        "packages": {
+          "type": "array",
+          "description": "APT package names to install",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "install": {
+      "type": "object",
+      "description": "Installation configuration",
+      "additionalProperties": false,
+      "required": [
+        "requires_root"
+      ],
+      "properties": {
+        "requires_root": {
+          "type": "boolean",
+          "description": "Whether the install commands require root privileges"
+        },
+        "user_dirs": {
+          "type": "array",
+          "description": "Directories to create with correct ownership before install",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "dockerfile": {
+          "type": "string",
+          "description": "Dockerfile snippet for installation"
+        }
+      }
+    },
+    "volumes": {
+      "type": "object",
+      "description": "Named Docker volumes. Key = volume name, value = container path. Use ${USERNAME} for the container username.",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Absolute container path for the volume mount"
+      }
+    },
+    "version": {
+      "type": "object",
+      "description": "Version management configuration",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "description": "Version strategy: 'latest' or 'pinned'",
+          "enum": [
+            "latest",
+            "pinned"
+          ]
+        },
+        "pin": {
+          "type": "string",
+          "description": "Pinned version string (used when strategy is 'pinned')"
+        },
+        "checksum_amd64": {
+          "type": "string",
+          "description": "SHA256 checksum for amd64 archive"
+        },
+        "checksum_arm64": {
+          "type": "string",
+          "description": "SHA256 checksum for arm64 archive"
+        }
+      }
+    }
+  }
+}

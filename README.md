@@ -1,5 +1,7 @@
 # workspace-docker
 
+[日本語版 README](docs/README.ja.md)
+
 A Docker-based Ubuntu development environment template with a plugin-based tool selection system.
 
 ## Features
@@ -105,10 +107,6 @@ Container: /home/<username>/workspace/
 | [Setup Guide](docs/setup.md) | Full configuration, CA certificates, multi-root workspace, troubleshooting |
 | [Usage Guide](docs/usage.md) | Development workflows, common commands, mounted directories |
 | [Reference](docs/reference.md) | Pre-installed software, system packages, shell features, project files |
-| [日本語版 README](docs/README.ja.md) | Japanese documentation |
-| [Setup Guide (日本語)](docs/setup.ja.md) | セットアップガイド |
-| [Usage Guide (日本語)](docs/usage.ja.md) | 使い方ガイド |
-| [Reference (日本語)](docs/reference.ja.md) | リファレンス |
 | [Changelog](CHANGELOG.md) | Version history |
 
 ## License

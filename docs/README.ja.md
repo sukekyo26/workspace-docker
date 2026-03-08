@@ -1,5 +1,7 @@
 # workspace-docker
 
+[English README](../README.md)
+
 Dockerを使用したUbuntu開発環境のテンプレートプロジェクトです。プラグインベースのツール選択システムを備えています。
 
 ## 主な特徴
@@ -105,10 +107,6 @@ docker compose exec <サービス名> bash
 | [セットアップガイド](setup.ja.md) | 詳細設定、CA証明書、マルチルートWS、トラブルシューティング |
 | [使い方ガイド](usage.ja.md) | 開発ワークフロー、コマンド集、マウントディレクトリ |
 | [リファレンス](reference.ja.md) | プリインストール済みソフト、システムパッケージ、プロジェクトファイル |
-| [English README](../README.md) | 英語版ドキュメント |
-| [Setup Guide](setup.md) | Setup guide (English) |
-| [Usage Guide](usage.md) | Usage guide (English) |
-| [Reference](reference.md) | Reference (English) |
 | [変更履歴](../CHANGELOG.md) | バージョン履歴 |
 
 ## ライセンス

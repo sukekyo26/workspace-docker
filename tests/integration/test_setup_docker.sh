@@ -41,6 +41,7 @@ setup_test_dir() {
   cp -r "$PROJECT_ROOT/locale" "$tmpdir/"
   cp -r "$PROJECT_ROOT/plugins" "$tmpdir/"
   cp -r "$PROJECT_ROOT/config" "$tmpdir/"
+  cp -r "$PROJECT_ROOT/schemas" "$tmpdir/"
   mkdir -p "$tmpdir/certs"
   if [[ -f "$PROJECT_ROOT/config/.bashrc_custom.example" ]]; then
     cp "$PROJECT_ROOT/config/.bashrc_custom.example" "$tmpdir/config/"

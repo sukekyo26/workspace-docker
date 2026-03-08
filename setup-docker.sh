@@ -245,7 +245,11 @@ validate_no_duplicate_apt_packages \
   "$SCRIPT_DIR/config/apt-base-packages.conf" \
   "${WS_APT_EXTRA[@]}" || true
 
-
+# ============================================================
+# Schema validation
+# ============================================================
+validate_workspace_toml "$WORKSPACE_TOML"
+validate_plugin_tomls
 
 # ============================================================
 # File generation

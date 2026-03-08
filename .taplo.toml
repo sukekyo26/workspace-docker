@@ -4,3 +4,7 @@
 [[rule]]
 include = ["workspace.toml", "local/workspace.toml", "workspaces/*.toml"]
 schema = { path = "./schemas/workspace.schema.json" }
+
+[[rule]]
+include = ["plugins/*.toml"]
+schema = { path = "./schemas/plugin.schema.json" }

@@ -86,6 +86,23 @@ get_plugins_dir() {
   echo "$(cd "$_LIB_DIR/.." && pwd)/plugins"
 }
 
+# Validate workspace.toml against JSON Schema
+# Usage: validate_workspace_toml "workspace.toml"
+# Returns: 0 if valid, 1 if invalid (with error messages)
+validate_workspace_toml() {
+  local config_file="$1"
+  _uv_python "$TOML_PARSER" validate-workspace "$config_file"
+}
+
+# Validate all plugin TOML files against JSON Schema
+# Usage: validate_plugin_tomls
+# Returns: 0 if valid, 1 if invalid (with error messages)
+validate_plugin_tomls() {
+  local plugins_dir
+  plugins_dir=$(get_plugins_dir)
+  _uv_python "$TOML_PARSER" validate-plugins "$plugins_dir"
+}
+
 # List available plugins with their metadata
 # Usage: list_available_plugins
 # Sets: PLUGIN_IDS, PLUGIN_NAMES, PLUGIN_DESCRIPTIONS, PLUGIN_DEFAULTS
