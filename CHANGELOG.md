@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `--lang` option for all shell scripts (`setup-docker.sh`, `clean-volumes.sh`, `rebuild-container.sh`, `generate-workspace.sh`) — alternative to `WORKSPACE_LANG` environment variable for language selection
+- `clean-volumes.sh`: devcontainer image cleanup — removes `vsc-*` and project-service images after volume deletion
 - `docs/setup.md` / `docs/setup.ja.md`: `${USERNAME}` variable substitution section documenting usage in `[volumes]` paths
 - `sync-schema` command in `toml_parser.py` — automatically syncs `workspace.schema.json` plugins enum from `plugins/` directory during `setup-docker.sh` execution
 - `tests/unit/plugins/test_starship.sh`: unit tests for starship plugin (checksum verification, TLS enforcement)
@@ -34,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
 
 ### Changed
+- `custom-ps1` plugin: changed default from `true` to `false` (optional, not enabled by default)
+- `clean-volumes.sh`: use Docker label-based container stop instead of `docker compose down` for devcontainer compatibility
+- `docs/reference.md` / `docs/reference.ja.md`: updated plugin list (all 14 plugins), added `--lang` option docs, added `clean-volumes.sh` to core scripts
 - Moved available plugins list from README to reference docs link to prevent README bloat
 - Removed "Quality Assurance" feature line from README (internal detail, not a user-facing feature)
 - `_uv_python()`: added `--no-dev` flag to `uv run` to skip dev dependency installation for end users
@@ -57,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed personal settings (`localeOverride`) from example settings file
 
 ### Fixed
+- `pyproject.toml`: replaced deprecated `TCH` with `TC` in ruff lint config (ruff 0.5+ rename)
 - Generated TOML arrays (e.g., `[vscode].extensions`) now use 4-space indentation instead of 2-space, following TOML convention
 - `validate_service_name` pattern unified with JSON Schema (`^[a-z][a-z0-9_-]*$`) — uppercase and digit/underscore-leading names are now rejected consistently
 - `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
