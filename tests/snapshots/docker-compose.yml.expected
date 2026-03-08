@@ -1,3 +1,4 @@
+# Auto-generated from workspace.toml — do not edit directly.
 services:
   snapshot-test:
     container_name: "${CONTAINER_SERVICE_NAME}"

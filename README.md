@@ -12,7 +12,7 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 - **Persistent Storage**: Plugin data and configurations persist across container recreations via named volumes
 - **Externalized Package Management**: Base apt packages managed in `config/apt-base-packages.conf`, project-specific extras via `workspace.toml`
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
-- **Quality Assurance**: 29 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
+- **Quality Assurance**: 35 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
 
 ## Quick Start
 
@@ -65,7 +65,7 @@ extensions = ["ms-python.python", "eamodio.gitlens"]
 my-data = "/home/devuser/.my-tool"
 ```
 
-Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `uv`, `zig` (defined in `plugins/*.toml`)
+Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `custom-ps1`, `docker-cli`, `github-cli`, `go`, `lazygit`, `rust`, `starship`, `uv`, `zig` (defined in `plugins/*.toml`)
 
 ### Starting the Development Environment
 

@@ -1,3 +1,4 @@
+# Auto-generated from workspace.toml — do not edit directly.
 ARG UBUNTU_VERSION
 FROM ubuntu:${UBUNTU_VERSION}
 

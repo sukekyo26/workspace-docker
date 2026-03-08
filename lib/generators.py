@@ -261,7 +261,8 @@ class ComposeGenerator(Generator):
         }
 
         dumper = self.make_dumper()
-        return yaml.dump(
+        header = "# Auto-generated from workspace.toml — do not edit directly.\n"
+        return header + yaml.dump(
             compose,
             Dumper=dumper,
             default_flow_style=False,
@@ -377,6 +378,7 @@ class DockerfileGenerator(Generator):
     """Generates Dockerfile content from inline template and plugins."""
 
     _TEMPLATE = """\
+# Auto-generated from workspace.toml — do not edit directly.
 ARG UBUNTU_VERSION
 FROM ubuntu:${UBUNTU_VERSION}
 

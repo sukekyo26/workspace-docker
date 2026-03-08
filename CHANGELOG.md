@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Runtime JSON Schema validation for `workspace.toml` and plugin TOMLs — invalid configuration is detected and rejected during `setup-docker.sh` execution (powered by `jsonschema`)
+- `schemas/plugin.schema.json`: JSON Schema for plugin TOML validation
+- Auto-generated header comment (`# Auto-generated from workspace.toml — do not edit directly.`) in generated `Dockerfile` and `docker-compose.yml`
+- Language switch links at the top of `README.md` and `docs/README.ja.md` for easy navigation between English/Japanese versions
+- `config/workspace-settings.json.example`: added `tabSize: 4` settings for Go, Rust, Java, C#, C, C++, Swift, Kotlin, PHP, and Makefile
 - i18n framework (`lib/i18n.sh`, `locale/en.sh`, `locale/ja.sh`) — all user-facing messages support English/Japanese via `WORKSPACE_LANG` environment variable
 - `generators.py`: plugin conflict detection — mutually exclusive plugins (e.g., `starship` + `custom-ps1`) are rejected at generation time via `[metadata].conflicts`
 - `schemas/workspace.schema.json`: JSON Schema for `workspace.toml` — enables IDE autocompletion and static validation via [taplo](https://taplo.tamasfe.dev/)
