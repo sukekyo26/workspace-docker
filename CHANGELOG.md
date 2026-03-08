@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
 
 ### Changed
+- `_uv_python()`: added `--no-dev` flag to `uv run` to skip dev dependency installation for end users
 - `generators.py`: fix sequence item indentation in generated `docker-compose.yml` (`args`, `environment`, `volumes` list items are now properly indented)
 - `generators.py`: reduce excessive comments in generated `.devcontainer/docker-compose.yml` to minimal
 - `generators.py`: error on duplicate volume names between `[volumes]` in `workspace.toml` and enabled plugins

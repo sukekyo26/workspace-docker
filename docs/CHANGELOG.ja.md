@@ -31,6 +31,7 @@
 - `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
 
 ### 変更
+- `_uv_python()`: `uv run` に `--no-dev` フラグを追加—エンドユーザー環境で dev 依存のインストールをスキップ
 - `generators.py`: 生成される `docker-compose.yml` のシーケンスアイテムのインデントを修正（`args`、`environment`、`volumes` のリスト項目が適切にインデントされるように）
 - `generators.py`: 生成される `.devcontainer/docker-compose.yml` の過剰なコメントを最小限に削減
 - `generators.py`: `workspace.toml` の `[volumes]` と有効化プラグインのボリューム名が重複する場合はエラーを出力するように
