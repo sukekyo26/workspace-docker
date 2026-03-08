@@ -191,7 +191,22 @@ custom-cache = "/home/devuser/.cache/my-tool"
 
 - **キー**: ボリューム名（`${CONTAINER_SERVICE_NAME}_` がプレフィックスとして付与されたDockernamed volumeになります）
 - **値**: コンテナ内の絶対パス
+- `${USERNAME}` でコンテナのユーザー名を参照可能（[変数置換](#変数置換)を参照）
 - `setup-docker.sh` と `rebuild-container.sh` 実行後に反映されます
+
+## 変数置換
+
+`workspace.toml` の `[volumes]` セクションでは、ボリュームパスに `${USERNAME}` 変数を使用できます。この変数は実行時に `[container]` の `username` の値に置換されます。
+
+```toml
+[container]
+username = "devuser"
+
+[volumes]
+deno = "/home/${USERNAME}/.deno"   # → /home/devuser/.deno
+```
+
+プラグインTOMLファイル（`plugins/*.toml`）でも `user_dirs`、`dockerfile`、`[volumes]` パスで `${USERNAME}` が使用されます。詳細は[リファレンス](reference.ja.md#プラグインの作成方法)を参照してください。
 
 ## 自動検出される情報
 

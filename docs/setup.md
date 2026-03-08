@@ -191,7 +191,22 @@ custom-cache = "/home/devuser/.cache/my-tool"
 
 - **Key**: volume name (used as Docker named volume name, prefixed with `${CONTAINER_SERVICE_NAME}_`)
 - **Value**: absolute path inside the container
+- Use `${USERNAME}` to reference the container username (see [Variable Substitution](#variable-substitution))
 - Changes take effect after running `setup-docker.sh` and `rebuild-container.sh`
+
+## Variable Substitution
+
+`workspace.toml` supports the `${USERNAME}` variable in volume paths under the `[volumes]` section. This variable is replaced at runtime with the `username` value from `[container]`.
+
+```toml
+[container]
+username = "devuser"
+
+[volumes]
+deno = "/home/${USERNAME}/.deno"   # → /home/devuser/.deno
+```
+
+Plugin TOML files (`plugins/*.toml`) also use `${USERNAME}` in `user_dirs`, `dockerfile`, and `[volumes]` paths. See the [reference](reference.md#creating-a-plugin) for details.
 
 ## Auto-detected Information
 
