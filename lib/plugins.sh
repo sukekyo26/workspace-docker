@@ -18,7 +18,7 @@ TOML_PARSER="$_LIB_DIR/toml_parser.py"
 # Run Python via uv with correct project root
 # Supports _UV_PROJECT_ROOT override for integration tests
 _uv_python() {
-  uv run --project "${_UV_PROJECT_ROOT:-$_PROJECT_ROOT}" python "$@"
+  uv run --no-dev --project "${_UV_PROJECT_ROOT:-$_PROJECT_ROOT}" python "$@"
 }
 
 # Load utility functions (_parse_toml_output)

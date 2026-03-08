@@ -21,7 +21,7 @@ export _UV_PROJECT_ROOT="$PROJECT_ROOT"
 
 # Run Python via uv (available to all tests without sourcing lib/plugins.sh)
 _uv_python() {
-  uv run --project "${_UV_PROJECT_ROOT:-$PROJECT_ROOT}" python "$@"
+  uv run --no-dev --project "${_UV_PROJECT_ROOT:-$PROJECT_ROOT}" python "$@"
 }
 
 # ===== Assert Functions =====
