@@ -13,3 +13,4 @@ applyTo: "lib/**/*.sh,*.sh,plugins/**"
 - `declare -n`（nameref）使用後は `unset -n` で参照を解放する。解放しないとグローバルスコープに変数が残存する
 - `.env` 等の設定ファイル生成で here-doc を使う場合、変数展開させないために `<< 'EOF'` を使い、値は `printf '%s\n'` で安全に書き込む
 - プラグイン追加時は `.github/workflows/ci.yml` の `docker-build` ジョブのプラグインリストにも追加する。CI でビルドテストされないプラグインは品質が保証されない
+- プラグイン追加時は `tests/unit/plugins/test_<name>.sh` のユニットテストも作成する。既存テスト（例: `test_go.sh`）をテンプレートにする
