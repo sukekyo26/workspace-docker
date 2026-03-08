@@ -82,17 +82,18 @@
         "dockerfile": {
           "type": "string",
           "description": "Dockerfile snippet for installation"
+        },
+        "volumes": {
+          "type": "array",
+          "description": "Docker volume mount paths. Volume names are auto-derived from path basenames. Use ${USERNAME} for the container username. Path must be directly under /home/${USERNAME}/.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^/home/\\$\\{USERNAME\\}/[^/]+$",
+            "description": "Absolute container path for the volume mount (must be directly under /home/${USERNAME}/)"
+          },
+          "uniqueItems": true
         }
-      }
-    },
-    "volumes": {
-      "type": "object",
-      "description": "Named Docker volumes. Key = volume name, value = container path. Use ${USERNAME} for the container username. Path must be directly under /home/${USERNAME}/.",
-      "additionalProperties": {
-        "type": "string",
-        "minLength": 1,
-        "pattern": "^/home/\\$\\{USERNAME\\}/[^/]+$",
-        "description": "Absolute container path for the volume mount (must be directly under /home/${USERNAME}/)"
       }
     },
     "version": {

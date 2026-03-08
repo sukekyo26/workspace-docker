@@ -15,9 +15,7 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-in
 ENV PATH="/home/${USERNAME}/.cargo/bin:$PATH"
 '''
 
-[volumes]
-cargo = "/home/${USERNAME}/.cargo"
-rustup = "/home/${USERNAME}/.rustup"
+volumes = ["/home/${USERNAME}/.cargo", "/home/${USERNAME}/.rustup"]
 
 [version]
 strategy = "latest"

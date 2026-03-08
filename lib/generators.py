@@ -104,6 +104,17 @@ class Generator(ABC):
         return list(self._data.get("plugins", {}).get("enable", []))
 
     @staticmethod
+    def derive_volume_name(path: str) -> str:
+        """Derive a Docker volume name from a mount path.
+
+        Takes the basename, strips leading dot (Docker volume names
+        must match [a-zA-Z0-9][a-zA-Z0-9_.-]*).
+        e.g. /home/${USERNAME}/.aws -> aws, /home/${USERNAME}/go -> go
+        """
+        basename = path.rstrip("/").rsplit("/", 1)[-1]
+        return basename.lstrip(".")
+
+    @staticmethod
     def get_plugin_volumes(
         plugins_dir: str,
         enabled_plugins: list[str],
@@ -113,13 +124,15 @@ class Generator(ABC):
         """Get volumes from enabled plugins.
 
         Returns list of (plugin_name, vol_name, vol_path) tuples.
+        Volume names are auto-derived from paths.
         """
         cache = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
         volumes: list[tuple[str, str, str]] = []
         for plugin_id, data in cache.items():
             name = data.get("metadata", {}).get("name", plugin_id)
-            vols = data.get("volumes", {})
-            for vol_name, vol_path in vols.items():
+            vol_paths: list[str] = data.get("install", {}).get("volumes", [])
+            for vol_path in vol_paths:
+                vol_name = Generator.derive_volume_name(vol_path)
                 volumes.append((name, vol_name, vol_path))
         return volumes
 
@@ -173,31 +186,6 @@ class ComposeGenerator(Generator):
         )
         custom_volumes = self._data.get("volumes", {})
 
-        # Error on duplicate volume names between plugins
-        name_to_plugin: dict[str, str] = {}
-        dup_name_errors: list[str] = []
-        for plugin_name, vol_name, _ in plugin_volumes:
-            if vol_name in name_to_plugin:
-                dup_name_errors.append(
-                    f"ERROR: Volume name '{vol_name}' is defined by both "
-                    f"plugin '{name_to_plugin[vol_name]}' and plugin '{plugin_name}'. "
-                    "Each volume name must be unique across plugins.",
-                )
-            else:
-                name_to_plugin[vol_name] = plugin_name
-
-        # Error on duplicate volume names between plugins and workspace.toml
-        duplicates = [vn for vn in custom_volumes if vn in name_to_plugin]
-        for vn in duplicates:
-            dup_name_errors.append(
-                f"ERROR: Volume '{vn}' in [volumes] is already defined by an enabled plugin. "
-                "Remove it from workspace.toml to avoid duplicate definitions.",
-            )
-        if dup_name_errors:
-            for msg in dup_name_errors:
-                print(msg, file=sys.stderr)
-            sys.exit(1)
-
         # Warn on duplicate volume paths (same container path) and merge
         path_to_source: dict[str, tuple[str, str]] = {}  # path -> (source_label, vol_name)
         merged_plugin_volumes: list[tuple[str, str, str]] = []
@@ -206,13 +194,27 @@ class ComposeGenerator(Generator):
                 existing_label, existing_vol_name = path_to_source[vol_path]
                 print(
                     f"WARNING: Volume path '{vol_path}' is defined by both "
-                    f"{existing_label} and plugin '{plugin_name}' (volume '{vol_name}'). "
+                    f"{existing_label} and plugin '{plugin_name}'. "
                     f"Using single volume '{existing_vol_name}'.",
                     file=sys.stderr,
                 )
             else:
-                path_to_source[vol_path] = (f"plugin '{plugin_name}' (volume '{vol_name}')", vol_name)
+                path_to_source[vol_path] = (f"plugin '{plugin_name}'", vol_name)
                 merged_plugin_volumes.append((plugin_name, vol_name, vol_path))
+
+        # Error on duplicate volume names between plugins and workspace.toml
+        plugin_vol_names = {vn for _, vn, _ in merged_plugin_volumes}
+        dup_name_errors: list[str] = []
+        for vn in custom_volumes:
+            if vn in plugin_vol_names:
+                dup_name_errors.append(
+                    f"ERROR: Volume '{vn}' in [volumes] conflicts with an enabled plugin's "
+                    "auto-derived volume name. Remove it from workspace.toml or disable the plugin.",
+                )
+        if dup_name_errors:
+            for msg in dup_name_errors:
+                print(msg, file=sys.stderr)
+            sys.exit(1)
 
         merged_custom_volumes: dict[str, str] = {}
         for vol_name, vol_path in custom_volumes.items():
@@ -571,11 +573,11 @@ WORKDIR /home/${USERNAME}/workspace
                     file=sys.stderr,
                 )
 
-            volumes = data.get("volumes", {})
-            for vol_name, vol_path in volumes.items():
+            volumes: list[str] = install.get("volumes", [])
+            for vol_path in volumes:
                 if not vol_path.startswith("/"):
                     print(
-                        f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has non-absolute path: {vol_path}",
+                        f"WARNING: Plugin '{plugin_id}' has non-absolute volume path: {vol_path}",
                         file=sys.stderr,
                     )
 

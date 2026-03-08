@@ -35,8 +35,8 @@ def plugins_dir(tmp_path: Path) -> str:
     (plugins / "test-plugin.toml").write_text(
         '[metadata]\nname = "Test Plugin"\ndescription = "test"\ndefault = false\n\n'
         "[install]\nrequires_root = false\n"
-        'dockerfile = "RUN echo test"\n\n'
-        '[volumes]\ntest-data = "/home/${USERNAME}/.test"\n\n'
+        'dockerfile = "RUN echo test"\n'
+        'volumes = ["/home/${USERNAME}/.test"]\n\n'
         "[version]\nstrategy = \"latest\"\n"
     )
 
@@ -225,7 +225,7 @@ class TestGetPluginVolumes:
         assert len(vols) == 1
         name, vol_name, vol_path = vols[0]
         assert name == "Test Plugin"
-        assert vol_name == "test-data"
+        assert vol_name == "test"
         assert "${USERNAME}" in vol_path
 
     def test_without_volumes(self, plugins_dir: str) -> None:
@@ -249,8 +249,8 @@ class TestComposeGenerator:
 
     def test_plugin_volumes_included(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
         output = ComposeGenerator(workspace_data, plugins_dir).generate()
-        assert "test-data:" in output
-        assert "CONTAINER_SERVICE_NAME}_test-data" in output
+        assert "test:" in output
+        assert "CONTAINER_SERVICE_NAME}_test" in output
         assert "COMPOSE_PROJECT_NAME}" in output
 
     def test_custom_volumes(self, plugins_dir: str) -> None:
@@ -816,20 +816,20 @@ class TestComposeGeneratorDuplicateVolume:
     """Test that duplicate volume names between plugins and workspace.toml raise an error."""
 
     def test_duplicate_raises_systemexit(self, tmp_path: Path) -> None:
-        """Volume name matching an enabled plugin's volume must exit with error."""
+        """Volume name matching an enabled plugin's derived volume name must exit with error."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
         (plugins / "vol-plugin.toml").write_text(
             '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo vol"\n\n'
-            '[volumes]\nmydata = "/home/${USERNAME}/.mydata"\n\n'
+            'volumes = ["/home/${USERNAME}/.mydata"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": ["vol-plugin"]},
             "ports": {"forward": [3000]},
-            "volumes": {"mydata": "/home/${USERNAME}/.mydata"},
+            "volumes": {"mydata": "/home/${USERNAME}/.other"},
         }
         with pytest.raises(SystemExit):
             ComposeGenerator(data, str(plugins)).generate()
@@ -841,7 +841,7 @@ class TestComposeGeneratorDuplicateVolume:
         (plugins / "vol-plugin.toml").write_text(
             '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo vol"\n\n'
-            '[volumes]\nplugin-data = "/home/${USERNAME}/.plugindata"\n\n'
+            'volumes = ["/home/${USERNAME}/.plugindata"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
@@ -851,7 +851,7 @@ class TestComposeGeneratorDuplicateVolume:
             "volumes": {"custom-data": "/home/${USERNAME}/.customdata"},
         }
         output = ComposeGenerator(data, str(plugins)).generate()
-        assert "plugin-data:" in output
+        assert "plugindata:" in output
         assert "custom-data:" in output
 
     def test_no_error_when_plugin_disabled(self, tmp_path: Path) -> None:
@@ -861,7 +861,7 @@ class TestComposeGeneratorDuplicateVolume:
         (plugins / "vol-plugin.toml").write_text(
             '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo vol"\n\n'
-            '[volumes]\nmydata = "/home/${USERNAME}/.mydata"\n\n'
+            'volumes = ["/home/${USERNAME}/.mydata"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
@@ -903,7 +903,7 @@ class TestComposeGeneratorDuplicateVolumePath:
         (plugins / "vol-plugin.toml").write_text(
             '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo vol"\n\n'
-            '[volumes]\nplugin-data = "/home/${USERNAME}/.shared"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
@@ -917,7 +917,7 @@ class TestComposeGeneratorDuplicateVolumePath:
         assert "WARNING" in captured.err
         assert ".shared" in captured.err
         # Plugin volume kept, custom merged away
-        assert "plugin-data:" in output
+        assert "shared:" in output
         assert "custom-data:" not in output
 
     def test_distinct_paths_no_error(self, tmp_path: Path) -> None:
@@ -927,7 +927,7 @@ class TestComposeGeneratorDuplicateVolumePath:
         (plugins / "vol-plugin.toml").write_text(
             '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo vol"\n\n'
-            '[volumes]\nplugin-data = "/home/${USERNAME}/.plugin"\n\n'
+            'volumes = ["/home/${USERNAME}/.plugin"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
@@ -937,7 +937,7 @@ class TestComposeGeneratorDuplicateVolumePath:
             "volumes": {"custom-data": "/home/${USERNAME}/.custom"},
         }
         output = ComposeGenerator(data, str(plugins)).generate()
-        assert "plugin-data:" in output
+        assert "plugin:" in output
         assert "custom-data:" in output
 
     def test_duplicate_paths_between_plugins_warns_and_merges(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -947,13 +947,13 @@ class TestComposeGeneratorDuplicateVolumePath:
         (plugins / "plug-a.toml").write_text(
             '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo a"\n\n'
-            '[volumes]\nvol-a = "/home/${USERNAME}/.shared"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         (plugins / "plug-b.toml").write_text(
             '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo b"\n\n'
-            '[volumes]\nvol-b = "/home/${USERNAME}/.shared"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
@@ -965,58 +965,47 @@ class TestComposeGeneratorDuplicateVolumePath:
         captured = capsys.readouterr()
         assert "WARNING" in captured.err
         assert ".shared" in captured.err
-        # First plugin's volume kept
-        assert "vol-a:" in output
-        assert "vol-b:" not in output
+        # First plugin's volume kept (derived name "shared")
+        assert "shared:" in output
 
 
 class TestComposeGeneratorDuplicateVolumeNameBetweenPlugins:
-    """Test that duplicate volume names between plugins raise an error."""
+    """Test derived volume name conflicts between plugins and workspace.toml."""
 
-    def test_same_volume_name_between_plugins_exits(self, tmp_path: Path) -> None:
-        """Two plugins defining the same volume name must exit with error."""
+    def test_derived_name_conflicts_with_workspace_vol_exits(self, tmp_path: Path) -> None:
+        """Plugin's derived volume name matching workspace.toml volume name must exit."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
         (plugins / "plug-a.toml").write_text(
             '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo a"\n\n'
-            '[volumes]\nshared = "/home/${USERNAME}/.data-a"\n\n'
-            '[version]\nstrategy = "latest"\n'
-        )
-        (plugins / "plug-b.toml").write_text(
-            '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
-            'dockerfile = "RUN echo b"\n\n'
-            '[volumes]\nshared = "/home/${USERNAME}/.data-b"\n\n'
+            'volumes = ["/home/${USERNAME}/.data-a"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
             "container": {"service_name": "test", "username": "u"},
-            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "plugins": {"enable": ["plug-a"]},
             "ports": {"forward": [3000]},
+            "volumes": {"data-a": "/home/${USERNAME}/.other"},
         }
         with pytest.raises(SystemExit):
             ComposeGenerator(data, str(plugins)).generate()
 
-    def test_same_volume_name_error_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-        """Error message should contain the duplicate volume name and both plugin names."""
+    def test_derived_name_conflict_error_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Error message should contain the conflicting volume name."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
         (plugins / "plug-a.toml").write_text(
             '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
             'dockerfile = "RUN echo a"\n\n'
-            '[volumes]\nshared = "/home/${USERNAME}/.data-a"\n\n'
-            '[version]\nstrategy = "latest"\n'
-        )
-        (plugins / "plug-b.toml").write_text(
-            '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
-            'dockerfile = "RUN echo b"\n\n'
-            '[volumes]\nshared = "/home/${USERNAME}/.data-b"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
             '[version]\nstrategy = "latest"\n'
         )
         data: dict[str, object] = {
             "container": {"service_name": "test", "username": "u"},
-            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "plugins": {"enable": ["plug-a"]},
             "ports": {"forward": [3000]},
+            "volumes": {"shared": "/home/${USERNAME}/.other"},
         }
         with pytest.raises(SystemExit):
             ComposeGenerator(data, str(plugins)).generate()

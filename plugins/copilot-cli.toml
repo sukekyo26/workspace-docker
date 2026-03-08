@@ -13,8 +13,7 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/
     rm -f /tmp/install-copilot.sh
 '''
 
-[volumes]
-copilot = "/home/${USERNAME}/.copilot"
+volumes = ["/home/${USERNAME}/.copilot"]
 
 [version]
 strategy = "latest"

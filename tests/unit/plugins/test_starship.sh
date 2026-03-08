@@ -26,6 +26,8 @@ test_starship() {
   assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
   assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
   assert_ne "VERSION_PIN is set" "" "$PLUGIN_VERSION_PIN"
+  assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
+  assert_eq "volume name is config" "config" "${PLUGIN_VOLUME_NAMES[0]}"
 
   local result
   result=$(generate_plugin_installs "starship")

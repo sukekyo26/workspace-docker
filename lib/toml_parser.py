@@ -172,17 +172,21 @@ class PluginCommand(TomlCommand):
                 file=sys.stderr,
             )
 
-        # Volumes: name = path
-        volumes = data.get("volumes", {})
-        for vol_name, vol_path in volumes.items():
+        # Volumes: array of paths, names auto-derived from basenames
+        volumes: list[str] = install.get("volumes", [])
+        vol_names: list[str] = []
+        for vol_path in volumes:
             if not vol_path.startswith("/"):
                 print(
-                    f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has "
-                    f"non-absolute path: {vol_path}",
+                    f"WARNING: Plugin '{plugin_id}' has "
+                    f"non-absolute volume path: {vol_path}",
                     file=sys.stderr,
                 )
-        kv("PLUGIN_VOLUME_NAMES", list(volumes.keys()))
-        kv("PLUGIN_VOLUME_PATHS", list(volumes.values()))
+            # Derive name: basename, strip leading dot
+            basename = vol_path.rstrip("/").rsplit("/", 1)[-1]
+            vol_names.append(basename.lstrip("."))
+        kv("PLUGIN_VOLUME_NAMES", vol_names)
+        kv("PLUGIN_VOLUME_PATHS", volumes)
 
         version = data.get("version", {})
         kv("PLUGIN_VERSION_PIN", version.get("pin", ""))

@@ -108,9 +108,7 @@ dockerfile = '''
 # Install Test Tool
 RUN curl -fsSL https://example.com/install.sh | bash
 '''
-
-[volumes]
-test-data = "/home/${USERNAME}/.test"
+volumes = ["/home/${USERNAME}/.test"]
 
 [version]
 pin = "1.2.3"
@@ -130,7 +128,7 @@ TOML
   assert_eq "PLUGIN_DESCRIPTION" "A test plugin" "$PLUGIN_DESCRIPTION"
   assert_eq "PLUGIN_DEFAULT" "true" "$PLUGIN_DEFAULT"
   assert_file_contains "PLUGIN_DOCKERFILE contains RUN" <(echo "$PLUGIN_DOCKERFILE") "RUN"
-  assert_eq "PLUGIN_VOLUME_NAMES[0]" "test-data" "${PLUGIN_VOLUME_NAMES[0]}"
+  assert_eq "PLUGIN_VOLUME_NAMES[0]" "test" "${PLUGIN_VOLUME_NAMES[0]}"
   # shellcheck disable=SC2016
   assert_eq "PLUGIN_VOLUME_PATHS[0]" '/home/${USERNAME}/.test' "${PLUGIN_VOLUME_PATHS[0]}"
   assert_eq "PLUGIN_VERSION_PIN" "1.2.3" "$PLUGIN_VERSION_PIN"

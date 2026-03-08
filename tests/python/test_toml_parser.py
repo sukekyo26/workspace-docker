@@ -181,7 +181,7 @@ class TestPluginCommand:
         ) as f:
             f.write(
                 '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
-                'dockerfile = ""\n\n[volumes]\ndata = "/home/dev/.data"\n'
+                'dockerfile = ""\nvolumes = ["/home/dev/.data"]\n'
             )
             f.flush()
             try:
@@ -236,7 +236,7 @@ class TestPluginCommand:
         ) as f:
             f.write(
                 '[metadata]\nname = "RelPath Plugin"\n\n[install]\nrequires_root = false\n'
-                'dockerfile = "RUN echo test"\n\n[volumes]\ndata = "relative/path"\n'
+                'dockerfile = "RUN echo test"\nvolumes = ["relative/path"]\n'
             )
             f.flush()
             try:
@@ -255,7 +255,7 @@ class TestPluginCommand:
         ) as f:
             f.write(
                 '[metadata]\nname = "AbsPath Plugin"\n\n[install]\nrequires_root = false\n'
-                'dockerfile = "RUN echo test"\n\n[volumes]\ndata = "/home/user/.data"\n'
+                'dockerfile = "RUN echo test"\nvolumes = ["/home/user/.data"]\n'
             )
             f.flush()
             try:

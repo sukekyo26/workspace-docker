@@ -20,8 +20,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     rm -rf aws awscliv2.zip
 '''
 
-[volumes]
-aws = "/home/${USERNAME}/.aws"
+volumes = ["/home/${USERNAME}/.aws"]
 
 [version]
 strategy = "latest"

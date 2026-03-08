@@ -6,6 +6,7 @@ conflicts = ["custom-ps1"]
 
 [install]
 requires_root = false
+user_dirs = ["/home/${USERNAME}/.config"]
 dockerfile = '''
 # Install Starship
 USER root
@@ -22,6 +23,8 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 USER ${USERNAME}
 RUN echo 'eval "$(starship init bash)"' >> ~/.bashrc
 '''
+
+volumes = ["/home/${USERNAME}/.config"]
 
 [version]
 pin = "1.24.2"

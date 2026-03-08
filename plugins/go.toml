@@ -22,8 +22,7 @@ ENV GOPATH="/home/${USERNAME}/go"
 ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
 '''
 
-[volumes]
-go = "/home/${USERNAME}/go"
+volumes = ["/home/${USERNAME}/go"]
 
 [version]
 pin = "1.26.1"
