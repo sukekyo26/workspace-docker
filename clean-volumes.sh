@@ -109,14 +109,13 @@ fi
 # Stop Containers if Running
 # ============================================================
 
-# Use project label to find containers (handles devcontainer-managed containers
-# that are started with additional temporary compose files)
-mapfile -t running_containers < <(docker ps -q --filter "label=com.docker.compose.project=${PROJECT_NAME}" 2>/dev/null || true)
-if [[ ${#running_containers[@]} -gt 0 && -n "${running_containers[0]}" ]]; then
+# Use project label to find ALL containers including stopped ones
+# (stopped containers still hold volume references, preventing deletion)
+mapfile -t project_containers < <(docker ps -aq --filter "label=com.docker.compose.project=${PROJECT_NAME}" 2>/dev/null || true)
+if [[ ${#project_containers[@]} -gt 0 && -n "${project_containers[0]}" ]]; then
   echo ""
   echo -e "${CYAN}$(msg clean_stopping)${NC}"
-  docker stop "${running_containers[@]}" 2>/dev/null || true
-  docker rm "${running_containers[@]}" 2>/dev/null || true
+  docker rm -f "${project_containers[@]}" &>/dev/null || true
 fi
 
 # ============================================================
@@ -128,7 +127,7 @@ echo -e "${CYAN}$(msg clean_deleting)${NC}"
 
 failed=0
 for vol in "${volumes[@]}"; do
-  if docker volume rm "$vol" 2>/dev/null; then
+  if docker volume rm "$vol" &>/dev/null; then
     echo -e "  ${GREEN}✅${NC} $vol"
   else
     echo -e "  ${RED}❌${NC} $(msg clean_vol_failed "$vol")"
@@ -139,20 +138,6 @@ done
 # ============================================================
 # Done
 # ============================================================
-
-# Remove associated Docker images (including devcontainer-generated images)
-mapfile -t images < <(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^(vsc-.*${PROJECT_NAME}|${PROJECT_NAME}-${SERVICE_NAME}):" 2>/dev/null || true)
-if [[ ${#images[@]} -gt 0 && -n "${images[0]}" ]]; then
-  echo ""
-  echo -e "${CYAN}$(msg clean_removing_images "${#images[@]}")${NC}"
-  for img in "${images[@]}"; do
-    if docker rmi "$img" 2>/dev/null; then
-      echo -e "  ${GREEN}✅${NC} $img"
-    else
-      echo -e "  ${RED}❌${NC} $(msg clean_image_failed "$img")"
-    fi
-  done
-fi
 
 echo ""
 if [[ "$failed" -eq 0 ]]; then
