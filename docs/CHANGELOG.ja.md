@@ -41,6 +41,8 @@
 - `select_multi` に `q` キーによるキャンセル機能を追加
 
 ### 変更
+- **破壊的**: プラグインボリューム形式を `[volumes]` セクション（名前-パスペア）から `[install]` 内の `volumes = ["パス"]` 配列に変更 — ボリューム名はパスから自動導出（basename の先頭ドット除去、例: `~/.aws` → `aws`）
+- `starship` プラグイン: 永続的な設定保存のため `~/.config` ボリューム宣言を追加
 - `custom-ps1` プラグイン: デフォルトを `true` から `false` に変更（オプション扱い、デフォルトでは無効）
 - `clean-volumes.sh`: devcontainer 互換性のため `docker compose down` の代わりに Docker ラベルベースのコンテナ検索に変更
 - `docs/reference.md` / `docs/reference.ja.md`: プラグインリスト更新（全14個）、`--lang` オプションのドキュメント追加、コアスクリプトに `clean-volumes.sh` を追加

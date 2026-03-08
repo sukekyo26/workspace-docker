@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
 
 ### Changed
+- **BREAKING**: Plugin volumes format changed from `[volumes]` section (name-path pairs) to `volumes = ["path"]` array inside `[install]` — volume names are now auto-derived from paths (basename with leading dot stripped, e.g., `~/.aws` → `aws`)
+- `starship` plugin: added `~/.config` volume declaration for persistent configuration
 - `custom-ps1` plugin: changed default from `true` to `false` (optional, not enabled by default)
 - `clean-volumes.sh`: use Docker label-based container lookup instead of `docker compose down` for devcontainer compatibility
 - `docs/reference.md` / `docs/reference.ja.md`: updated plugin list (all 14 plugins), added `--lang` option docs, added `clean-volumes.sh` to core scripts
