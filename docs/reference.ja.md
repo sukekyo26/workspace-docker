@@ -298,7 +298,7 @@ bash tests/run_all.sh
 - `setup-docker.sh` - セットアップスクリプト（対話式または`workspace.toml`から再生成）
 - `rebuild-container.sh` - devcontainer CLIを使用したキャッシュなしリビルドスクリプト
 - `generate-workspace.sh` - マルチルートワークスペース生成スクリプト
-- `clean-volumes.sh` - プロジェクトのDockerボリュームとイメージを全削除
+- `clean-volumes.sh` - プロジェクトのDockerボリュームを全削除
 
 ### 設定
 - `workspace.toml` - ユーザー設定（コンテナ名、ユーザー名、プラグイン、ポート、VSCode拡張機能、カスタムボリューム）

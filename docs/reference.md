@@ -298,7 +298,7 @@ bash tests/run_all.sh
 - `setup-docker.sh` - Setup script (interactive or regenerate from `workspace.toml`)
 - `rebuild-container.sh` - No-cache rebuild of Dev Container image using devcontainer CLI
 - `generate-workspace.sh` - Multi-root workspace generator
-- `clean-volumes.sh` - Delete all Docker volumes and images for this project
+- `clean-volumes.sh` - Delete all Docker volumes for this project
 
 ### Configuration
 - `workspace.toml` - User configuration (container name, username, plugins, ports, vscode extensions, custom volumes)

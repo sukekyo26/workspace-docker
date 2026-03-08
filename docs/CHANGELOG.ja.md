@@ -9,7 +9,6 @@
 
 ### 追加
 - 全シェルスクリプト（`setup-docker.sh`、`clean-volumes.sh`、`rebuild-container.sh`、`generate-workspace.sh`）に `--lang` オプション追加 — `WORKSPACE_LANG` 環境変数の代替として言語選択が可能に
-- `clean-volumes.sh`: devcontainer イメージのクリーンアップ追加 — ボリューム削除後に `vsc-*` およびプロジェクト・サービスイメージを削除
 - `docs/setup.md` / `docs/setup.ja.md`: `[volumes]` パスでの `${USERNAME}` 変数置換についてのドキュメントセクション追加
 - `toml_parser.py` に `sync-schema` コマンド追加 — `setup-docker.sh` 実行時に `workspace.schema.json` の plugins enum を `plugins/` ディレクトリから自動同期
 - `tests/unit/plugins/test_starship.sh`: starship プラグインのユニットテスト追加（チェックサム検証・TLS 強制）
@@ -37,7 +36,7 @@
 
 ### 変更
 - `custom-ps1` プラグイン: デフォルトを `true` から `false` に変更（オプション扱い、デフォルトでは無効）
-- `clean-volumes.sh`: devcontainer 互換性のため `docker compose down` の代わりに Docker ラベルベースのコンテナ停止に変更
+- `clean-volumes.sh`: devcontainer 互換性のため `docker compose down` の代わりに Docker ラベルベースのコンテナ検索に変更
 - `docs/reference.md` / `docs/reference.ja.md`: プラグインリスト更新（全14個）、`--lang` オプションのドキュメント追加、コアスクリプトに `clean-volumes.sh` を追加
 - README の利用可能プラグインリストをリファレンスドキュメントへのリンクに変更（README 肍大化防止）
 - README から「品質保証」の特徴行を削除（内部詳細でありユーザー向け機能ではない）
@@ -62,6 +61,7 @@
 - 設定ファイルから個人設定（`localeOverride`）を削除
 
 ### 修正
+- `clean-volumes.sh`: 停止済みコンテナ（`docker ps -aq`）も削除してからボリューム削除を実行するように修正 — 停止済みコンテナがボリューム参照を保持し `docker volume rm` が失敗していた
 - `pyproject.toml`: ruff lint 設定の非推奨 `TCH` を `TC` に修正（ruff 0.5+ でのリネーム対応）
 - 生成される TOML 配列（例: `[vscode].extensions`）のインデントを2スペースから4スペースに修正（TOML 規約に準拠）
 - `validate_service_name` のパターンを JSON Schema と統一（`^[a-z][a-z0-9_-]*$`）— 大文字や数字/アンダースコア開始の名前を一貫して拒否
