@@ -299,6 +299,33 @@ class ValidatePluginsCommand(TomlCommand):
         print(f"OK: {validated} plugins validated")
 
 
+class SyncSchemaCommand(TomlCommand):
+    """Sync workspace.schema.json plugins enum from plugins/ directory."""
+
+    def execute(self, target: str) -> None:
+        if not os.path.isdir(target):
+            print(f"ERROR: Directory not found: {target}", file=sys.stderr)
+            sys.exit(1)
+
+        plugin_ids = sorted(
+            fname.removesuffix(".toml")
+            for fname in os.listdir(target)
+            if fname.endswith(".toml")
+        )
+
+        schema_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "schemas", "workspace.schema.json"
+        )
+        with open(schema_path, encoding="utf-8") as f:
+            schema = json.load(f)
+
+        schema["properties"]["plugins"]["properties"]["enable"]["items"]["enum"] = plugin_ids
+
+        with open(schema_path, "w", encoding="utf-8") as f:
+            json.dump(schema, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
+
 # ============================================================
 # Command registry
 # ============================================================
@@ -309,6 +336,7 @@ COMMANDS: dict[str, TomlCommand] = {
     "list-plugins": ListPluginsCommand(),
     "validate-workspace": ValidateWorkspaceCommand(),
     "validate-plugins": ValidatePluginsCommand(),
+    "sync-schema": SyncSchemaCommand(),
 }
 
 

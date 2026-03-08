@@ -248,6 +248,7 @@ validate_no_duplicate_apt_packages \
 # ============================================================
 # Schema validation
 # ============================================================
+sync_plugin_schema
 validate_workspace_toml "$WORKSPACE_TOML"
 validate_plugin_tomls
 

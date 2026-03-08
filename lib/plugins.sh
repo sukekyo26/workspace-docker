@@ -103,6 +103,14 @@ validate_plugin_tomls() {
   _uv_python "$TOML_PARSER" validate-plugins "$plugins_dir"
 }
 
+# Sync workspace.schema.json plugins enum from plugins/ directory
+# Usage: sync_plugin_schema
+sync_plugin_schema() {
+  local plugins_dir
+  plugins_dir=$(get_plugins_dir)
+  _uv_python "$TOML_PARSER" sync-schema "$plugins_dir"
+}
+
 # List available plugins with their metadata
 # Usage: list_available_plugins
 # Sets: PLUGIN_IDS, PLUGIN_NAMES, PLUGIN_DESCRIPTIONS, PLUGIN_DEFAULTS
