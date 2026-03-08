@@ -20,8 +20,8 @@ validate_service_name() {
     return 1
   fi
 
-  # Check for valid characters (alphanumeric, dash, underscore)
-  if [[ ! "$name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  # Check for valid characters (lowercase alphanumeric, dash, underscore, must start with letter)
+  if [[ ! "$name" =~ ^[a-z][a-z0-9_-]*$ ]]; then
     echo "ERROR: $(msg err_service_name_invalid)" >&2
     return 1
   fi

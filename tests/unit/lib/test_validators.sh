@@ -28,6 +28,10 @@ test_validate_service_name() {
   assert_false "invalid: empty string" validate_service_name ""
   assert_false "invalid: contains space" validate_service_name "my container"
   assert_false "invalid: contains dot" validate_service_name "my.container"
+  assert_false "invalid: starts with uppercase" validate_service_name "Dev"
+  assert_false "invalid: contains uppercase" validate_service_name "myContainer"
+  assert_false "invalid: starts with digit" validate_service_name "1dev"
+  assert_false "invalid: starts with underscore" validate_service_name "_dev"
 }
 
 # ============================================================
