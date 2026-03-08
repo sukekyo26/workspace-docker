@@ -34,7 +34,7 @@ select = [
     "UP",   # pyupgrade
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
-    "TCH",  # flake8-type-checking
+    "TC",   # flake8-type-checking
     "RUF",  # ruff-specific
 ]
 ignore = [
@@ -43,7 +43,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "lib/generators.py" = ["E501"]  # Dockerfile template constant contains long lines
-"tests/python/*.py" = ["E402", "TCH"]  # sys.path manipulation; pytest import at runtime
+"tests/python/*.py" = ["E402", "TC"]  # sys.path manipulation; pytest import at runtime
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
