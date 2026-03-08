@@ -5,7 +5,7 @@ default = false
 
 [install]
 requires_root = true
-user_dirs = ["/home/${USERNAME}/.config/gh"]
+user_dirs = ["/home/${USERNAME}/.config"]
 dockerfile = '''
 # Install GitHub CLI
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
@@ -19,7 +19,7 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
 '''
 
 [volumes]
-gh-config = "/home/${USERNAME}/.config/gh"
+config = "/home/${USERNAME}/.config"
 
 [version]
 strategy = "latest"

@@ -19,7 +19,7 @@ services:
       - "local:/home/${USERNAME}/.local"
       - "proto:/home/${USERNAME}/.proto"
       - "aws:/home/${USERNAME}/.aws"
-      - "gh-config:/home/${USERNAME}/.config/gh"
+      - "config:/home/${USERNAME}/.config"
       - "copilot:/home/${USERNAME}/.copilot"
       - "claude:/home/${USERNAME}/.claude"
       - "cargo:/home/${USERNAME}/.cargo"
@@ -35,8 +35,8 @@ volumes:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_proto"
   aws:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_aws"
-  gh-config:
-    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_gh-config"
+  config:
+    name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_config"
   copilot:
     name: "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_copilot"
   claude:

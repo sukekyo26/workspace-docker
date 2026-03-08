@@ -147,7 +147,7 @@ test_regenerate_all_plugins() {
   assert_file_contains "uv present" "$tmpdir/Dockerfile" 'uv'
   assert_file_contains "Zig present" "$tmpdir/Dockerfile" 'Zig'
   assert_file_contains "aws volume" "$tmpdir/docker-compose.yml" 'aws:'
-  assert_file_contains "gh-config volume" "$tmpdir/docker-compose.yml" 'gh-config:'
+  assert_file_contains "config volume" "$tmpdir/docker-compose.yml" 'config:'
   assert_file_contains "copilot volume" "$tmpdir/docker-compose.yml" 'copilot:'
   assert_file_contains "claude volume" "$tmpdir/docker-compose.yml" 'claude:'
 

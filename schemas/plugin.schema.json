@@ -87,11 +87,12 @@
     },
     "volumes": {
       "type": "object",
-      "description": "Named Docker volumes. Key = volume name, value = container path. Use ${USERNAME} for the container username.",
+      "description": "Named Docker volumes. Key = volume name, value = container path. Use ${USERNAME} for the container username. Path must be directly under /home/${USERNAME}/.",
       "additionalProperties": {
         "type": "string",
         "minLength": 1,
-        "description": "Absolute container path for the volume mount"
+        "pattern": "^/home/\\$\\{USERNAME\\}/[^/]+$",
+        "description": "Absolute container path for the volume mount (must be directly under /home/${USERNAME}/)"
       }
     },
     "version": {

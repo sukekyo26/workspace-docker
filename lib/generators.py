@@ -173,43 +173,62 @@ class ComposeGenerator(Generator):
         )
         custom_volumes = self._data.get("volumes", {})
 
-        # Error on duplicate volume names between plugins and workspace.toml
-        plugin_vol_names = {vol_name for _, vol_name, _ in plugin_volumes}
-        duplicates = [vn for vn in custom_volumes if vn in plugin_vol_names]
-        if duplicates:
-            for vn in duplicates:
-                print(
-                    f"ERROR: Volume '{vn}' in [volumes] is already defined by an enabled plugin. "
-                    "Remove it from workspace.toml to avoid duplicate definitions.",
-                    file=sys.stderr,
+        # Error on duplicate volume names between plugins
+        name_to_plugin: dict[str, str] = {}
+        dup_name_errors: list[str] = []
+        for plugin_name, vol_name, _ in plugin_volumes:
+            if vol_name in name_to_plugin:
+                dup_name_errors.append(
+                    f"ERROR: Volume name '{vol_name}' is defined by both "
+                    f"plugin '{name_to_plugin[vol_name]}' and plugin '{plugin_name}'. "
+                    "Each volume name must be unique across plugins.",
                 )
-            sys.exit(1)
+            else:
+                name_to_plugin[vol_name] = plugin_name
 
-        # Error on duplicate volume paths (same container path, different names)
-        path_to_source: dict[str, str] = {}
-        dup_path_errors: list[str] = []
-        for plugin_name, vol_name, vol_path in plugin_volumes:
-            if vol_path in path_to_source:
-                dup_path_errors.append(
-                    f"ERROR: Volume path '{vol_path}' is used by both "
-                    f"'{path_to_source[vol_path]}' and plugin '{plugin_name}' (volume '{vol_name}'). "
-                    "Each container path must be mounted by only one volume.",
-                )
-            else:
-                path_to_source[vol_path] = f"plugin '{plugin_name}' (volume '{vol_name}')"
-        for vol_name, vol_path in custom_volumes.items():
-            if vol_path in path_to_source:
-                dup_path_errors.append(
-                    f"ERROR: Volume path '{vol_path}' is used by both "
-                    f"'{path_to_source[vol_path]}' and workspace.toml volume '{vol_name}'. "
-                    "Each container path must be mounted by only one volume.",
-                )
-            else:
-                path_to_source[vol_path] = f"workspace.toml volume '{vol_name}'"
-        if dup_path_errors:
-            for msg in dup_path_errors:
+        # Error on duplicate volume names between plugins and workspace.toml
+        duplicates = [vn for vn in custom_volumes if vn in name_to_plugin]
+        for vn in duplicates:
+            dup_name_errors.append(
+                f"ERROR: Volume '{vn}' in [volumes] is already defined by an enabled plugin. "
+                "Remove it from workspace.toml to avoid duplicate definitions.",
+            )
+        if dup_name_errors:
+            for msg in dup_name_errors:
                 print(msg, file=sys.stderr)
             sys.exit(1)
+
+        # Warn on duplicate volume paths (same container path) and merge
+        path_to_source: dict[str, tuple[str, str]] = {}  # path -> (source_label, vol_name)
+        merged_plugin_volumes: list[tuple[str, str, str]] = []
+        for plugin_name, vol_name, vol_path in plugin_volumes:
+            if vol_path in path_to_source:
+                existing_label, existing_vol_name = path_to_source[vol_path]
+                print(
+                    f"WARNING: Volume path '{vol_path}' is defined by both "
+                    f"{existing_label} and plugin '{plugin_name}' (volume '{vol_name}'). "
+                    f"Using single volume '{existing_vol_name}'.",
+                    file=sys.stderr,
+                )
+            else:
+                path_to_source[vol_path] = (f"plugin '{plugin_name}' (volume '{vol_name}')", vol_name)
+                merged_plugin_volumes.append((plugin_name, vol_name, vol_path))
+
+        merged_custom_volumes: dict[str, str] = {}
+        for vol_name, vol_path in custom_volumes.items():
+            if vol_path in path_to_source:
+                existing_label, existing_vol_name = path_to_source[vol_path]
+                print(
+                    f"WARNING: Volume path '{vol_path}' is defined by both "
+                    f"{existing_label} and workspace.toml volume '{vol_name}'. "
+                    f"Using single volume '{existing_vol_name}'.",
+                    file=sys.stderr,
+                )
+            else:
+                path_to_source[vol_path] = (f"workspace.toml volume '{vol_name}'", vol_name)
+                merged_custom_volumes[vol_name] = vol_path
+
+        plugin_volumes = merged_plugin_volumes
 
         # Build volumes list for service
         volume_mounts: list[str] = [
@@ -219,7 +238,7 @@ class ComposeGenerator(Generator):
         ]
         for _, vol_name, vol_path in plugin_volumes:
             volume_mounts.append(f"{vol_name}:{vol_path}")
-        for vol_name, vol_path in custom_volumes.items():
+        for vol_name, vol_path in merged_custom_volumes.items():
             volume_mounts.append(f"{vol_name}:{vol_path}")
 
         # Build service config
@@ -252,7 +271,7 @@ class ComposeGenerator(Generator):
         }
         for _, vol_name, _ in plugin_volumes:
             vol_defs[vol_name] = {"name": f"${{COMPOSE_PROJECT_NAME}}_${{CONTAINER_SERVICE_NAME}}_{vol_name}"}
-        for vn in custom_volumes:
+        for vn in merged_custom_volumes:
             vol_defs[vn] = {"name": f"${{COMPOSE_PROJECT_NAME}}_${{CONTAINER_SERVICE_NAME}}_{vn}"}
 
         compose: dict[str, Any] = {

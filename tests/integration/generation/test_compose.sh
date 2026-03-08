@@ -39,7 +39,7 @@ test_docker_compose_generation() {
   assert_file_contains "service name replaced" "$WORK_DIR/docker-compose.yml" "$service_name"
   assert_file_matches "volumes section exists" "$WORK_DIR/docker-compose.yml" '^volumes:'
   assert_file_contains "aws volume present" "$WORK_DIR/docker-compose.yml" 'aws:'
-  assert_file_contains "gh-config volume present" "$WORK_DIR/docker-compose.yml" 'gh-config:'
+  assert_file_contains "config volume present" "$WORK_DIR/docker-compose.yml" 'config:'
 
   teardown_workspace
 }

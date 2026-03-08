@@ -875,10 +875,10 @@ class TestComposeGeneratorDuplicateVolume:
 
 
 class TestComposeGeneratorDuplicateVolumePath:
-    """Test that duplicate volume paths (same container path, different names) raise an error."""
+    """Test that duplicate volume paths (same container path) produce warnings and merge."""
 
-    def test_duplicate_paths_in_custom_volumes(self, plugins_dir: str) -> None:
-        """Two custom volumes with the same path must exit with error."""
+    def test_duplicate_paths_in_custom_volumes_warns_and_merges(self, plugins_dir: str, capsys: pytest.CaptureFixture[str]) -> None:
+        """Two custom volumes with the same path should warn and keep the first."""
         data: dict[str, object] = {
             "container": {"service_name": "test", "username": "u"},
             "plugins": {"enable": []},
@@ -888,11 +888,16 @@ class TestComposeGeneratorDuplicateVolumePath:
                 "vol-b": "/home/${USERNAME}/.cache",
             },
         }
-        with pytest.raises(SystemExit):
-            ComposeGenerator(data, plugins_dir).generate()
+        output = ComposeGenerator(data, plugins_dir).generate()
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert ".cache" in captured.err
+        # First volume kept, second merged away
+        assert "vol-a:" in output
+        assert "vol-b:" not in output
 
-    def test_custom_vol_path_conflicts_with_plugin_vol_path(self, tmp_path: Path) -> None:
-        """Custom volume with same path as enabled plugin's volume must exit with error."""
+    def test_custom_vol_path_conflicts_with_plugin_warns_and_merges(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Custom volume with same path as enabled plugin's volume should warn and merge."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
         (plugins / "vol-plugin.toml").write_text(
@@ -907,8 +912,13 @@ class TestComposeGeneratorDuplicateVolumePath:
             "ports": {"forward": [3000]},
             "volumes": {"custom-data": "/home/${USERNAME}/.shared"},
         }
-        with pytest.raises(SystemExit):
-            ComposeGenerator(data, str(plugins)).generate()
+        output = ComposeGenerator(data, str(plugins)).generate()
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert ".shared" in captured.err
+        # Plugin volume kept, custom merged away
+        assert "plugin-data:" in output
+        assert "custom-data:" not in output
 
     def test_distinct_paths_no_error(self, tmp_path: Path) -> None:
         """Volumes with distinct paths must not raise an error."""
@@ -929,6 +939,90 @@ class TestComposeGeneratorDuplicateVolumePath:
         output = ComposeGenerator(data, str(plugins)).generate()
         assert "plugin-data:" in output
         assert "custom-data:" in output
+
+    def test_duplicate_paths_between_plugins_warns_and_merges(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Two plugins with same volume path should warn and keep the first."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo a"\n\n'
+            '[volumes]\nvol-a = "/home/${USERNAME}/.shared"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo b"\n\n'
+            '[volumes]\nvol-b = "/home/${USERNAME}/.shared"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert ".shared" in captured.err
+        # First plugin's volume kept
+        assert "vol-a:" in output
+        assert "vol-b:" not in output
+
+
+class TestComposeGeneratorDuplicateVolumeNameBetweenPlugins:
+    """Test that duplicate volume names between plugins raise an error."""
+
+    def test_same_volume_name_between_plugins_exits(self, tmp_path: Path) -> None:
+        """Two plugins defining the same volume name must exit with error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo a"\n\n'
+            '[volumes]\nshared = "/home/${USERNAME}/.data-a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo b"\n\n'
+            '[volumes]\nshared = "/home/${USERNAME}/.data-b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+
+    def test_same_volume_name_error_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Error message should contain the duplicate volume name and both plugin names."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo a"\n\n'
+            '[volumes]\nshared = "/home/${USERNAME}/.data-a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo b"\n\n'
+            '[volumes]\nshared = "/home/${USERNAME}/.data-b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+        captured = capsys.readouterr()
+        assert "ERROR" in captured.err
+        assert "shared" in captured.err
 
 
 class TestDevcontainerComposeGeneratorMinimalComments:
