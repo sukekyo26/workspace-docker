@@ -5,15 +5,20 @@
 ### Development Tools
 
 **Plugin Tools** (configured via `workspace.toml`, defined in `plugins/*.toml`):
-- **proto** (`proto`, default: on) — Unified multi-language version manager (Python, Node.js, Bun, Deno, Go, Rust, 100+ tools)
 - **Docker CLI** (`docker-cli`, default: on) — Container operations (using host Docker daemon via socket mount)
+- **proto** (`proto`) — Unified multi-language version manager (Python, Node.js, Bun, Deno, Go, Rust, 100+ tools)
 - **AWS CLI v2** (`aws-cli`) — AWS resource management
 - **AWS SAM CLI** (`aws-sam-cli`) — Build, test and invoke serverless Lambda functions locally
 - **GitHub CLI** (`github-cli`) — GitHub command-line interface for repository management and workflows
 - **GitHub Copilot CLI** (`copilot-cli`) — AI-powered command-line assistant
 - **Claude Code** (`claude-code`) — AI-powered coding assistant by Anthropic
 - **uv** (`uv`) — Fast Python package and project manager by Astral
+- **Go** (`go`) — Go programming language with checksum verification and GOPATH volume
+- **Rust** (`rust`) — Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
 - **Zig** (`zig`) — Zig compiler for cargo-lambda cross-compilation (supports x86_64 and aarch64)
+- **lazygit** (`lazygit`) — Terminal UI for git commands with checksum verification
+- **Starship** (`starship`) — Cross-shell prompt with rich customization (conflicts with `custom-ps1`)
+- **Custom PS1** (`custom-ps1`) — Lightweight bash prompt with container name, git status, and colors (conflicts with `starship`)
 
 Each plugin is a self-contained TOML file in `plugins/` with metadata, Dockerfile instructions, and version info. To add a new tool, create a new `plugins/<name>.toml` file.
 
@@ -28,6 +33,7 @@ To add a new tool, create `plugins/<name>.toml` with the following structure:
 name = "My Tool"                  # Display name
 description = "What this tool does"
 default = false                   # true = enabled by default
+conflicts = ["other-plugin"]      # Optional: mutually exclusive plugins
 
 [apt]
 packages = ["libfoo-dev"]         # Optional: apt dependencies
@@ -35,13 +41,11 @@ packages = ["libfoo-dev"]         # Optional: apt dependencies
 [install]
 requires_root = false             # true = runs as root (USER switch is automatic)
 user_dirs = ["/home/${USERNAME}/.tool"]  # Optional: dirs to create with user ownership
+volumes = ["/home/${USERNAME}/.tool"]    # Optional: persistent volume mounts (name auto-derived from path)
 dockerfile = '''
 # Dockerfile RUN instructions to install the tool
 RUN curl -fsSL https://example.com/install.sh | sh
 '''
-
-[volumes]
-tool-data = "/home/${USERNAME}/.tool"  # Optional: persistent volume mounts
 
 [version]
 strategy = "latest"               # "latest" or "pin"
@@ -54,8 +58,21 @@ pin = ""                          # Version string when strategy = "pin"
 - **`user_dirs`**: Directories that need to exist with user ownership before installation. All enabled plugins' directories are merged and created in a single `USER root` block before any plugin installs. Intermediate parent directories are automatically included.
 - **`${USERNAME}`**: Use this variable in volume paths and dockerfile instructions. It is substituted at build time with the value from `workspace.toml`.
 - **`[apt].packages`**: Dependencies are only installed when the plugin is enabled. Duplicates with the base package list (`config/apt-base-packages.conf`) are automatically detected.
-- **`[volumes]`**: Paths must be absolute. The volume name is prefixed with the service name in docker-compose.yml. Mount target directories are created with user permissions in the Dockerfile.
+- **`volumes`** (inside `[install]`): An array of absolute paths under `/home/${USERNAME}/`. Volume names are auto-derived from the path basename (leading dot stripped, e.g., `/home/${USERNAME}/.aws` → `aws`). Mount target directories are created with user permissions in the Dockerfile.
 - **`dockerfile`**: Use triple-quoted strings (`'''...'''`). Each instruction should clean up after itself (`apt-get clean`, `rm -rf /tmp/*`).
+- **`conflicts`**: List of plugin IDs that cannot be enabled simultaneously. When two plugins that conflict are both in the `[plugins].enable` list, the generator exits with an error. Both sides of the conflict should declare each other for documentation clarity, though a one-sided declaration is sufficient for detection.
+
+### Plugin Conflicts
+
+Some plugins are mutually exclusive — enabling both causes broken behavior (e.g., duplicate PS1 settings). Use the `conflicts` field in `[metadata]` to declare these relationships.
+
+| Plugin | Conflicts With | Reason |
+|--------|----------------|--------|
+| `starship` | `custom-ps1` | Both write PS1 configuration to `~/.bashrc`. Starship takes full control of the prompt; custom-ps1 sets a static PS1 string. |
+
+**Choosing between them:**
+- **Starship** — Feature-rich, cross-shell prompt with git integration, execution time, language versions, and extensive theming via `starship.toml`
+- **Custom PS1** — Lightweight, zero-dependency bash prompt with container name, git branch/status, and color coding
 
 ### Example: minimal plugin
 
@@ -125,7 +142,6 @@ Base packages are managed in `config/apt-base-packages.conf`. Project-specific e
 - **bash-completion** - Command auto-completion
 - **procps** - Process monitoring utilities (ps, top, etc.)
 - **iproute2** - Advanced networking utilities (ip command)
-- **lsb-release** - Linux Standard Base version reporting utility
 - **uuid-runtime** - UUID generation utility (uuidgen command)
 
 ### Development Libraries
@@ -224,7 +240,9 @@ To find extension IDs: open VS Code Extensions panel → right-click an extensio
 
 ## Workspace Settings
 
-`config/workspace-settings.json` defines VS Code editor settings that are embedded into `.code-workspace` files generated by `generate-workspace.sh`.
+`config/workspace-settings.json.example` defines default VS Code editor settings that are embedded into `.code-workspace` files generated by `generate-workspace.sh`.
+
+To customize, copy `config/workspace-settings.json.example` to `config/workspace-settings.json` and edit. The generator uses `workspace-settings.json` if present, otherwise falls back to the `.example` file.
 
 **Default settings:**
 
@@ -237,9 +255,6 @@ To find extension IDs: open VS Code Extensions panel → right-click an extensio
 | `editor.insertSpaces` | `true` | Use spaces instead of tabs |
 | `editor.detectIndentation` | `false` | Use configured tabSize, don't auto-detect |
 | `editor.tabSize` | `2` | Default indent size (4 for Python and Dockerfile) |
-| `github.copilot.chat.localeOverride` | `ja` | Copilot Chat language override |
-
-To customize, edit `config/workspace-settings.json` directly. Changes apply to newly generated workspace files.
 
 ## Security Design
 
@@ -281,21 +296,28 @@ bash tests/run_all.sh
 - `setup-docker.sh` - Setup script (interactive or regenerate from `workspace.toml`)
 - `rebuild-container.sh` - No-cache rebuild of Dev Container image using devcontainer CLI
 - `generate-workspace.sh` - Multi-root workspace generator
+- `clean-volumes.sh` - Delete all Docker volumes for this project
+- `clean-docker.sh` - Interactive Docker resource cleanup (containers, build cache, images, networks, volumes)
 
 ### Configuration
 - `workspace.toml` - User configuration (container name, username, plugins, ports, vscode extensions, custom volumes)
-- `config/workspace-settings.json` - VS Code editor settings embedded into generated `.code-workspace` files
+- `config/workspace-settings.json.example` - Default VS Code editor settings (copy to `workspace-settings.json` to customize)
 - `config/apt-base-packages.conf` - Base apt packages installed in all containers
 - `config/.bashrc_custom` - User-specific shell configuration loaded on shell startup
 
 ### Plugins (`plugins/`)
-- `plugins/proto.toml` - proto version manager plugin (default: on)
 - `plugins/aws-cli.toml` - AWS CLI v2 plugin
 - `plugins/aws-sam-cli.toml` - AWS SAM CLI plugin
 - `plugins/claude-code.toml` - Claude Code plugin
 - `plugins/copilot-cli.toml` - GitHub Copilot CLI plugin
+- `plugins/custom-ps1.toml` - Custom PS1 prompt plugin (conflicts with starship)
 - `plugins/docker-cli.toml` - Docker CLI plugin (default: on)
 - `plugins/github-cli.toml` - GitHub CLI plugin
+- `plugins/go.toml` - Go programming language plugin
+- `plugins/lazygit.toml` - lazygit terminal UI plugin
+- `plugins/proto.toml` - proto version manager plugin
+- `plugins/rust.toml` - Rust toolchain plugin
+- `plugins/starship.toml` - Starship cross-shell prompt plugin (conflicts with custom-ps1)
 - `plugins/uv.toml` - uv package manager plugin
 - `plugins/zig.toml` - Zig compiler plugin
 
@@ -305,15 +327,23 @@ Each plugin TOML contains `[metadata]` (name, description, default), `[install]`
 - `lib/generators.py` - Programmatic generator for all output files (Dockerfile, docker-compose.yml, devcontainer.json, devcontainer docker-compose.yml)
 
 ### Libraries (`lib/`)
+
+All `lib/*.sh` files use `set -uo pipefail` without `-e`. This is intentional: these files are sourced (not executed) by entry-point scripts, so `set -e` would propagate to the caller and cause unexpected exits on arithmetic expressions or subshell return codes. Only standalone entry-point scripts (`setup-docker.sh`, `rebuild-container.sh`, `clean-volumes.sh`, `clean-docker.sh`) use `set -euo pipefail`.
+
 - `lib/generators.sh` - Python generator wrapper functions
 - `lib/plugins.sh` - Plugin loading and Dockerfile snippet generation
 - `lib/utils.sh` - General-purpose utilities (env parsing, symlink validation, Docker GID detection)
 - `lib/certificates.sh` - Certificate validation and management
 - `lib/toml_parser.py` - TOML parser (Python 3.11+ tomllib)
 - `lib/validators.sh` - Input validation library (service names, usernames)
+- `lib/i18n.sh` - Internationalization framework (`msg()`, `msgln()`)
 - `lib/logging.sh` - Error handling and messaging library
 - `lib/colors.sh` - Shared color constants for terminal output
 - `lib/devcontainer.sh` - devcontainer CLI prerequisite checks and WSL-compatible wrapper
+
+### Message Catalogs (`locale/`)
+- `locale/en.sh` - English messages (default)
+- `locale/ja.sh` - Japanese messages
 
 ### Tests (`tests/`)
 - `tests/run_all.sh` - Test runner for all 8 suites
@@ -327,3 +357,36 @@ Each plugin TOML contains `[metadata]` (name, description, default), `[install]`
   - Template validation and generator verification
   - Dockerfile linting with Hadolint
   - Docker build verification
+
+## i18n
+
+All user-facing messages support internationalization via the `lib/i18n.sh` framework.
+
+### How It Works
+
+- Message catalogs are stored in `locale/en.sh` (English, default) and `locale/ja.sh` (Japanese).
+- Set `WORKSPACE_LANG=ja` to display messages in Japanese. Default is English.
+- All scripts also accept `--lang ja` option (e.g., `bash setup-docker.sh --lang ja`).
+- Messages use `printf`-style `%s` placeholders for dynamic values.
+
+### Functions
+
+| Function | Output | Use Case |
+|----------|--------|----------|
+| `msg key [args...]` | No newline (printf) | Inline interpolation: `info "$(msg key)"` |
+| `msgln key [args...]` | With newline (printf) | Standalone output: `msgln key` |
+
+### Adding Messages
+
+1. Add the key to `locale/en.sh`: `_MSG[my_key]="English text %s"`
+2. Add the translation to `locale/ja.sh`: `_MSG[my_key]="日本語 %s"`
+3. Use in scripts: `msgln my_key "$value"` or `info "$(msg my_key "$value")"`
+
+### Language Policy
+
+| Context | Language | Rationale |
+|---------|----------|----------|
+| User-facing output (TUI, echo) | Configurable (EN/JA) | Controlled via `WORKSPACE_LANG` |
+| Log/error messages via `logging.sh` | Configurable (EN/JA) | Uses `msg()` for message lookup |
+| Code comments | English | Public repository on GitHub |
+| Documentation | Both (EN + JA) | Maintain `docs/*.md` and `docs/*.ja.md` in parallel |

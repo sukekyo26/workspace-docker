@@ -1,5 +1,7 @@
 # workspace-docker
 
+[日本語版 README](docs/README.ja.md)
+
 A Docker-based Ubuntu development environment template with a plugin-based tool selection system.
 
 ## Features
@@ -10,7 +12,6 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 - **Persistent Storage**: Plugin data and configurations persist across container recreations via named volumes
 - **Externalized Package Management**: Base apt packages managed in `config/apt-base-packages.conf`, project-specific extras via `workspace.toml`
 - **VS Code Dev Container Support**: Seamless integration with VS Code through `.devcontainer` configuration
-- **Quality Assurance**: 8 test suites with GitHub Actions CI/CD (ShellCheck, Hadolint, snapshot tests)
 
 ## Quick Start
 
@@ -18,20 +19,30 @@ A Docker-based Ubuntu development environment template with a plugin-based tool 
 
 - Docker installed on host machine
 - Bash 4.3+ (uses `declare -n` nameref)
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 - (Optional) VS Code + Dev Containers extension
 
 ### Setup
 
 ```bash
-# 1. Run setup script (interactive — generates workspace.toml and all config files)
+# 1. Install uv (if not installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Run setup script (interactive — generates workspace.toml and all config files)
 bash setup-docker.sh
 
-# 2. To reconfigure later, edit workspace.toml and re-run
+# 3. To reconfigure later, edit workspace.toml and re-run
 vim workspace.toml
 bash setup-docker.sh
 ```
 
+> **Note:** On the first run (or when `workspace.toml` does not exist), the interactive setup starts automatically.
+> To re-run the interactive setup, use `bash setup-docker.sh --init`.
+> For non-interactive setup with defaults, use `bash setup-docker.sh --init --yes`.
+
 #### workspace.toml
+
+You can create `workspace.toml` before running `setup-docker.sh` to pre-define extensions, volumes, and apt packages. The interactive setup (`--init`) preserves these sections.
 
 ```toml
 [container]
@@ -57,7 +68,9 @@ extensions = ["ms-python.python", "eamodio.gitlens"]
 my-data = "/home/devuser/.my-tool"
 ```
 
-Available plugins: `proto`, `aws-cli`, `aws-sam-cli`, `claude-code`, `copilot-cli`, `docker-cli`, `github-cli`, `uv`, `zig` (defined in `plugins/*.toml`)
+See [Reference — Pre-installed Applications](docs/reference.md) for the full list of available plugins.
+
+> **TOML Validation:** Install the [Even Better TOML](https://marketplace.visualstudio.com/items?itemName=tamasfe.even-better-toml) VS Code extension to enable IDE autocompletion and validation for `workspace.toml` via the bundled `.taplo.toml` configuration.
 
 ### Starting the Development Environment
 
@@ -99,10 +112,6 @@ Container: /home/<username>/workspace/
 | [Setup Guide](docs/setup.md) | Full configuration, CA certificates, multi-root workspace, troubleshooting |
 | [Usage Guide](docs/usage.md) | Development workflows, common commands, mounted directories |
 | [Reference](docs/reference.md) | Pre-installed software, system packages, shell features, project files |
-| [日本語版 README](docs/README.ja.md) | Japanese documentation |
-| [Setup Guide (日本語)](docs/setup.ja.md) | セットアップガイド |
-| [Usage Guide (日本語)](docs/usage.ja.md) | 使い方ガイド |
-| [Reference (日本語)](docs/reference.ja.md) | リファレンス |
 | [Changelog](CHANGELOG.md) | Version history |
 
 ## License

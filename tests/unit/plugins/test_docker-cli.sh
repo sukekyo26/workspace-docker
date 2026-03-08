@@ -17,16 +17,16 @@ echo "[ test_docker-cli.sh ]"
 # Test: docker-cli plugin specifics
 # ============================================================
 test_docker_cli() {
-    section "docker-cli specifics"
+  section "docker-cli specifics"
 
-    load_plugin "docker-cli"
-    assert_eq "PLUGIN_NAME" "Docker CLI" "$PLUGIN_NAME"
-    assert_eq "PLUGIN_REQUIRES_ROOT" "true" "$PLUGIN_REQUIRES_ROOT"
-    assert_true "PLUGIN_DOCKERFILE is non-empty" test -n "$PLUGIN_DOCKERFILE"
+  load_plugin "docker-cli"
+  assert_eq "PLUGIN_NAME" "Docker CLI" "$PLUGIN_NAME"
+  assert_eq "PLUGIN_REQUIRES_ROOT" "true" "$PLUGIN_REQUIRES_ROOT"
+  assert_true "PLUGIN_DOCKERFILE is non-empty" test -n "$PLUGIN_DOCKERFILE"
 
-    local result
-    result=$(generate_plugin_installs "docker-cli")
-    assert_file_contains "install contains Docker" <(echo "$result") "Docker"
+  local result
+  result=$(generate_plugin_installs "docker-cli")
+  assert_file_contains "install contains Docker" <(echo "$result") "Docker"
 }
 
 # ============================================================

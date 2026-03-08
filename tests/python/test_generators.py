@@ -35,8 +35,8 @@ def plugins_dir(tmp_path: Path) -> str:
     (plugins / "test-plugin.toml").write_text(
         '[metadata]\nname = "Test Plugin"\ndescription = "test"\ndefault = false\n\n'
         "[install]\nrequires_root = false\n"
-        'dockerfile = "RUN echo test"\n\n'
-        '[volumes]\ntest-data = "/home/${USERNAME}/.test"\n\n'
+        'dockerfile = "RUN echo test"\n'
+        'volumes = ["/home/${USERNAME}/.test"]\n\n'
         "[version]\nstrategy = \"latest\"\n"
     )
 
@@ -225,7 +225,7 @@ class TestGetPluginVolumes:
         assert len(vols) == 1
         name, vol_name, vol_path = vols[0]
         assert name == "Test Plugin"
-        assert vol_name == "test-data"
+        assert vol_name == "test"
         assert "${USERNAME}" in vol_path
 
     def test_without_volumes(self, plugins_dir: str) -> None:
@@ -249,8 +249,9 @@ class TestComposeGenerator:
 
     def test_plugin_volumes_included(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
         output = ComposeGenerator(workspace_data, plugins_dir).generate()
-        assert "test-data:" in output
-        assert "CONTAINER_SERVICE_NAME}_test-data" in output
+        assert "test:" in output
+        assert "CONTAINER_SERVICE_NAME}_test" in output
+        assert "COMPOSE_PROJECT_NAME}" in output
 
     def test_custom_volumes(self, plugins_dir: str) -> None:
         data: dict[str, object] = {
@@ -732,3 +733,460 @@ class TestUserDirs:
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["simple"])
         assert "Prepare plugin directories" not in result
         assert "RUN echo simple" in result
+
+    def test_empty_plugin_list(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), [])
+        assert result == ""
+
+    def test_nonexistent_plugin_warns(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["nonexistent"])
+        assert result == ""
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert "nonexistent" in captured.err
+
+    def test_duplicate_plugin_ids(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "dup.toml").write_text(
+            '[metadata]\nname = "Dup"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo dup"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["dup", "dup"])
+        # Duplicate IDs are deduplicated by the cache (dict keyed by plugin_id)
+        assert result.count("RUN echo dup") == 1
+
+    def test_plugin_without_dockerfile_key(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "empty-install.toml").write_text(
+            '[metadata]\nname = "Empty"\n\n'
+            "[install]\nrequires_root = false\n\n"
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["empty-install"])
+        assert result == ""
+
+
+class TestComposeGeneratorSequenceIndent:
+    """Test that list items (args, environment, volumes) are indented properly."""
+
+    def _parse(self, output: str) -> dict[str, object]:
+        return yaml.safe_load(output)  # type: ignore[no-any-return]
+
+    def test_args_indented(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        # args: is under build: (6 spaces), so list items must be at 8 spaces
+        for line in output.splitlines():
+            if "UBUNTU_VERSION" in line and line.lstrip().startswith("-"):
+                assert line.startswith("        -"), f"Expected 8-space indent: {line!r}"
+
+    def test_environment_indented(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        for line in output.splitlines():
+            if "CONTAINER_SERVICE_NAME" in line and line.lstrip().startswith("-"):
+                assert line.startswith("      -"), f"Expected 6-space indent: {line!r}"
+
+    def test_volumes_indented(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        # Volume mounts under service must be indented
+        in_service_volumes = False
+        for line in output.splitlines():
+            if line.strip() == "volumes:" and not line.startswith("volumes:"):
+                in_service_volumes = True
+            elif line.startswith("volumes:"):
+                in_service_volumes = False
+            elif in_service_volumes and line.lstrip().startswith("-"):
+                assert line.startswith("      -"), f"Expected 6-space indent: {line!r}"
+                break
+
+    def test_output_is_valid_yaml(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = ComposeGenerator(workspace_data, plugins_dir).generate()
+        parsed = self._parse(output)
+        assert isinstance(parsed, dict)
+
+
+class TestComposeGeneratorDuplicateVolume:
+    """Test that duplicate volume names between plugins and workspace.toml raise an error."""
+
+    def test_duplicate_raises_systemexit(self, tmp_path: Path) -> None:
+        """Volume name matching an enabled plugin's derived volume name must exit with error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            'volumes = ["/home/${USERNAME}/.mydata"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"mydata": "/home/${USERNAME}/.other"},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+
+    def test_no_error_when_different_names(self, tmp_path: Path) -> None:
+        """Different volume names between plugin and workspace.toml are allowed."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            'volumes = ["/home/${USERNAME}/.plugindata"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"custom-data": "/home/${USERNAME}/.customdata"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        assert "plugindata:" in output
+        assert "custom-data:" in output
+
+    def test_no_error_when_plugin_disabled(self, tmp_path: Path) -> None:
+        """Same name as a disabled plugin's volume is allowed in workspace.toml."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            'volumes = ["/home/${USERNAME}/.mydata"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},  # plugin disabled
+            "ports": {"forward": [3000]},
+            "volumes": {"mydata": "/home/${USERNAME}/.mydata"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        assert "mydata:" in output
+
+
+class TestComposeGeneratorDuplicateVolumePath:
+    """Test that duplicate volume paths (same container path) produce warnings and merge."""
+
+    def test_duplicate_paths_in_custom_volumes_warns_and_merges(self, plugins_dir: str, capsys: pytest.CaptureFixture[str]) -> None:
+        """Two custom volumes with the same path should warn and keep the first."""
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": []},
+            "ports": {"forward": [3000]},
+            "volumes": {
+                "vol-a": "/home/${USERNAME}/.cache",
+                "vol-b": "/home/${USERNAME}/.cache",
+            },
+        }
+        output = ComposeGenerator(data, plugins_dir).generate()
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert ".cache" in captured.err
+        # First volume kept, second merged away
+        assert "vol-a:" in output
+        assert "vol-b:" not in output
+
+    def test_custom_vol_path_conflicts_with_plugin_warns_and_merges(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Custom volume with same path as enabled plugin's volume should warn and merge."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"custom-data": "/home/${USERNAME}/.shared"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert ".shared" in captured.err
+        # Plugin volume kept, custom merged away
+        assert "shared:" in output
+        assert "custom-data:" not in output
+
+    def test_distinct_paths_no_error(self, tmp_path: Path) -> None:
+        """Volumes with distinct paths must not raise an error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "vol-plugin.toml").write_text(
+            '[metadata]\nname = "Vol Plugin"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo vol"\n\n'
+            'volumes = ["/home/${USERNAME}/.plugin"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["vol-plugin"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"custom-data": "/home/${USERNAME}/.custom"},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        assert "plugin:" in output
+        assert "custom-data:" in output
+
+    def test_duplicate_paths_between_plugins_warns_and_merges(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Two plugins with same volume path should warn and keep the first."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo a"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo b"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        output = ComposeGenerator(data, str(plugins)).generate()
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert ".shared" in captured.err
+        # First plugin's volume kept (derived name "shared")
+        assert "shared:" in output
+
+
+class TestComposeGeneratorDuplicateVolumeNameBetweenPlugins:
+    """Test derived volume name conflicts between plugins and workspace.toml."""
+
+    def test_derived_name_conflicts_with_workspace_vol_exits(self, tmp_path: Path) -> None:
+        """Plugin's derived volume name matching workspace.toml volume name must exit."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo a"\n\n'
+            'volumes = ["/home/${USERNAME}/.data-a"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"data-a": "/home/${USERNAME}/.other"},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+
+    def test_derived_name_conflict_error_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Error message should contain the conflicting volume name."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\n\n[install]\nrequires_root = false\n'
+            'dockerfile = "RUN echo a"\n\n'
+            'volumes = ["/home/${USERNAME}/.shared"]\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a"]},
+            "ports": {"forward": [3000]},
+            "volumes": {"shared": "/home/${USERNAME}/.other"},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins)).generate()
+        captured = capsys.readouterr()
+        assert "ERROR" in captured.err
+        assert "shared" in captured.err
+
+
+class TestDevcontainerComposeGeneratorMinimalComments:
+    """Test that DevcontainerComposeGenerator produces minimal comments."""
+
+    def test_no_commented_out_build_section(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "# build:" not in output
+        assert "# dockerfile:" not in output
+
+    def test_no_ptrace_comments(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "SYS_PTRACE" not in output
+        assert "seccomp" not in output
+
+    def test_header_comment_present(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "Auto-generated" in output
+
+    def test_essential_content_present(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        output = DevcontainerComposeGenerator(workspace_data, plugins_dir).generate()
+        assert "volumes:" in output
+        assert "group_add:" in output
+        assert "DOCKER_GID" in output
+        assert "sleep infinity" in output
+
+
+class TestPluginConflicts:
+    """Test plugin conflict detection."""
+
+    def test_conflicting_plugins_exit(self, tmp_path: Path) -> None:
+        """Enabling two plugins that declare conflicts must exit with error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\nconflicts = ["plug-a"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins))
+
+    def test_one_sided_conflict_exits(self, tmp_path: Path) -> None:
+        """Even if only one side declares the conflict, it must still exit."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins))
+
+    def test_conflict_error_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        """Error message should contain plugin names and 'conflicts with'."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a", "plug-b"]},
+            "ports": {"forward": [3000]},
+        }
+        with pytest.raises(SystemExit):
+            ComposeGenerator(data, str(plugins))
+        captured = capsys.readouterr()
+        assert "conflicts with" in captured.err
+        assert "Plugin A" in captured.err
+        assert "Plugin B" in captured.err
+
+    def test_no_conflict_when_disabled(self, tmp_path: Path) -> None:
+        """Conflicting plugin not in enable list should not trigger error."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a"]},
+            "ports": {"forward": [3000]},
+        }
+        # Should not raise
+        gen = ComposeGenerator(data, str(plugins))
+        output = gen.generate()
+        assert "services:" in output
+
+    def test_no_conflict_field_no_error(self, workspace_data: dict[str, object], plugins_dir: str) -> None:
+        """Plugins without conflicts field should work normally."""
+        gen = ComposeGenerator(workspace_data, plugins_dir)
+        output = gen.generate()
+        assert "services:" in output
+
+    def test_conflict_with_nonexistent_plugin(self, tmp_path: Path) -> None:
+        """Conflict with a plugin ID that doesn't exist (not enabled) is silently ignored."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["nonexistent"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        data: dict[str, object] = {
+            "container": {"service_name": "test", "username": "u"},
+            "plugins": {"enable": ["plug-a"]},
+            "ports": {"forward": [3000]},
+        }
+        gen = ComposeGenerator(data, str(plugins))
+        output = gen.generate()
+        assert "services:" in output
+
+    def test_cli_conflict_error(self, tmp_path: Path) -> None:
+        """CLI should return non-zero and user-friendly error on conflicts."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "plug-a.toml").write_text(
+            '[metadata]\nname = "Plugin A"\nconflicts = ["plug-b"]\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n'
+        )
+        (plugins / "plug-b.toml").write_text(
+            '[metadata]\nname = "Plugin B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b"\n'
+        )
+        workspace_toml = tmp_path / "workspace.toml"
+        workspace_toml.write_text(
+            '[container]\nservice_name = "test"\nusername = "u"\n'
+            'ubuntu_version = "24.04"\n\n'
+            '[plugins]\nenable = ["plug-a", "plug-b"]\n\n'
+            "[ports]\nforward = [3000]\n"
+        )
+        result = subprocess.run(
+            [sys.executable, str(LIB_DIR / "generators.py"), "compose", str(workspace_toml), str(plugins)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode != 0
+        assert "conflicts with" in result.stderr
+        assert "Traceback" not in result.stderr

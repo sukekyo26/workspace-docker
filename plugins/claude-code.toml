@@ -13,8 +13,7 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/i
     rm -f /tmp/install-claude.sh
 '''
 
-[volumes]
-claude = "/home/${USERNAME}/.claude"
+volumes = ["/home/${USERNAME}/.claude"]
 
 [version]
 strategy = "latest"

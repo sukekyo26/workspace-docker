@@ -21,11 +21,14 @@ Requires Python 3.11+ (tomllib).
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tomllib
 from abc import ABC, abstractmethod
 from typing import Any, cast
+
+import jsonschema
 
 # ============================================================
 # TOML loader
@@ -169,17 +172,21 @@ class PluginCommand(TomlCommand):
                 file=sys.stderr,
             )
 
-        # Volumes: name = path
-        volumes = data.get("volumes", {})
-        for vol_name, vol_path in volumes.items():
+        # Volumes: array of paths, names auto-derived from basenames
+        volumes: list[str] = install.get("volumes", [])
+        vol_names: list[str] = []
+        for vol_path in volumes:
             if not vol_path.startswith("/"):
                 print(
-                    f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has "
-                    f"non-absolute path: {vol_path}",
+                    f"WARNING: Plugin '{plugin_id}' has "
+                    f"non-absolute volume path: {vol_path}",
                     file=sys.stderr,
                 )
-        kv("PLUGIN_VOLUME_NAMES", list(volumes.keys()))
-        kv("PLUGIN_VOLUME_PATHS", list(volumes.values()))
+            # Derive name: basename, strip leading dot
+            basename = vol_path.rstrip("/").rsplit("/", 1)[-1]
+            vol_names.append(basename.lstrip("."))
+        kv("PLUGIN_VOLUME_NAMES", vol_names)
+        kv("PLUGIN_VOLUME_PATHS", volumes)
 
         version = data.get("version", {})
         kv("PLUGIN_VERSION_PIN", version.get("pin", ""))
@@ -211,7 +218,7 @@ class ListPluginsCommand(TomlCommand):
                         "default": metadata.get("default", False),
                     }
                 )
-            except Exception as e:
+            except (tomllib.TOMLDecodeError, OSError) as e:
                 print(
                     f"WARNING: Failed to parse {fname}: {e}",
                     file=sys.stderr,
@@ -225,6 +232,105 @@ class ListPluginsCommand(TomlCommand):
 
 
 # ============================================================
+# Validation commands
+# ============================================================
+
+
+def _load_schema(schema_name: str) -> dict[str, Any]:
+    """Load a JSON Schema file from the schemas/ directory."""
+    lib_dir = os.path.dirname(os.path.abspath(__file__))
+    schema_path = os.path.join(lib_dir, "..", "schemas", schema_name)
+    with open(schema_path, encoding="utf-8") as f:
+        return json.load(f)  # type: ignore[no-any-return]
+
+
+def _format_validation_error(error: jsonschema.ValidationError) -> str:
+    """Format a jsonschema ValidationError into a human-readable message."""
+    path = ".".join(str(p) for p in error.absolute_path) if error.absolute_path else "(root)"
+    return f"  {path}: {error.message}"
+
+
+class ValidateWorkspaceCommand(TomlCommand):
+    """Validate workspace.toml against the JSON Schema."""
+
+    def execute(self, target: str) -> None:
+        data = load_toml(target)
+        schema = _load_schema("workspace.schema.json")
+
+        errors = list(jsonschema.Draft7Validator(schema).iter_errors(data))  # pyright: ignore[reportUnknownMemberType]
+        if not errors:
+            print(f"OK: {target} is valid")
+            return
+
+        for error in sorted(errors, key=lambda e: list(e.absolute_path)):
+            print(f"ERROR: {target}: {_format_validation_error(error)}", file=sys.stderr)
+        sys.exit(1)
+
+
+class ValidatePluginsCommand(TomlCommand):
+    """Validate all plugin TOML files in a directory against the plugin schema."""
+
+    def execute(self, target: str) -> None:
+        if not os.path.isdir(target):
+            print(f"ERROR: Directory not found: {target}", file=sys.stderr)
+            sys.exit(1)
+
+        schema = _load_schema("plugin.schema.json")
+        validator = jsonschema.Draft7Validator(schema)
+        has_errors = False
+        validated = 0
+
+        for fname in sorted(os.listdir(target)):
+            if not fname.endswith(".toml"):
+                continue
+            fpath = os.path.join(target, fname)
+            try:
+                data = load_toml(fpath)
+            except (tomllib.TOMLDecodeError, OSError) as e:
+                print(f"ERROR: {fname}: Failed to parse: {e}", file=sys.stderr)
+                has_errors = True
+                continue
+
+            errors = list(validator.iter_errors(data))  # pyright: ignore[reportUnknownMemberType]
+            if errors:
+                for error in sorted(errors, key=lambda e: list(e.absolute_path)):
+                    print(f"ERROR: {fname}: {_format_validation_error(error)}", file=sys.stderr)
+                has_errors = True
+            validated += 1
+
+        if has_errors:
+            sys.exit(1)
+        print(f"OK: {validated} plugins validated")
+
+
+class SyncSchemaCommand(TomlCommand):
+    """Sync workspace.schema.json plugins enum from plugins/ directory."""
+
+    def execute(self, target: str) -> None:
+        if not os.path.isdir(target):
+            print(f"ERROR: Directory not found: {target}", file=sys.stderr)
+            sys.exit(1)
+
+        plugin_ids = sorted(
+            fname.removesuffix(".toml")
+            for fname in os.listdir(target)
+            if fname.endswith(".toml")
+        )
+
+        schema_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "schemas", "workspace.schema.json"
+        )
+        with open(schema_path, encoding="utf-8") as f:
+            schema = json.load(f)
+
+        schema["properties"]["plugins"]["properties"]["enable"]["items"]["enum"] = plugin_ids
+
+        with open(schema_path, "w", encoding="utf-8") as f:
+            json.dump(schema, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+
+
+# ============================================================
 # Command registry
 # ============================================================
 
@@ -232,6 +338,9 @@ COMMANDS: dict[str, TomlCommand] = {
     "workspace": WorkspaceCommand(),
     "plugin": PluginCommand(),
     "list-plugins": ListPluginsCommand(),
+    "validate-workspace": ValidateWorkspaceCommand(),
+    "validate-plugins": ValidatePluginsCommand(),
+    "sync-schema": SyncSchemaCommand(),
 }
 
 

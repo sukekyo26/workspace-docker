@@ -1,3 +1,4 @@
+# Auto-generated from workspace.toml — do not edit directly.
 ARG UBUNTU_VERSION
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -55,12 +56,10 @@ RUN apt-get update && \
     libxmlsec1-dev \
     libffi-dev \
     liblzma-dev \
-    lsb-release \
     && locale-gen en_US.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
 RUN userdel -r ubuntu 2>/dev/null || true && \
     groupdel ubuntu 2>/dev/null || true && \
     groupadd -g ${GID} ${USERNAME} && \
@@ -82,18 +81,17 @@ RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bash
     echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \
     echo 'fi' >> ~/.bashrc
 
+
+# Prepare plugin directories with correct ownership
+USER root
+RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go && \
+    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go
+USER ${USERNAME}
 # Custom PS1 with Docker container name, user/host, working directory, and git status
 RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
     echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
-
-
-# Prepare plugin directories with correct ownership
-USER root
-RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto && \
-    chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.config/gh /home/${USERNAME}/.copilot /home/${USERNAME}/.proto
-USER ${USERNAME}
 # proto (multi-language version manager)
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
     bash /tmp/install-proto.sh --no-profile --yes && \
@@ -106,8 +104,9 @@ USER root
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 ARG DOCKER_GID
 RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+    curl -fsSL --proto '=https' --tlsv1.2 https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    . /etc/os-release && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
     > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
@@ -142,9 +141,9 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 USER root
 # Install GitHub CLI
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
-    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
@@ -167,7 +166,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
     echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
     mkdir -p /usr/local/zig && \
     tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
@@ -180,6 +179,40 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tm
     rm -f /tmp/install-uv.sh && \
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+# Install Rust toolchain via rustup
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh && \
+    sh /tmp/rustup-init.sh -y --default-toolchain stable --component clippy --component rustfmt && \
+    rm -f /tmp/rustup-init.sh && \
+    echo '. "$HOME/.cargo/env"' >> ~/.bashrc
+ENV PATH="/home/${USERNAME}/.cargo/bin:$PATH"
+USER root
+# Install Go
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+    amd64) CHECKSUM="031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a" ;; \
+    arm64) CHECKSUM="a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7" ;; \
+    *) CHECKSUM="031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://go.dev/dl/go1.26.1.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
+    echo "${CHECKSUM}  /tmp/go.tar.gz" | sha256sum -c - && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
+ENV GOPATH="/home/${USERNAME}/go"
+ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
+USER ${USERNAME}
+USER root
+# Install lazygit
+RUN ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2" ;; \
+        arm64) DOWNLOAD_ARCH="arm64" ; CHECKSUM="a334a6c125169f21942f1a8b02043932575547a6250a1a734d62111efd92aa8f" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/jesseduffield/lazygit/releases/download/v0.59.0/lazygit_0.59.0_linux_${DOWNLOAD_ARCH}.tar.gz" -o /tmp/lazygit.tar.gz && \
+    echo "${CHECKSUM}  /tmp/lazygit.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit && \
+    rm /tmp/lazygit.tar.gz
+USER ${USERNAME}
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.local

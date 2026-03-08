@@ -17,20 +17,20 @@ echo "[ test_uv.sh ]"
 # Test: uv plugin specifics
 # ============================================================
 test_uv() {
-    section "uv specifics"
+  section "uv specifics"
 
-    load_plugin "uv"
-    assert_eq "PLUGIN_NAME" "uv" "$PLUGIN_NAME"
-    local expected_default
-    expected_default=$(get_plugin_default "uv")
-    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
-    assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
-    assert_true "no volumes" test "${#PLUGIN_VOLUME_NAMES[@]}" -eq 0
+  load_plugin "uv"
+  assert_eq "PLUGIN_NAME" "uv" "$PLUGIN_NAME"
+  local expected_default
+  expected_default=$(get_plugin_default "uv")
+  assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
+  assert_eq "PLUGIN_REQUIRES_ROOT" "false" "$PLUGIN_REQUIRES_ROOT"
+  assert_true "no volumes" test "${#PLUGIN_VOLUME_NAMES[@]}" -eq 0
 
-    local result
-    result=$(generate_plugin_installs "uv")
-    assert_file_contains "install contains uv" <(echo "$result") "uv"
-    assert_file_contains "install sets PATH" <(echo "$result") "PATH"
+  local result
+  result=$(generate_plugin_installs "uv")
+  assert_file_contains "install contains uv" <(echo "$result") "uv"
+  assert_file_contains "install sets PATH" <(echo "$result") "PATH"
 }
 
 # ============================================================

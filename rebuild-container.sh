@@ -1,18 +1,18 @@
 #!/bin/bash
 
 # ============================================================
-# rebuild-container.sh - キャッシュなし Dev Container リビルド
+# rebuild-container.sh - No-cache Dev Container rebuild
 # ============================================================
-# ホストOSから実行し、Docker イメージをキャッシュなしで再ビルドした上で
-# Dev Container を再作成・起動します。
+# Run from the host OS to rebuild the Docker image without cache
+# and recreate/start the Dev Container.
 #
-# ※ コンテナ内からは実行できません
+# Cannot be run from inside a container.
 #
-# 使い方: ./rebuild-container.sh
+# Usage: ./rebuild-container.sh
 #
-# 前提条件:
-#   - Docker がインストール・起動済みであること
-#   - curl がインストール済みであること（devcontainer CLI 自動インストール用）
+# Prerequisites:
+#   - Docker is installed and running
+#   - curl is installed (for devcontainer CLI auto-install)
 # ============================================================
 
 set -euo pipefail
@@ -20,8 +20,19 @@ set -euo pipefail
 # ===== Resolve Script Location =====
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 WORKSPACE_DIR="$SCRIPT_DIR"
+# Pre-parse --lang option (must be set before i18n.sh is loaded)
+_prev=""
+for _arg in "$@"; do
+  if [[ "$_prev" == "--lang" ]]; then
+    export WORKSPACE_LANG="$_arg"
+  fi
+  _prev="$_arg"
+done
+unset _arg _prev
 # ===== Load Shared Libraries =====
 source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/i18n.sh"
+source "$SCRIPT_DIR/lib/logging.sh"
 source "$SCRIPT_DIR/lib/utils.sh"
 source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
@@ -29,17 +40,15 @@ source "$SCRIPT_DIR/lib/devcontainer.sh"
 # ============================================================
 
 if [[ -f /.dockerenv ]] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
-    echo -e "${RED}ERROR:${NC} このスクリプトはコンテナ内からは実行できません"
-    echo "  ホストOSから実行してください"
-    exit 1
+  die "$(msg rebuild_inside_container)"
 fi
 
 echo ""
 echo -e "${BOLD}========================================"
-echo " キャッシュなしリビルドスクリプト"
+echo " $(msg rebuild_header)"
 echo -e "========================================${NC}"
 echo ""
-echo -e "ワークスペース: ${BOLD}${WORKSPACE_DIR}${NC}"
+echo -e "$(msg rebuild_workspace) ${BOLD}${WORKSPACE_DIR}${NC}"
 
 # ============================================================
 # Prerequisites Check (via lib/devcontainer.sh)
@@ -58,18 +67,18 @@ WORKSPACE_NAME=$(basename "$WORKSPACE_DIR")
 IMAGE_NAME="${WORKSPACE_NAME}-${SERVICE_NAME}"
 
 if docker image inspect "$IMAGE_NAME" &>/dev/null; then
-    CREATED_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
-    if [[ -n "$CREATED_DATE" ]]; then
-        CREATED_EPOCH=$(date -d "$CREATED_DATE" +%s 2>/dev/null || echo "0")
-        CURRENT_EPOCH=$(date +%s)
-        DAYS_OLD=$(( (CURRENT_EPOCH - CREATED_EPOCH) / 86400 ))
-        FORMATTED_DATE=$(date -d "$CREATED_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$CREATED_DATE")
+  CREATED_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
+  if [[ -n "$CREATED_DATE" ]]; then
+    CREATED_EPOCH=$(date -d "$CREATED_DATE" +%s 2>/dev/null || echo "0")
+    CURRENT_EPOCH=$(date +%s)
+    DAYS_OLD=$(( (CURRENT_EPOCH - CREATED_EPOCH) / 86400 ))
+    FORMATTED_DATE=$(date -d "$CREATED_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$CREATED_DATE")
 
-        echo -e "現在のイメージ: ${BOLD}${IMAGE_NAME}${NC}"
-        echo -e "作成日:         ${BOLD}${FORMATTED_DATE}${NC} (${DAYS_OLD}日前)"
-    fi
+    echo -e "$(msg rebuild_current_image "${BOLD}${IMAGE_NAME}${NC}")"
+    echo -e "$(msg rebuild_created "${BOLD}${FORMATTED_DATE}${NC}" "${DAYS_OLD}")"
+  fi
 else
-    echo -e "イメージ ${BOLD}${IMAGE_NAME}${NC} が見つかりません（初回ビルド）"
+  echo -e "$(msg rebuild_image_not_found "${BOLD}${IMAGE_NAME}${NC}")"
 fi
 
 # ============================================================
@@ -77,15 +86,15 @@ fi
 # ============================================================
 
 echo ""
-echo -e "${YELLOW}⚠ 注意事項:${NC}"
-echo "  ・Docker イメージをキャッシュなしでリビルドします"
-echo "  ・既存コンテナを削除して再作成します"
-echo "  ・リビルドには数分かかる場合があります"
+echo -e "${YELLOW}$(msg rebuild_notice)${NC}"
+msgln rebuild_notice_1
+msgln rebuild_notice_2
+msgln rebuild_notice_3
 echo ""
-read -rp "リビルドを実行しますか？ [y/N]: " confirm
+read -rp "$(msg rebuild_confirm)" confirm
 if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-    echo "キャンセルしました"
-    exit 0
+  msgln rebuild_cancelled
+  exit 0
 fi
 
 # ============================================================
@@ -93,32 +102,32 @@ fi
 # ============================================================
 
 echo ""
-echo -e "${CYAN}🔨 キャッシュなしでリビルド & 起動中...${NC}"
-echo -e "${YELLOW}   これには数分かかる場合があります${NC}"
+echo -e "${CYAN}$(msg rebuild_starting)${NC}"
+echo -e "${YELLOW}$(msg rebuild_please_wait)${NC}"
 echo ""
 
 run_devcontainer up \
-    --workspace-folder "$WORKSPACE_DIR" \
-    --build-no-cache \
-    --remove-existing-container
+  --workspace-folder "$WORKSPACE_DIR" \
+  --build-no-cache \
+  --remove-existing-container
 
 # ============================================================
 # Done
 # ============================================================
 
 echo ""
-echo -e "${GREEN}✅ リビルド & 起動が完了しました${NC}"
+echo -e "${GREEN}$(msg rebuild_complete)${NC}"
 
-# 新しいイメージの情報を表示
+# Show new image info
 if docker image inspect "$IMAGE_NAME" &>/dev/null; then
-    NEW_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
-    if [[ -n "$NEW_DATE" ]]; then
-        NEW_FORMATTED=$(date -d "$NEW_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$NEW_DATE")
-        echo -e "新しいイメージ作成日: ${BOLD}${NEW_FORMATTED}${NC}"
-    fi
+  NEW_DATE=$(docker image inspect "$IMAGE_NAME" --format '{{.Created}}' 2>/dev/null || true)
+  if [[ -n "$NEW_DATE" ]]; then
+    NEW_FORMATTED=$(date -d "$NEW_DATE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$NEW_DATE")
+    echo -e "$(msg rebuild_new_image "${BOLD}${NEW_FORMATTED}${NC}")"
+  fi
 fi
 
 echo ""
-echo -e "${CYAN}📌 VS Code で Ctrl+Shift+P →${NC}"
-echo -e "${CYAN}   '開発コンテナー: コンテナで再度開く' を実行してください${NC}"
+echo -e "${CYAN}$(msg rebuild_vscode_1)${NC}"
+echo -e "${CYAN}$(msg rebuild_vscode_2)${NC}"
 echo ""

@@ -68,7 +68,7 @@ TUI（ターミナルUI）でフォルダを選択します:
 
 **特徴:**
 - サブディレクトリのみを含むディレクトリは自動展開（例: `group/repo1`, `group/repo2`）
-- `config/workspace-settings.json` のVS Code設定を生成ファイルに埋め込み
+- `config/workspace-settings.json`（またはフォールバックの`.example`）のVS Code設定を生成ファイルに埋め込み
 - 同名ファイルが存在する場合は上書き確認
 
 ### 完全な再構築
@@ -89,6 +89,20 @@ docker compose down --volumes
 docker compose build --no-cache
 docker compose up -d
 ```
+
+### ボリューム管理
+
+`clean-volumes.sh` を使用して、このプロジェクトに関連する全てのDocker named volumeを削除できます:
+
+```bash
+bash clean-volumes.sh
+```
+
+このスクリプトは:
+- プロジェクト名プレフィックスでボリュームを検出
+- 必要に応じて実行中のコンテナを停止
+- 該当する全ボリュームを削除
+- コンテナ内からは実行不可
 
 ### テストと検証
 
@@ -112,7 +126,10 @@ cat .devcontainer/docker-compose.yml
 rm -f Dockerfile docker-compose.yml .env
 rm -f .devcontainer/devcontainer.json .devcontainer/docker-compose.yml
 
-# ボリュームの削除
+# プロジェクトの全ボリュームを削除
+bash clean-volumes.sh
+
+# docker compose経由でボリュームを削除
 docker compose down --volumes
 
 # すべて削除（イメージも含む）

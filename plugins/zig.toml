@@ -14,7 +14,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
         *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="{{CHECKSUM_AMD64}}" ;; \
     esac && \
     echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL "https://ziglang.org/download/{{VERSION}}/zig-${DOWNLOAD_ARCH}-linux-{{VERSION}}.tar.xz" -o /tmp/zig.tar.xz && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://ziglang.org/download/{{VERSION}}/zig-${DOWNLOAD_ARCH}-linux-{{VERSION}}.tar.xz" -o /tmp/zig.tar.xz && \
     echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
     mkdir -p /usr/local/zig && \
     tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \

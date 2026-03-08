@@ -33,8 +33,7 @@ ENV PROTO_HOME="/home/${USERNAME}/.proto"
 ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
 '''
 
-[volumes]
-proto = "/home/${USERNAME}/.proto"
+volumes = ["/home/${USERNAME}/.proto"]
 
 [version]
 strategy = "latest"

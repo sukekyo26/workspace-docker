@@ -19,14 +19,14 @@ source "$PROJECT_ROOT/lib/generators.sh"
 # Generate plugin install snippets via Python (single source of truth)
 # Usage: generate_plugin_installs "plugin1" "plugin2" ...
 generate_plugin_installs() {
-    python3 "$PROJECT_ROOT/lib/generators.py" plugin-installs "$PROJECT_ROOT/plugins" "$@"
+  _uv_python "$PROJECT_ROOT/lib/generators.py" plugin-installs "$PROJECT_ROOT/plugins" "$@"
 }
 
 # Read a plugin's metadata.default value from its TOML file
 # Usage: get_plugin_default "plugin-id"
 # Returns: "true" or "false"
 get_plugin_default() {
-    local plugin_id="$1"
-    python3 "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/${plugin_id}.toml" \
-        | grep '^S:PLUGIN_DEFAULT=' | sed 's/^S:PLUGIN_DEFAULT=//'
+  local plugin_id="$1"
+  _uv_python "$PROJECT_ROOT/lib/toml_parser.py" plugin "$PROJECT_ROOT/plugins/${plugin_id}.toml" \
+    | grep '^S:PLUGIN_DEFAULT=' | sed 's/^S:PLUGIN_DEFAULT=//'
 }

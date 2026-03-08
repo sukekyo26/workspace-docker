@@ -7,7 +7,21 @@ username = "testuser"
 ubuntu_version = "24.04"
 
 [plugins]
-enable = ["proto", "docker-cli", "aws-cli", "aws-sam-cli", "github-cli", "copilot-cli", "claude-code", "zig", "uv"]
+enable = [
+    "custom-ps1",
+    "proto",
+    "docker-cli",
+    "aws-cli",
+    "aws-sam-cli",
+    "github-cli",
+    "copilot-cli",
+    "claude-code",
+    "zig",
+    "uv",
+    "rust",
+    "go",
+    "lazygit",
+]
 
 [ports]
 forward = [3000]

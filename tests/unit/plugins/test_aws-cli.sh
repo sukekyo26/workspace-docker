@@ -17,20 +17,20 @@ echo "[ test_aws-cli.sh ]"
 # Test: aws-cli plugin specifics — volumes
 # ============================================================
 test_aws_cli() {
-    section "aws-cli specifics"
+  section "aws-cli specifics"
 
-    load_plugin "aws-cli"
-    assert_eq "PLUGIN_NAME" "AWS CLI v2" "$PLUGIN_NAME"
-    local expected_default
-    expected_default=$(get_plugin_default "aws-cli")
-    assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
-    assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
-    assert_eq "volume name is aws" "aws" "${PLUGIN_VOLUME_NAMES[0]}"
+  load_plugin "aws-cli"
+  assert_eq "PLUGIN_NAME" "AWS CLI v2" "$PLUGIN_NAME"
+  local expected_default
+  expected_default=$(get_plugin_default "aws-cli")
+  assert_eq "PLUGIN_DEFAULT" "$expected_default" "$PLUGIN_DEFAULT"
+  assert_true "has volume names" test "${#PLUGIN_VOLUME_NAMES[@]}" -gt 0
+  assert_eq "volume name is aws" "aws" "${PLUGIN_VOLUME_NAMES[0]}"
 
-    local result
-    result=$(generate_plugin_installs "aws-cli")
-    assert_file_contains "install contains AWS" <(echo "$result") "AWS"
-    assert_file_contains "install uses TLS enforcement" <(echo "$result") "tlsv1.2"
+  local result
+  result=$(generate_plugin_installs "aws-cli")
+  assert_file_contains "install contains AWS" <(echo "$result") "AWS"
+  assert_file_contains "install uses TLS enforcement" <(echo "$result") "tlsv1.2"
 }
 
 # ============================================================

@@ -7,6 +7,90 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-03-08
+
+### 追加
+- `clean-docker.sh`: 対話式 Docker リソースクリーンアップスクリプト — マルチセレクト TUI メニューで削除対象リソースを選択（停止済みコンテナ、ビルドキャッシュ、不要イメージ、未使用ネットワーク、未使用ボリューム）。クリーンアップ前後のディスク使用量を表示。`--lang` オプション対応。
+- 全シェルスクリプト（`setup-docker.sh`、`clean-volumes.sh`、`rebuild-container.sh`、`generate-workspace.sh`）に `--lang` オプション追加 — `WORKSPACE_LANG` 環境変数の代替として言語選択が可能に
+- `docs/setup.md` / `docs/setup.ja.md`: `[volumes]` パスでの `${USERNAME}` 変数置換についてのドキュメントセクション追加
+- `toml_parser.py` に `sync-schema` コマンド追加 — `setup-docker.sh` 実行時に `workspace.schema.json` の plugins enum を `plugins/` ディレクトリから自動同期
+- `tests/unit/plugins/test_starship.sh`: starship プラグインのユニットテスト追加（チェックサム検証・TLS 強制）
+- `README.md` / `docs/README.ja.md`: `--init` / `--init --yes` フラグの説明追加、taplo VS Code 拡張機能の記載追加
+- `workspace.toml` とプラグイン TOML のランタイム JSON Schema バリデーション追加 — `setup-docker.sh` 実行時に不正な設定を検出・拒否（`jsonschema` 使用）
+- `schemas/plugin.schema.json`: プラグイン TOML バリデーション用 JSON Schema
+- 生成ファイル（`Dockerfile`、`docker-compose.yml`）に自動生成ヘッダーコメント追加（`# Auto-generated from workspace.toml — do not edit directly.`）
+- `README.md` と `docs/README.ja.md` の上部に言語切替リンクを追加（英語⇔日本語）
+- `config/workspace-settings.json.example`: Go、Rust、Java、C#、C、C++、Swift、Kotlin、PHP、Makefile の `tabSize: 4` 設定を追加
+- i18n フレームワーク（`lib/i18n.sh`, `locale/en.sh`, `locale/ja.sh`）— 全ユーザー向けメッセージを `WORKSPACE_LANG` 環境変数で英語/日本語切り替え可能に
+- `generators.py`: プラグイン競合検出追加 — 排他的プラグイン（例: `starship` + `custom-ps1`）の同時有効化を `[metadata].conflicts` で検出・エラー終了
+- `schemas/workspace.schema.json`: `workspace.toml` の JSON Schema 追加 — [taplo](https://taplo.tamasfe.dev/) による IDE 補完・静的バリデーションを実現
+- `.taplo.toml`: taplo 設定ファイル（スキーマを `workspace.toml` と `workspaces/*.toml` に紐付け）
+- `generators.py`: ボリュームパス重複チェック追加 — プラグインと `workspace.toml` で異なる名前が同一コンテナパスにマウントされる場合をエラー検出
+- `generators.py`: ボリュームパス重複を警告+統合に変更（エラーではなくなった）— プラグイン間のボリューム名重複は引き続きエラー
+- `schemas/plugin.schema.json`: ボリュームパスを `/home/${USERNAME}/<name>`（ホームディレクトリ直下のみ）に制限
+- `github-cli` プラグイン: ボリュームを `gh-config`（`~/.config/gh`）から `config`（`~/.config`）に変更（ホーム直下パス正規化）
+- `tests/unit/lib/test_colors.sh`: `lib/colors.sh` のユニットテスト追加（NO_COLOR モード・ANSI エスケープ形式）
+- `tests/unit/lib/test_tui.sh`: `lib/tui.sh` のユニットテスト追加（グローバル状態初期化・関数定義確認・カラー継承）
+- `starship` プラグイン: クロスシェルプロンプト（チェックサム検証付き、`custom-ps1` の代替）
+- `custom-ps1` プラグイン: PS1 プロンプト設定をプラグインに抽出（starship で置換可）
+- `rust` プラグイン: rustup による Rust ツールチェーン（cargo, clippy, rustfmt）と永続ボリューム
+- `go` プラグイン: Go 言語（チェックサム検証・GOPATH ボリューム付き）
+- `lazygit` プラグイン: Git 操作用ターミナル UI（チェックサム検証付き）
+- プロジェクトの Docker named volume を全削除する `clean-volumes.sh` スクリプト
+- 事前定義ワークフロー: `setup-docker.sh --init` の前に `workspace.toml` を作成し `[apt]`、`[vscode]`、`[volumes]` セクションを事前定義可能に
+- `select_multi` に `q` キーによるキャンセル機能を追加
+
+### 変更
+- **破壊的**: プラグインボリューム形式を `[volumes]` セクション（名前-パスペア）から `[install]` 内の `volumes = ["パス"]` 配列に変更 — ボリューム名はパスから自動導出（basename の先頭ドット除去、例: `~/.aws` → `aws`）
+- `starship` プラグイン: 永続的な設定保存のため `~/.config` ボリューム宣言を追加
+- `custom-ps1` プラグイン: デフォルトを `true` から `false` に変更（オプション扱い、デフォルトでは無効）
+- `clean-volumes.sh`: devcontainer 互換性のため `docker compose down` の代わりに Docker ラベルベースのコンテナ検索に変更
+- `docs/reference.md` / `docs/reference.ja.md`: プラグインリスト更新（全14個）、`--lang` オプションのドキュメント追加、コアスクリプトに `clean-volumes.sh` を追加、プラグイン作成ガイドを新ボリューム配列形式に更新
+- README の利用可能プラグインリストをリファレンスドキュメントへのリンクに変更（README 肥大化防止）
+- README から「品質保証」の特徴行を削除（内部詳細でありユーザー向け機能ではない）
+- `_uv_python()`: `uv run` に `--no-dev` フラグを追加—エンドユーザー環境で dev 依存のインストールをスキップ
+- `generators.py`: 生成される `docker-compose.yml` のシーケンスアイテムのインデントを修正（`args`、`environment`、`volumes` のリスト項目が適切にインデントされるように）
+- `generators.py`: 生成される `.devcontainer/docker-compose.yml` の過剰なコメントを最小限に削減
+- `generators.py`: `workspace.toml` の `[volumes]` と有効化プラグインのボリューム名が重複する場合はエラーを出力するように
+- `generators.py`: プラグイン TOML データをキャッシュして二重読み込みを解消（DRY）
+- `generators.py`: 有効化されたプラグイン ID が見つからない場合に stderr に WARNING を出力
+- `github-cli` プラグイン: GPG キーのダウンロードを `wget` から `curl` に変更
+- `config/.bashrc_custom.example` から Rust/Cargo の例を削除（rust プラグインで管理）
+- **破壊的**: uv管理のPythonプロジェクトに移行 — ホストに `uv` が必要
+- **破壊的**: Dockerボリューム名に `COMPOSE_PROJECT_NAME` プレフィックスを追加（`{project}_{service}_{volume}`）
+- **破壊的**: 全シェルスクリプト・TOMLファイルを2スペースインデントに変換
+- `docker-cli` プラグイン: Ubuntu コードネーム取得を `lsb-release` から `/etc/os-release` に変更
+- i18n ポリシー変更: ユーザー向け出力（TUI、echo）とコードコメントを日本語から英語に変更
+- 生成される Dockerfile テンプレートから日本語コメントを削除
+- 全 `python3` 呼び出しを `_uv_python()` ヘルパー経由の `uv run python` に置換
+- `check_python3()` を `check_uv()` にリネーム
+- PyYAML を dev dependency-group からプロジェクト依存に移動
+- `config/workspace-settings.json` を `.example` にリネーム
+- 設定ファイルから個人設定（`localeOverride`）を削除
+
+### 修正
+- `clean-volumes.sh`: 停止済みコンテナ（`docker ps -aq`）も削除してからボリューム削除を実行するように修正 — 停止済みコンテナがボリューム参照を保持し `docker volume rm` が失敗していた
+- `pyproject.toml`: ruff lint 設定の非推奨 `TCH` を `TC` に修正（ruff 0.5+ でのリネーム対応）
+- 生成される TOML 配列（例: `[vscode].extensions`）のインデントを2スペースから4スペースに修正（TOML 規約に準拠）
+- `validate_service_name` のパターンを JSON Schema と統一（`^[a-z][a-z0-9_-]*$`）— 大文字や数字/アンダースコア開始の名前を一貫して拒否
+- `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
+- `clean-volumes.sh`: Docker デーモン起動確認（`docker info`）を追加
+- `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
+- 重複テストファイル（`test_generators.sh`、`test_errors.sh`）を削除し二重実行を解消
+- `check_devcontainer_cli` の trap 上書きを修正（呼び出し元の EXIT trap を保護）
+- `validate_symlink` のパストラバーサル脆弱性を修正（末尾スラッシュによるプレフィックスガード）
+- `colors.sh` に `set -uo pipefail` を追加（他の lib ファイルとの一貫性）
+- `.env` 生成を `printf` に変更しシェル展開による値の破損を防止
+- `_parse_toml_output` の nameref スコープ汚染検証テストを追加
+- `set -e` 設計意図を文書化: lib ファイルは source されるため `set -uo pipefail`（`-e` なし）を使用
+- `CURRENT_LOG_LEVEL` を export しサブシェルでログレベルが反映されるように修正
+- `generators.py` の `open()` に `encoding="utf-8"` を明示
+- `_run_generator` が前回中断時の古い一時ファイルをクリーンアップするように改善
+- CI の docker-build ジョブに `uv` セットアップを追加
+- `read_env_var` がキー未検出時に非ゼロを返すように修正（`||` によるフォールバックが機能するように）
+- `toml_parser.py` の `list-plugins` の例外キャッチを `Exception` から `(TOMLDecodeError, OSError)` に具体化
+- 全プラグインのダウンロードコマンドに TLS 1.2 を強制（`--proto '=https' --tlsv1.2`）（docker-cli, github-cli, zig）
+
 ## [4.0.0] - 2026-03-04
 
 ### 追加

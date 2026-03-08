@@ -5,6 +5,7 @@
 **Required:**
 - Docker installed on host machine
 - Bash 4.3+ on host (uses `declare -n` nameref)
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
 
 **Optional:**
 - VS Code + Dev Containers extension
@@ -25,14 +26,19 @@ Note: Re-login required for group changes to take effect.
 
 ## Setup
 
-1. **Run the setup script (first time — interactive mode)**
+1. **Install uv (if not installed)**
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **Run the setup script (first time — interactive mode)**
    ```bash
    bash setup-docker.sh
    ```
    You will be prompted for a container service name, username, and plugin selection.
    This generates `workspace.toml` and all Docker configuration files.
 
-2. **Reconfigure (edit workspace.toml and regenerate)**
+3. **Reconfigure (edit workspace.toml and regenerate)**
 
    After initial setup, simply edit `workspace.toml` and re-run the script:
    ```bash
@@ -44,6 +50,30 @@ Note: Re-login required for group changes to take effect.
    ```bash
    bash setup-docker.sh --init
    ```
+
+### Pre-defining Extensions, Volumes, and Packages
+
+You can create `workspace.toml` before running `setup-docker.sh` to pre-define VS Code extensions, volumes, and apt packages. When you run `setup-docker.sh --init`, the interactive setup only prompts for container name, username, and plugins — your `[apt]`, `[vscode]`, and `[volumes]` sections are preserved.
+
+```bash
+# 1. Create workspace.toml with your desired extensions and packages
+cat > workspace.toml << 'EOF'
+[apt]
+packages = ["ripgrep", "fd-find"]
+
+[vscode]
+extensions = [
+    "ms-python.python",
+    "eamodio.gitlens",
+]
+
+[volumes]
+my-data = "/home/devuser/.my-tool"
+EOF
+
+# 2. Run interactive setup — apt/vscode/volumes are preserved
+bash setup-docker.sh --init
+```
 
 ## workspace.toml Configuration
 
@@ -161,7 +191,22 @@ custom-cache = "/home/devuser/.cache/my-tool"
 
 - **Key**: volume name (used as Docker named volume name, prefixed with `${CONTAINER_SERVICE_NAME}_`)
 - **Value**: absolute path inside the container
+- Use `${USERNAME}` to reference the container username (see [Variable Substitution](#variable-substitution))
 - Changes take effect after running `setup-docker.sh` and `rebuild-container.sh`
+
+## Variable Substitution
+
+`workspace.toml` supports the `${USERNAME}` variable in volume paths under the `[volumes]` section. This variable is replaced at runtime with the `username` value from `[container]`.
+
+```toml
+[container]
+username = "devuser"
+
+[volumes]
+deno = "/home/${USERNAME}/.deno"   # → /home/devuser/.deno
+```
+
+Plugin TOML files (`plugins/*.toml`) also use `${USERNAME}` in `user_dirs`, `dockerfile`, and `[volumes]` paths. See the [reference](reference.md#creating-a-plugin) for details.
 
 ## Auto-detected Information
 

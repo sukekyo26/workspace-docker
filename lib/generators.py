@@ -48,6 +48,44 @@ class Generator(ABC):
     def __init__(self, workspace_data: dict[str, Any], plugins_dir: str) -> None:
         self._data = workspace_data
         self._plugins_dir = plugins_dir
+        self._plugin_cache = self._load_plugin_data(plugins_dir, self.enabled_plugins)
+        self._check_plugin_conflicts()
+
+    @staticmethod
+    def _load_plugin_data(
+        plugins_dir: str,
+        enabled_plugins: list[str],
+    ) -> dict[str, dict[str, Any]]:
+        """Load all enabled plugin TOML files and return a dict keyed by plugin ID."""
+        cache: dict[str, dict[str, Any]] = {}
+        for plugin_id in enabled_plugins:
+            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
+            if not os.path.exists(plugin_file):
+                print(
+                    f"WARNING: Plugin '{plugin_id}' not found at {plugin_file}",
+                    file=sys.stderr,
+                )
+                continue
+            cache[plugin_id] = load_toml(plugin_file)
+        return cache
+
+    def _check_plugin_conflicts(self) -> None:
+        """Abort if any enabled plugin declares a conflict with another enabled plugin."""
+        enabled_set = set(self._plugin_cache)
+        for plugin_id, data in self._plugin_cache.items():
+            conflicts = data.get("metadata", {}).get("conflicts", [])
+            for conflict_id in conflicts:
+                if conflict_id in enabled_set:
+                    name_a = data.get("metadata", {}).get("name", plugin_id)
+                    conflict_data = self._plugin_cache.get(conflict_id, {})
+                    name_b = conflict_data.get("metadata", {}).get("name", conflict_id)
+                    print(
+                        f"ERROR: Plugin '{name_a}' ({plugin_id}) conflicts with "
+                        f"'{name_b}' ({conflict_id}). "
+                        f"Disable one of them in workspace.toml [plugins].enable.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
 
     @abstractmethod
     def generate(self) -> str:
@@ -66,23 +104,35 @@ class Generator(ABC):
         return list(self._data.get("plugins", {}).get("enable", []))
 
     @staticmethod
+    def derive_volume_name(path: str) -> str:
+        """Derive a Docker volume name from a mount path.
+
+        Takes the basename, strips leading dot (Docker volume names
+        must match [a-zA-Z0-9][a-zA-Z0-9_.-]*).
+        e.g. /home/${USERNAME}/.aws -> aws, /home/${USERNAME}/go -> go
+        """
+        basename = path.rstrip("/").rsplit("/", 1)[-1]
+        return basename.lstrip(".")
+
+    @staticmethod
     def get_plugin_volumes(
         plugins_dir: str,
         enabled_plugins: list[str],
+        *,
+        plugin_cache: dict[str, dict[str, Any]] | None = None,
     ) -> list[tuple[str, str, str]]:
         """Get volumes from enabled plugins.
 
         Returns list of (plugin_name, vol_name, vol_path) tuples.
+        Volume names are auto-derived from paths.
         """
+        cache = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
         volumes: list[tuple[str, str, str]] = []
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                continue
-            data = load_toml(plugin_file)
+        for plugin_id, data in cache.items():
             name = data.get("metadata", {}).get("name", plugin_id)
-            vols = data.get("volumes", {})
-            for vol_name, vol_path in vols.items():
+            vol_paths: list[str] = data.get("install", {}).get("volumes", [])
+            for vol_path in vol_paths:
+                vol_name = Generator.derive_volume_name(vol_path)
                 volumes.append((name, vol_name, vol_path))
         return volumes
 
@@ -111,7 +161,20 @@ class ComposeGenerator(Generator):
     @staticmethod
     def make_dumper() -> type[yaml.SafeDumper]:
         """Create a customized YAML dumper for docker-compose output."""
-        dumper: type[yaml.SafeDumper] = type("ComposeDumper", (yaml.SafeDumper,), {})
+
+        def increase_indent(
+            self: yaml.SafeDumper,
+            flow: bool = False,
+            indentless: bool = False,
+        ) -> None:
+            # Force sequence items to be indented relative to their parent key.
+            yaml.SafeDumper.increase_indent(self, flow=flow, indentless=False)
+
+        dumper: type[yaml.SafeDumper] = type(
+            "ComposeDumper",
+            (yaml.SafeDumper,),
+            {"increase_indent": increase_indent},
+        )
         dumper.add_representer(str, ComposeGenerator.str_representer)  # type: ignore[arg-type]
         return dumper
 
@@ -119,8 +182,55 @@ class ComposeGenerator(Generator):
         plugin_volumes = self.get_plugin_volumes(
             self._plugins_dir,
             self.enabled_plugins,
+            plugin_cache=self._plugin_cache,
         )
         custom_volumes = self._data.get("volumes", {})
+
+        # Warn on duplicate volume paths (same container path) and merge
+        path_to_source: dict[str, tuple[str, str]] = {}  # path -> (source_label, vol_name)
+        merged_plugin_volumes: list[tuple[str, str, str]] = []
+        for plugin_name, vol_name, vol_path in plugin_volumes:
+            if vol_path in path_to_source:
+                existing_label, existing_vol_name = path_to_source[vol_path]
+                print(
+                    f"WARNING: Volume path '{vol_path}' is defined by both "
+                    f"{existing_label} and plugin '{plugin_name}'. "
+                    f"Using single volume '{existing_vol_name}'.",
+                    file=sys.stderr,
+                )
+            else:
+                path_to_source[vol_path] = (f"plugin '{plugin_name}'", vol_name)
+                merged_plugin_volumes.append((plugin_name, vol_name, vol_path))
+
+        # Error on duplicate volume names between plugins and workspace.toml
+        plugin_vol_names = {vn for _, vn, _ in merged_plugin_volumes}
+        dup_name_errors: list[str] = []
+        for vn in custom_volumes:
+            if vn in plugin_vol_names:
+                dup_name_errors.append(
+                    f"ERROR: Volume '{vn}' in [volumes] conflicts with an enabled plugin's "
+                    "auto-derived volume name. Remove it from workspace.toml or disable the plugin.",
+                )
+        if dup_name_errors:
+            for msg in dup_name_errors:
+                print(msg, file=sys.stderr)
+            sys.exit(1)
+
+        merged_custom_volumes: dict[str, str] = {}
+        for vol_name, vol_path in custom_volumes.items():
+            if vol_path in path_to_source:
+                existing_label, existing_vol_name = path_to_source[vol_path]
+                print(
+                    f"WARNING: Volume path '{vol_path}' is defined by both "
+                    f"{existing_label} and workspace.toml volume '{vol_name}'. "
+                    f"Using single volume '{existing_vol_name}'.",
+                    file=sys.stderr,
+                )
+            else:
+                path_to_source[vol_path] = (f"workspace.toml volume '{vol_name}'", vol_name)
+                merged_custom_volumes[vol_name] = vol_path
+
+        plugin_volumes = merged_plugin_volumes
 
         # Build volumes list for service
         volume_mounts: list[str] = [
@@ -130,7 +240,7 @@ class ComposeGenerator(Generator):
         ]
         for _, vol_name, vol_path in plugin_volumes:
             volume_mounts.append(f"{vol_name}:{vol_path}")
-        for vol_name, vol_path in custom_volumes.items():
+        for vol_name, vol_path in merged_custom_volumes.items():
             volume_mounts.append(f"{vol_name}:{vol_path}")
 
         # Build service config
@@ -159,12 +269,12 @@ class ComposeGenerator(Generator):
 
         # Build top-level volume definitions
         vol_defs: dict[str, dict[str, str]] = {
-            "local": {"name": "${CONTAINER_SERVICE_NAME}_local"},
+            "local": {"name": "${COMPOSE_PROJECT_NAME}_${CONTAINER_SERVICE_NAME}_local"},
         }
         for _, vol_name, _ in plugin_volumes:
-            vol_defs[vol_name] = {"name": f"${{CONTAINER_SERVICE_NAME}}_{vol_name}"}
-        for vn in custom_volumes:
-            vol_defs[vn] = {"name": f"${{CONTAINER_SERVICE_NAME}}_{vn}"}
+            vol_defs[vol_name] = {"name": f"${{COMPOSE_PROJECT_NAME}}_${{CONTAINER_SERVICE_NAME}}_{vol_name}"}
+        for vn in merged_custom_volumes:
+            vol_defs[vn] = {"name": f"${{COMPOSE_PROJECT_NAME}}_${{CONTAINER_SERVICE_NAME}}_{vn}"}
 
         compose: dict[str, Any] = {
             "services": {self.service_name: service},
@@ -172,7 +282,8 @@ class ComposeGenerator(Generator):
         }
 
         dumper = self.make_dumper()
-        return yaml.dump(
+        header = "# Auto-generated from workspace.toml — do not edit directly.\n"
+        return header + yaml.dump(
             compose,
             Dumper=dumper,
             default_flow_style=False,
@@ -262,36 +373,17 @@ class DevcontainerComposeGenerator(Generator):
         )
 
         lines = [
+            "# Auto-generated from workspace.toml — do not edit directly.",
             "services:",
-            "  # Update this to the name of the service you want to work with in your docker-compose.yml file",
             f"  {safe_name}:",
-            "    # Uncomment if you want to override the service's Dockerfile to one in the .devcontainer",
-            "    # folder. Note that the path of the Dockerfile and context is relative to the *primary*",
-            '    # docker-compose.yml file (the first in the devcontainer.json "dockerComposeFile"',
-            "    # array). The sample below assumes your primary file is in the root of your project.",
-            "    #",
-            "    # build:",
-            "    #   context: .",
-            "    #   dockerfile: .devcontainer/Dockerfile",
-            "",
             "    volumes:",
-            "      # Update this to wherever you want VS Code to mount the folder of your project",
             "      - ..:/home/${USERNAME}/workspace:cached",
-            "      # Mount host Docker socket to use host's Docker daemon",
             "      - /var/run/docker.sock:/var/run/docker.sock",
             "",
-            "    # Add host's docker group GID to allow socket access.",
-            "    # This is automatically detected and set by setup-docker.sh",
+            "    # GID is set automatically by setup-docker.sh",
             "    group_add:",
             '      - "${DOCKER_GID}"',
             "",
-            "    # Uncomment the next four lines if you will use a ptrace-based debugger like C++, Go, and Rust.",
-            "    # cap_add:",
-            "    #   - SYS_PTRACE",
-            "    # security_opt:",
-            "    #   - seccomp:unconfined",
-            "",
-            "    # Overrides default command so things don't shut down after the process ends.",
             "    command: sleep infinity",
         ]
 
@@ -307,6 +399,7 @@ class DockerfileGenerator(Generator):
     """Generates Dockerfile content from inline template and plugins."""
 
     _TEMPLATE = """\
+# Auto-generated from workspace.toml — do not edit directly.
 ARG UBUNTU_VERSION
 FROM ubuntu:${UBUNTU_VERSION}
 
@@ -323,7 +416,6 @@ RUN apt-get update && \\
     && apt-get clean \\
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# 既存の ubuntu ユーザー/グループ (UID/GID=1000) を削除してから新規作成
 RUN userdel -r ubuntu 2>/dev/null || true && \\
     groupdel ubuntu 2>/dev/null || true && \\
     groupadd -g ${GID} ${USERNAME} && \\
@@ -344,12 +436,6 @@ ENV LC_ALL=en_US.UTF-8
 RUN echo 'if [ -f /usr/share/bash-completion/bash_completion ]; then' >> ~/.bashrc && \\
     echo '  . /usr/share/bash-completion/bash_completion' >> ~/.bashrc && \\
     echo 'fi' >> ~/.bashrc
-
-# Custom PS1 with Docker container name, user/host, working directory, and git status
-RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \\
-    echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \\
-    echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \\
-    echo 'PS1='"'"'\\\\[\\\\033[01;35m\\\\][Docker $CONTAINER_SERVICE_NAME]\\\\[\\\\033[00m\\\\] \\\\[\\\\033[01;32m\\\\]\\\\u@\\\\h:\\\\[\\\\033[01;34m\\\\]\\\\w\\\\[\\\\033[00m\\\\]$(__git_ps1 " \\\\[\\\\033[01;33m\\\\](%s)\\\\[\\\\033[00m\\\\]" 2>/dev/null) \\\\$ '"'"'' >> ~/.bashrc
 
 {{CUSTOM_CERTIFICATES}}
 
@@ -390,6 +476,7 @@ WORKDIR /home/${USERNAME}/workspace
         plugin_installs = self.generate_plugin_installs(
             self._plugins_dir,
             self.enabled_plugins,
+            plugin_cache=self._plugin_cache,
         )
         certificate_install = self._generate_certificate_install(certs_dir)
 
@@ -407,6 +494,7 @@ WORKDIR /home/${USERNAME}/workspace
             self._plugins_dir,
             self.enabled_plugins,
             base_pkg_names,
+            plugin_cache=self._plugin_cache,
         )
 
         apt_extra_pkgs: list[str] = self._data.get("apt", {}).get(
@@ -447,15 +535,16 @@ WORKDIR /home/${USERNAME}/workspace
     def generate_plugin_installs(
         plugins_dir: str,
         enabled_plugins: list[str],
+        *,
+        plugin_cache: dict[str, dict[str, Any]] | None = None,
     ) -> str:
         """Generate combined Dockerfile install snippets for enabled plugins."""
+        # Load all plugin data once and cache
+        plugin_data = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
+
         # Phase 1: Collect user_dirs from all enabled plugins
         all_user_dirs: list[str] = []
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                continue
-            data = load_toml(plugin_file)
+        for _plugin_id, data in plugin_data.items():
             user_dirs: list[str] = data.get("install", {}).get("user_dirs", [])
             all_user_dirs.extend(user_dirs)
 
@@ -467,11 +556,7 @@ WORKDIR /home/${USERNAME}/workspace
         if dir_block:
             parts.append(dir_block)
 
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                continue
-            data = load_toml(plugin_file)
+        for plugin_id, data in plugin_data.items():
 
             install = data.get("install", {})
             snippet = install.get("dockerfile", "")
@@ -488,11 +573,11 @@ WORKDIR /home/${USERNAME}/workspace
                     file=sys.stderr,
                 )
 
-            volumes = data.get("volumes", {})
-            for vol_name, vol_path in volumes.items():
+            volumes: list[str] = install.get("volumes", [])
+            for vol_path in volumes:
                 if not vol_path.startswith("/"):
                     print(
-                        f"WARNING: Plugin '{plugin_id}' volume '{vol_name}' has non-absolute path: {vol_path}",
+                        f"WARNING: Plugin '{plugin_id}' has non-absolute volume path: {vol_path}",
                         file=sys.stderr,
                     )
 
@@ -553,18 +638,17 @@ WORKDIR /home/${USERNAME}/workspace
         plugins_dir: str,
         enabled_plugins: list[str],
         base_packages: set[str],
+        *,
+        plugin_cache: dict[str, dict[str, Any]] | None = None,
     ) -> str:
         """Collect apt packages from enabled plugins.
 
         Packages in base_packages and duplicates across plugins are deduplicated.
         """
+        cache = plugin_cache if plugin_cache is not None else Generator._load_plugin_data(plugins_dir, enabled_plugins)
         seen: set[str] = set()
         packages: list[str] = []
-        for plugin_id in enabled_plugins:
-            plugin_file = os.path.join(plugins_dir, f"{plugin_id}.toml")
-            if not os.path.exists(plugin_file):
-                continue
-            data = load_toml(plugin_file)
+        for _plugin_id, data in cache.items():
             apt_pkgs: list[str] = data.get("apt", {}).get("packages", [])
             for pkg in apt_pkgs:
                 if pkg not in seen and pkg not in base_packages:
@@ -582,7 +666,7 @@ WORKDIR /home/${USERNAME}/workspace
         if not os.path.exists(conf_file):
             return ""
         lines: list[str] = []
-        with open(conf_file) as f:
+        with open(conf_file, encoding="utf-8") as f:
             for raw_line in f:
                 line = raw_line.strip()
                 if not line or line.startswith("#"):
@@ -603,7 +687,7 @@ WORKDIR /home/${USERNAME}/workspace
         valid_certs: list[str] = []
         for fname in crt_files:
             filepath = os.path.join(certs_dir, fname)
-            with open(filepath) as f:
+            with open(filepath, encoding="utf-8") as f:
                 content = f.read()
             if "-----BEGIN CERTIFICATE-----" in content and "-----END CERTIFICATE-----" in content:
                 valid_certs.append(fname)

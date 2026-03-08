@@ -7,6 +7,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-03-08
+
+### Added
+- `clean-docker.sh`: interactive Docker resource cleanup script — select which resources to prune (stopped containers, build cache, dangling images, unused networks, unused volumes) via multi-select TUI menu. Shows disk usage before and after cleanup. Supports `--lang` option.
+- `--lang` option for all shell scripts (`setup-docker.sh`, `clean-volumes.sh`, `rebuild-container.sh`, `generate-workspace.sh`) — alternative to `WORKSPACE_LANG` environment variable for language selection
+- `docs/setup.md` / `docs/setup.ja.md`: `${USERNAME}` variable substitution section documenting usage in `[volumes]` paths
+- `sync-schema` command in `toml_parser.py` — automatically syncs `workspace.schema.json` plugins enum from `plugins/` directory during `setup-docker.sh` execution
+- `tests/unit/plugins/test_starship.sh`: unit tests for starship plugin (checksum verification, TLS enforcement)
+- `README.md` / `docs/README.ja.md`: `--init` / `--init --yes` flag documentation, taplo VS Code extension note
+- Runtime JSON Schema validation for `workspace.toml` and plugin TOMLs — invalid configuration is detected and rejected during `setup-docker.sh` execution (powered by `jsonschema`)
+- `schemas/plugin.schema.json`: JSON Schema for plugin TOML validation
+- Auto-generated header comment (`# Auto-generated from workspace.toml — do not edit directly.`) in generated `Dockerfile` and `docker-compose.yml`
+- Language switch links at the top of `README.md` and `docs/README.ja.md` for easy navigation between English/Japanese versions
+- `config/workspace-settings.json.example`: added `tabSize: 4` settings for Go, Rust, Java, C#, C, C++, Swift, Kotlin, PHP, and Makefile
+- i18n framework (`lib/i18n.sh`, `locale/en.sh`, `locale/ja.sh`) — all user-facing messages support English/Japanese via `WORKSPACE_LANG` environment variable
+- `generators.py`: plugin conflict detection — mutually exclusive plugins (e.g., `starship` + `custom-ps1`) are rejected at generation time via `[metadata].conflicts`
+- `schemas/workspace.schema.json`: JSON Schema for `workspace.toml` — enables IDE autocompletion and static validation via [taplo](https://taplo.tamasfe.dev/)
+- `.taplo.toml`: taplo configuration associating the schema with `workspace.toml` and `workspaces/*.toml`
+- `generators.py`: error on duplicate volume paths — detects when two volumes (across plugins and `workspace.toml`) mount to the same container path with different names
+- `generators.py`: duplicate volume paths now produce a warning and merge instead of an error — duplicate volume names between plugins remain an error
+- `schemas/plugin.schema.json`: volume paths restricted to `/home/${USERNAME}/<name>` (direct children of home directory only)
+- `github-cli` plugin: volume changed from `gh-config` (`~/.config/gh`) to `config` (`~/.config`) for home-direct path normalization
+- `tests/unit/lib/test_colors.sh`: unit tests for `lib/colors.sh` (NO_COLOR mode, ANSI escape format)
+- `tests/unit/lib/test_tui.sh`: unit tests for `lib/tui.sh` (global state init, function definitions, color inheritance)
+- `starship` plugin: cross-shell prompt with checksum verification (alternative to `custom-ps1`)
+- `custom-ps1` plugin: extracted PS1 prompt configuration into a plugin (can be replaced by starship)
+- `rust` plugin: Rust toolchain via rustup (cargo, clippy, rustfmt) with persistent volumes
+- `go` plugin: Go programming language with checksum verification and GOPATH volume
+- `lazygit` plugin: terminal UI for git commands with checksum verification
+- `clean-volumes.sh` script to delete all Docker named volumes for the project
+- Pre-definition workflow: create `workspace.toml` before `setup-docker.sh --init` to pre-define `[apt]`, `[vscode]`, and `[volumes]` sections (preserved during interactive setup)
+- `select_multi` now supports cancel via `q` key — callers exit gracefully on cancellation
+
+### Changed
+- **BREAKING**: Plugin volumes format changed from `[volumes]` section (name-path pairs) to `volumes = ["path"]` array inside `[install]` — volume names are now auto-derived from paths (basename with leading dot stripped, e.g., `~/.aws` → `aws`)
+- `starship` plugin: added `~/.config` volume declaration for persistent configuration
+- `custom-ps1` plugin: changed default from `true` to `false` (optional, not enabled by default)
+- `clean-volumes.sh`: use Docker label-based container lookup instead of `docker compose down` for devcontainer compatibility
+- `docs/reference.md` / `docs/reference.ja.md`: updated plugin list (all 14 plugins), added `--lang` option docs, added `clean-volumes.sh` to core scripts, updated plugin creation guide with new volume array syntax
+- Moved available plugins list from README to reference docs link to prevent README bloat
+- Removed "Quality Assurance" feature line from README (internal detail, not a user-facing feature)
+- `_uv_python()`: added `--no-dev` flag to `uv run` to skip dev dependency installation for end users
+- `generators.py`: fix sequence item indentation in generated `docker-compose.yml` (`args`, `environment`, `volumes` list items are now properly indented)
+- `generators.py`: reduce excessive comments in generated `.devcontainer/docker-compose.yml` to minimal
+- `generators.py`: error on duplicate volume names between `[volumes]` in `workspace.toml` and enabled plugins
+- `generators.py`: cache plugin TOML data to eliminate duplicate file reads (DRY)
+- `generators.py`: emit WARNING to stderr when an enabled plugin ID is not found
+- `github-cli` plugin: replaced `wget` with `curl` for GPG key download
+- Removed Rust/Cargo example from `config/.bashrc_custom.example` (now handled by rust plugin)
+- **BREAKING**: Migrated to uv-managed Python project — `uv` is now required on the host
+- **BREAKING**: Docker volume names now include `COMPOSE_PROJECT_NAME` prefix (`{project}_{service}_{volume}`) for project isolation
+- **BREAKING**: All shell scripts and TOML files converted to 2-space indentation
+- `docker-cli` plugin: replaced `lsb-release` dependency with `/etc/os-release` for Ubuntu codename detection
+- i18n policy: all user-facing output (TUI, echo) and code comments changed from Japanese to English
+- Removed Japanese comment from generated Dockerfile template
+- All `python3` invocations replaced with `uv run python` via `_uv_python()` helper
+- `check_python3()` renamed to `check_uv()` — verifies `uv` command availability
+- PyYAML moved from dev dependency-group to project dependency in `pyproject.toml`
+- `config/workspace-settings.json` renamed to `.example` — copy to `workspace-settings.json` to customize
+- Removed personal settings (`localeOverride`) from example settings file
+
+### Fixed
+- `clean-volumes.sh`: remove stopped containers (`docker ps -aq`) before volume deletion — stopped containers hold volume references, preventing `docker volume rm`
+- `pyproject.toml`: replaced deprecated `TCH` with `TC` in ruff lint config (ruff 0.5+ rename)
+- Generated TOML arrays (e.g., `[vscode].extensions`) now use 4-space indentation instead of 2-space, following TOML convention
+- `validate_service_name` pattern unified with JSON Schema (`^[a-z][a-z0-9_-]*$`) — uppercase and digit/underscore-leading names are now rejected consistently
+- `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
+- `clean-volumes.sh`: add Docker daemon running check (`docker info`)
+- `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
+- Removed duplicate test files (`test_generators.sh`, `test_errors.sh`) that caused double execution
+- Fixed `check_devcontainer_cli` trap overwrite that could clobber caller's EXIT trap
+- Fixed path traversal vulnerability in `validate_symlink` — prefix match now uses trailing slash guard
+- Added `set -uo pipefail` to `colors.sh` for consistency with other lib files
+- `.env` generation now uses `printf` instead of unquoted here-doc to prevent shell expansion in values
+- Added nameref scope pollution verification tests for `_parse_toml_output`
+- Documented `set -e` design intent: lib files use `set -uo pipefail` (no `-e`) because they are sourced
+- Exported `CURRENT_LOG_LEVEL` so subshells inherit the log level
+- Added explicit `encoding="utf-8"` to `open()` calls in `generators.py`
+- `_run_generator` now cleans up stale temp files from previous interrupted runs
+- Fixed missing `uv` setup in CI docker-build job
+- `read_env_var` now returns non-zero when key is not found (enables fallback with `||`)
+- Narrowed exception catch in `toml_parser.py` `list-plugins` from `Exception` to `(TOMLDecodeError, OSError)`
+- Enforced TLS 1.2 (`--proto '=https' --tlsv1.2`) on all plugin download commands (docker-cli, github-cli, zig)
+
 ## [4.0.0] - 2026-03-04
 
 ### Added
