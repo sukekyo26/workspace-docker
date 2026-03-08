@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs/setup.md` / `docs/setup.ja.md`: `${USERNAME}` variable substitution section documenting usage in `[volumes]` paths
 - `sync-schema` command in `toml_parser.py` — automatically syncs `workspace.schema.json` plugins enum from `plugins/` directory during `setup-docker.sh` execution
 - `tests/unit/plugins/test_starship.sh`: unit tests for starship plugin (checksum verification, TLS enforcement)
 - `README.md` / `docs/README.ja.md`: `--init` / `--init --yes` flag documentation, taplo VS Code extension note
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `HEALTHCHECK` instruction to generated Dockerfile
 
 ### Fixed
+- Generated TOML arrays (e.g., `[vscode].extensions`) now use 4-space indentation instead of 2-space, following TOML convention
 - `validate_service_name` pattern unified with JSON Schema (`^[a-z][a-z0-9_-]*$`) — uppercase and digit/underscore-leading names are now rejected consistently
 - `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
 - `clean-volumes.sh`: add Docker daemon running check (`docker info`)

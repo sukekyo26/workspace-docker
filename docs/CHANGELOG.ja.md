@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 追加
+- `docs/setup.md` / `docs/setup.ja.md`: `[volumes]` パスでの `${USERNAME}` 変数置換についてのドキュメントセクション追加
 - `toml_parser.py` に `sync-schema` コマンド追加 — `setup-docker.sh` 実行時に `workspace.schema.json` の plugins enum を `plugins/` ディレクトリから自動同期
 - `tests/unit/plugins/test_starship.sh`: starship プラグインのユニットテスト追加（チェックサム検証・TLS 強制）
 - `README.md` / `docs/README.ja.md`: `--init` / `--init --yes` フラグの説明追加、taplo VS Code 拡張機能の記載追加
@@ -34,6 +35,7 @@
 - 生成される Dockerfile に `HEALTHCHECK` 命令を追加
 
 ### 修正
+- 生成される TOML 配列（例: `[vscode].extensions`）のインデントを2スペースから4スペースに修正（TOML 規約に準拠）
 - `validate_service_name` のパターンを JSON Schema と統一（`^[a-z][a-z0-9_-]*$`）— 大文字や数字/アンダースコア開始の名前を一貫して拒否
 - `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
 - `clean-volumes.sh`: Docker デーモン起動確認（`docker info`）を追加
