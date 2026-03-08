@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `sync-schema` command in `toml_parser.py` — automatically syncs `workspace.schema.json` plugins enum from `plugins/` directory during `setup-docker.sh` execution
+- `tests/unit/plugins/test_starship.sh`: unit tests for starship plugin (checksum verification, TLS enforcement)
+- `README.md` / `docs/README.ja.md`: `--init` / `--init --yes` flag documentation, taplo VS Code extension note
 - Runtime JSON Schema validation for `workspace.toml` and plugin TOMLs — invalid configuration is detected and rejected during `setup-docker.sh` execution (powered by `jsonschema`)
 - `schemas/plugin.schema.json`: JSON Schema for plugin TOML validation
 - Auto-generated header comment (`# Auto-generated from workspace.toml — do not edit directly.`) in generated `Dockerfile` and `docker-compose.yml`
@@ -31,11 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `HEALTHCHECK` instruction to generated Dockerfile
 
 ### Fixed
+- `validate_service_name` pattern unified with JSON Schema (`^[a-z][a-z0-9_-]*$`) — uppercase and digit/underscore-leading names are now rejected consistently
 - `rust` plugin: use separate `--component` flags for `rustup-init` (fixes CI build failure)
 - `clean-volumes.sh`: add Docker daemon running check (`docker info`)
 - `clean-volumes.sh` / `rebuild-container.sh`: unified error output via `logging.sh`
 
 ### Changed
+- Removed `HEALTHCHECK CMD ["true"]` from generated Dockerfile — dev containers have no service to health-check; the previous directive always returned healthy
+- Moved available plugins list from README to reference docs link to prevent README bloat
+- Removed "Quality Assurance" feature line from README (internal detail, not a user-facing feature)
 - `_uv_python()`: added `--no-dev` flag to `uv run` to skip dev dependency installation for end users
 - `generators.py`: fix sequence item indentation in generated `docker-compose.yml` (`args`, `environment`, `volumes` list items are now properly indented)
 - `generators.py`: reduce excessive comments in generated `.devcontainer/docker-compose.yml` to minimal

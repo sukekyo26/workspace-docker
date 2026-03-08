@@ -8,6 +8,9 @@
 ## [Unreleased]
 
 ### 追加
+- `toml_parser.py` に `sync-schema` コマンド追加 — `setup-docker.sh` 実行時に `workspace.schema.json` の plugins enum を `plugins/` ディレクトリから自動同期
+- `tests/unit/plugins/test_starship.sh`: starship プラグインのユニットテスト追加（チェックサム検証・TLS 強制）
+- `README.md` / `docs/README.ja.md`: `--init` / `--init --yes` フラグの説明追加、taplo VS Code 拡張機能の記載追加
 - `workspace.toml` とプラグイン TOML のランタイム JSON Schema バリデーション追加 — `setup-docker.sh` 実行時に不正な設定を検出・拒否（`jsonschema` 使用）
 - `schemas/plugin.schema.json`: プラグイン TOML バリデーション用 JSON Schema
 - 生成ファイル（`Dockerfile`、`docker-compose.yml`）に自動生成ヘッダーコメント追加（`# Auto-generated from workspace.toml — do not edit directly.`）
@@ -31,11 +34,15 @@
 - 生成される Dockerfile に `HEALTHCHECK` 命令を追加
 
 ### 修正
+- `validate_service_name` のパターンを JSON Schema と統一（`^[a-z][a-z0-9_-]*$`）— 大文字や数字/アンダースコア開始の名前を一貫して拒否
 - `rust` プラグイン: `rustup-init` の `--component` フラグを個別指定に修正（CI ビルド失敗修正）
 - `clean-volumes.sh`: Docker デーモン起動確認（`docker info`）を追加
 - `clean-volumes.sh` / `rebuild-container.sh`: エラー出力を `logging.sh` に統一
 
 ### 変更
+- 生成される Dockerfile から `HEALTHCHECK CMD ["true"]` を削除 — 開発コンテナにはヘルスチェック対象のサービスがなく、常に healthy を返す無意味な設定だった
+- README の利用可能プラグインリストをリファレンスドキュメントへのリンクに変更（README 肍大化防止）
+- README から「品質保証」の特徴行を削除（内部詳細でありユーザー向け機能ではない）
 - `_uv_python()`: `uv run` に `--no-dev` フラグを追加—エンドユーザー環境で dev 依存のインストールをスキップ
 - `generators.py`: 生成される `docker-compose.yml` のシーケンスアイテムのインデントを修正（`args`、`environment`、`volumes` のリスト項目が適切にインデントされるように）
 - `generators.py`: 生成される `.devcontainer/docker-compose.yml` の過剰なコメントを最小限に削減
