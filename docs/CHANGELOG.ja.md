@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-03-09
+
 ### 追加
 - `workspace.toml` スキーマで `[devcontainer]` セクションをサポート — `devcontainer.json` のプロパティをディープマージで上書き可能に（スキーマバリデーションエラーが発生しなくなった）
 - `workspace.toml` の部分定義をサポート — `[container]` セクションが未定義の場合、`setup-docker.sh` がインタラクティブモードでコンテナ設定を行い、既存の `[plugins]`、`[ports]`、`[vscode]`、`[volumes]`、`[devcontainer]` セクションを保持
