@@ -370,7 +370,7 @@ class DumpDevcontainerCommand(TomlCommand):
 
         for key, val in obj.items():
             if isinstance(val, dict):
-                tables.append((key, val))
+                tables.append((key, cast("dict[str, Any]", val)))
             else:
                 scalars.append(f"{key} = {DumpDevcontainerCommand._to_toml_value(val)}")
 
