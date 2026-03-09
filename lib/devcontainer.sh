@@ -42,34 +42,70 @@ check_docker() {
 }
 
 # ============================================================
+# _ensure_devcontainer_path
+# ============================================================
+# Add devcontainer CLI install location to PATH if not already present.
+# Also warns the user to persist the PATH change in their shell profile.
+_ensure_devcontainer_path() {
+  local dc_bin="$HOME/.devcontainers/bin"
+  if [[ -d "$dc_bin" ]] && [[ ":$PATH:" != *":$dc_bin:"* ]]; then
+    export PATH="$dc_bin:$PATH"
+    echo -e "  ${YELLOW}!${NC} $(msg dc_path_added "$dc_bin")"
+    echo -e "    $(msg dc_path_persist_hint "$dc_bin")"
+  fi
+}
+
+# ============================================================
 # check_devcontainer_cli
 # ============================================================
 # Check for devcontainer CLI and auto-install via curl if missing.
 # Install URL:
 #   https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh
 check_devcontainer_cli() {
+  # Try adding devcontainer install path if command not found initially
+  if ! command -v devcontainer &> /dev/null; then
+    _ensure_devcontainer_path
+  fi
+
   if ! command -v devcontainer &> /dev/null; then
     echo -e "  ${YELLOW}✗${NC} $(msg dc_cli_not_found)"
 
-    if command -v curl &> /dev/null; then
-      echo -e "    ${CYAN}$(msg dc_installing)${NC}"
-      local install_script
-      install_script=$(mktemp)
-      # Do NOT use trap here to avoid overwriting caller's EXIT trap (ARCH-01)
-      if ! curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"; then
-        rm -f "$install_script"
-        echo -e "  ${RED}✗${NC} $(msg dc_install_failed)"
-        exit 1
-      fi
-      sh "$install_script"
-      rm -f "$install_script"
-      echo -e "  ${GREEN}✓${NC} devcontainer CLI installed"
-    else
+    if ! command -v curl &> /dev/null; then
       echo -e "  ${RED}✗${NC} $(msg dc_curl_not_found)"
       echo "    $(msg dc_curl_install_hint)"
       echo "      curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh | sh"
       exit 1
     fi
+
+    # Ask user for permission to install
+    echo -e "    $(msg dc_install_prompt)"
+    local confirm
+    read -rp "    [y/N]: " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+      echo -e "  ${RED}✗${NC} $(msg dc_install_declined)"
+      exit 1
+    fi
+
+    echo -e "    ${CYAN}$(msg dc_installing)${NC}"
+    local install_script
+    install_script=$(mktemp)
+    # Do NOT use trap here to avoid overwriting caller's EXIT trap (ARCH-01)
+    if ! curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"; then
+      rm -f "$install_script"
+      echo -e "  ${RED}✗${NC} $(msg dc_install_failed)"
+      exit 1
+    fi
+    sh "$install_script"
+    rm -f "$install_script"
+
+    _ensure_devcontainer_path
+
+    if ! command -v devcontainer &> /dev/null; then
+      echo -e "  ${RED}✗${NC} $(msg dc_install_not_in_path)"
+      exit 1
+    fi
+
+    echo -e "  ${GREEN}✓${NC} devcontainer CLI installed"
   else
     echo -e "  ${GREEN}✓${NC} devcontainer CLI"
   fi
