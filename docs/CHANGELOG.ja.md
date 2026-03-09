@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### 追加
+- `workspace.toml` スキーマで `[devcontainer]` セクションをサポート — `devcontainer.json` のプロパティをディープマージで上書き可能に（スキーマバリデーションエラーが発生しなくなった）
+- `workspace.toml` の部分定義をサポート — `[container]` セクションが未定義の場合、`setup-docker.sh` がインタラクティブモードでコンテナ設定を行い、既存の `[plugins]`、`[ports]`、`[vscode]`、`[volumes]`、`[devcontainer]` セクションを保持
+- プラグインのプリセレクション — `workspace.toml` に `[plugins]` が定義済みの場合、TUI チェックボックスの初期値がプラグイン TOML のデフォルトではなく既存設定を反映
+
 ## [4.1.1] - 2026-03-08
 
 ### 修正
