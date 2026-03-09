@@ -252,6 +252,124 @@ test_yes_flag_with_existing_toml() {
 }
 
 # ============================================================
+# Test: workspace.toml without [container] triggers interactive setup
+# ============================================================
+test_partial_toml_without_container() {
+  section "workspace.toml without [container] (--yes)"
+
+  local tmpdir
+  tmpdir=$(setup_test_dir)
+
+  # Create partial workspace.toml without [container]
+  cat > "$tmpdir/workspace.toml" << 'TOML'
+[plugins]
+enable = ["docker-cli", "github-cli"]
+
+[ports]
+forward = [8080]
+
+[vscode]
+extensions = ["eamodio.gitlens"]
+
+[volumes]
+deno = "/home/${USERNAME}/.deno"
+TOML
+
+  # --yes should fill in [container] defaults without prompting
+  (cd "$tmpdir" && bash setup-docker.sh --yes 2>/dev/null)
+  local exit_code=$?
+
+  assert_eq "exits 0 with partial toml" "0" "$exit_code"
+
+  # [container] should be auto-filled with defaults
+  assert_file_contains "container section added" "$tmpdir/workspace.toml" '[container]'
+  assert_file_contains "default service name" "$tmpdir/workspace.toml" 'service_name = "dev"'
+
+  # Existing [plugins] should be preserved (not reset to defaults)
+  assert_file_contains "docker-cli preserved" "$tmpdir/workspace.toml" 'docker-cli'
+  assert_file_contains "github-cli preserved" "$tmpdir/workspace.toml" 'github-cli'
+
+  # Existing [ports] should be preserved
+  assert_file_contains "port 8080 preserved" "$tmpdir/workspace.toml" 'forward = [8080]'
+
+  # Existing [vscode] extensions should be preserved
+  assert_file_contains "extensions preserved" "$tmpdir/workspace.toml" 'eamodio.gitlens'
+
+  # Existing [volumes] should be preserved
+  assert_file_contains "volumes preserved" "$tmpdir/workspace.toml" 'deno'
+
+  # Generated files should exist
+  assert_file_exists "Dockerfile generated" "$tmpdir/Dockerfile"
+  assert_file_exists "docker-compose.yml generated" "$tmpdir/docker-compose.yml"
+  assert_file_exists ".env generated" "$tmpdir/.env"
+  assert_file_exists "devcontainer.json generated" "$tmpdir/.devcontainer/devcontainer.json"
+
+  # Verify plugin propagation to Dockerfile
+  assert_file_contains "Docker CLI in Dockerfile" "$tmpdir/Dockerfile" 'Docker CLI'
+  assert_file_contains "GitHub CLI in Dockerfile" "$tmpdir/Dockerfile" 'GitHub CLI'
+
+  rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: workspace.toml with [devcontainer] passes schema validation
+# ============================================================
+test_devcontainer_section_in_toml() {
+  section "workspace.toml with [devcontainer]"
+
+  local tmpdir
+  tmpdir=$(setup_test_dir)
+
+  create_test_workspace_toml "$tmpdir" "dc-test" "testuser" 3000 "docker-cli"
+
+  # Add [devcontainer] section
+  cat >> "$tmpdir/workspace.toml" << 'TOML'
+
+[devcontainer]
+remoteUser = "testuser"
+TOML
+
+  (cd "$tmpdir" && bash setup-docker.sh 2>/dev/null)
+  local exit_code=$?
+
+  assert_eq "exits 0 with [devcontainer]" "0" "$exit_code"
+
+  # devcontainer.json should have the override
+  assert_file_contains "remoteUser merged" "$tmpdir/.devcontainer/devcontainer.json" 'remoteUser'
+
+  rm -rf "$tmpdir"
+}
+
+# ============================================================
+# Test: [devcontainer] preserved during --init --yes
+# ============================================================
+test_devcontainer_preserved_on_init() {
+  section "[devcontainer] preserved on --init"
+
+  local tmpdir
+  tmpdir=$(setup_test_dir)
+
+  create_test_workspace_toml "$tmpdir" "dc-init" "testuser" 3000 "docker-cli"
+
+  # Add [devcontainer] section
+  cat >> "$tmpdir/workspace.toml" << 'TOML'
+
+[devcontainer]
+remoteUser = "testuser"
+TOML
+
+  # --init --yes should regenerate but preserve [devcontainer]
+  (cd "$tmpdir" && bash setup-docker.sh --init --yes 2>/dev/null)
+  local exit_code=$?
+
+  assert_eq "exits 0" "0" "$exit_code"
+  assert_file_contains "devcontainer preserved" "$tmpdir/workspace.toml" '[devcontainer]'
+  assert_file_contains "remoteUser preserved" "$tmpdir/workspace.toml" 'remoteUser'
+
+  rm -rf "$tmpdir"
+}
+
+# ============================================================
 # Run
 # ============================================================
 
@@ -261,5 +379,8 @@ test_regenerate_all_plugins
 test_regenerate_no_plugins
 test_init_with_yes_flag
 test_yes_flag_with_existing_toml
+test_partial_toml_without_container
+test_devcontainer_section_in_toml
+test_devcontainer_preserved_on_init
 
 print_summary
