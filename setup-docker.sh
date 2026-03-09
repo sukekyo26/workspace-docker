@@ -63,9 +63,14 @@ check_uv || exit 1
 WORKSPACE_TOML="$SCRIPT_DIR/workspace.toml"
 
 # ============================================================
-# Mode: Regenerate (workspace.toml exists and not --init)
+# Mode: Regenerate (workspace.toml exists with [container] and not --init)
 # ============================================================
-if [[ -f "$WORKSPACE_TOML" && "$FORCE_INIT" = false ]]; then
+_has_container=false
+if [[ -f "$WORKSPACE_TOML" ]] && has_toml_section "$WORKSPACE_TOML" "container"; then
+  _has_container=true
+fi
+
+if [[ "$_has_container" = true && "$FORCE_INIT" = false ]]; then
   section_header "$(msg setup_header_regenerate)"
 
   load_workspace_config "$WORKSPACE_TOML"
@@ -75,9 +80,28 @@ if [[ -f "$WORKSPACE_TOML" && "$FORCE_INIT" = false ]]; then
   info "$(msg setup_plugins_info "${WS_PLUGINS[*]}")"
 else
   # ============================================================
-  # Mode: Interactive setup (first run or --init)
+  # Mode: Interactive setup (first run, --init, or missing [container])
   # ============================================================
   section_header "$(msg setup_header_generate)"
+
+  # Pre-load existing workspace.toml for defaults and preservation
+  _partial_reconfig=false
+  _existing_plugins=()
+  _existing_port=""
+  _devcontainer_toml=""
+  if [[ -f "$WORKSPACE_TOML" ]]; then
+    load_workspace_config "$WORKSPACE_TOML"
+    _devcontainer_toml=$(dump_devcontainer_section "$WORKSPACE_TOML")
+
+    # When not --init, preserve existing [plugins] and [ports] as defaults
+    if [[ "$FORCE_INIT" = false ]]; then
+      _partial_reconfig=true
+      if [[ ${#WS_PLUGINS[@]} -gt 0 && -n "${WS_PLUGINS[0]:-}" ]]; then
+        _existing_plugins=("${WS_PLUGINS[@]}")
+      fi
+      _existing_port="${WS_FORWARD_PORTS[0]:-3000}"
+    fi
+  fi
 
   if [[ "$AUTO_YES" = true ]]; then
     # Non-interactive: use sensible defaults
@@ -113,26 +137,48 @@ else
   local_enabled_plugins=()
 
   if [[ "$AUTO_YES" = true ]]; then
-    # Non-interactive: select plugins marked as default
-    for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
-      plugin_id="${PLUGIN_IDS[$i]}"
-      plugin_default="${PLUGIN_DEFAULTS[$i]}"
-      if [[ "$plugin_default" == "true" ]]; then
-        local_enabled_plugins+=("$plugin_id")
+    if [[ ${#_existing_plugins[@]} -gt 0 ]]; then
+      # Use existing plugins from workspace.toml
+      local_enabled_plugins=("${_existing_plugins[@]}")
+      for plugin_id in "${local_enabled_plugins[@]}"; do
         info "$(msg setup_plugin_enabled "$plugin_id")"
-      else
-        info "$(msg setup_plugin_skipped "$plugin_id")"
-      fi
-    done
+      done
+    else
+      # Non-interactive: select plugins marked as default
+      for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+        plugin_id="${PLUGIN_IDS[$i]}"
+        plugin_default="${PLUGIN_DEFAULTS[$i]}"
+        if [[ "$plugin_default" == "true" ]]; then
+          local_enabled_plugins+=("$plugin_id")
+          info "$(msg setup_plugin_enabled "$plugin_id")"
+        else
+          info "$(msg setup_plugin_skipped "$plugin_id")"
+        fi
+      done
+    fi
   else
-    # Build preselected CSV from plugin defaults
+    # Build preselected CSV from existing plugins or plugin defaults
     preselected_csv=""
-    for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
-      if [[ "${PLUGIN_DEFAULTS[$i]}" == "true" ]]; then
-        [[ -n "$preselected_csv" ]] && preselected_csv+=","
-        preselected_csv+="$i"
-      fi
-    done
+    if [[ ${#_existing_plugins[@]} -gt 0 ]]; then
+      # Preselect from existing workspace.toml plugins
+      for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+        for _ep in "${_existing_plugins[@]}"; do
+          if [[ "${PLUGIN_IDS[$i]}" == "$_ep" ]]; then
+            [[ -n "$preselected_csv" ]] && preselected_csv+=","
+            preselected_csv+="$i"
+            break
+          fi
+        done
+      done
+    else
+      # Preselect from plugin TOML defaults
+      for ((i = 0; i < ${#PLUGIN_IDS[@]}; i++)); do
+        if [[ "${PLUGIN_DEFAULTS[$i]}" == "true" ]]; then
+          [[ -n "$preselected_csv" ]] && preselected_csv+=","
+          preselected_csv+="$i"
+        fi
+      done
+    fi
 
     # TUI multi-select for plugins
     select_multi "$(msg setup_select_plugins)" "$preselected_csv" "${PLUGIN_NAMES[@]}" || {
@@ -146,7 +192,10 @@ else
   fi
 
   # Port forwarding
-  if [[ "$AUTO_YES" = true ]]; then
+  if [[ -n "$_existing_port" ]]; then
+    forward_port="$_existing_port"
+    info "$(msg setup_port_default "$forward_port")"
+  elif [[ "$AUTO_YES" = true ]]; then
     forward_port=3000
     info "$(msg setup_port_default "$forward_port")"
   else
@@ -180,8 +229,8 @@ else
   apt_toml="packages = []"
   vscode_toml="extensions = []"
   volumes_toml=""
-  if [[ -f "$WORKSPACE_TOML" ]]; then
-    load_workspace_config "$WORKSPACE_TOML"
+  if [[ -f "$WORKSPACE_TOML" ]] && [[ "$_partial_reconfig" = true || "$FORCE_INIT" = true ]]; then
+    # WS_* variables are already set from pre-load above
 
     # Rebuild [apt] packages
     if [[ ${#WS_APT_EXTRA[@]} -gt 0 && -n "${WS_APT_EXTRA[0]}" ]]; then
@@ -238,6 +287,11 @@ $vscode_toml
 [volumes]
 $volumes_toml
 EOF
+
+  # Append preserved [devcontainer] section
+  if [[ -n "$_devcontainer_toml" ]]; then
+    printf '\n%s\n' "$_devcontainer_toml" >> "$WORKSPACE_TOML"
+  fi
 
   # Reload to set WS_* variables
   load_workspace_config "$WORKSPACE_TOML"

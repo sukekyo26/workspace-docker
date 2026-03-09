@@ -111,6 +111,25 @@ sync_plugin_schema() {
   _uv_python "$TOML_PARSER" sync-schema "$plugins_dir"
 }
 
+# Check if a TOML section exists in a file
+# Usage: has_toml_section "workspace.toml" "container"
+# Returns: 0 if section exists, 1 if not
+has_toml_section() {
+  local config_file="$1"
+  local section="$2"
+  local result
+  result=$(_uv_python "$TOML_PARSER" has-section "$config_file" "$section") || return 1
+  [[ "$result" == "true" ]]
+}
+
+# Dump [devcontainer] section as TOML text for preservation
+# Usage: dump_devcontainer_section "workspace.toml"
+# Outputs TOML text to stdout (empty if no [devcontainer])
+dump_devcontainer_section() {
+  local config_file="$1"
+  _uv_python "$TOML_PARSER" dump-devcontainer "$config_file"
+}
+
 # List available plugins with their metadata
 # Usage: list_available_plugins
 # Sets: PLUGIN_IDS, PLUGIN_NAMES, PLUGIN_DESCRIPTIONS, PLUGIN_DEFAULTS
