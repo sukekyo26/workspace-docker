@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- JSON Schema validation test suite (36 pytest cases) — validates that `workspace.toml` and plugin TOML schemas correctly accept valid input and reject invalid input
+
+### Fixed
+- `devcontainer CLI` PATH resolution — automatically adds `~/.devcontainers/bin` to `PATH` when the CLI is installed but not found. Prompts user before auto-installing. Shows shell profile persistence hint
+
 ## [4.1.2] - 2026-03-09
 
 ### Added

@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+### 追加
+- JSON Schema バリデーションテストスイート（36 pytest ケース）— `workspace.toml` とプラグイン TOML スキーマの正常入力受理・不正入力拒否を検証
+
+### 修正
+- `devcontainer CLI` の PATH 解決 — CLI がインストール済みだが PATH にない場合、`~/.devcontainers/bin` を自動追加。自動インストール前にユーザーに確認。シェルプロファイルへの永続化ヒントを表示
+
 ## [4.1.2] - 2026-03-09
 
 ### 追加
