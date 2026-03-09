@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-03-09
+
+### Added
+- `[devcontainer]` section support in `workspace.toml` schema — allows overriding `devcontainer.json` properties via deep merge without schema validation errors
+- Partial `workspace.toml` support — when `[container]` section is missing, `setup-docker.sh` enters interactive mode to configure container settings while preserving existing `[plugins]`, `[ports]`, `[vscode]`, `[volumes]`, and `[devcontainer]` sections
+- Plugin preselection from existing config — when `workspace.toml` already defines `[plugins]`, the TUI checkbox defaults reflect the existing selection instead of plugin TOML defaults
+
 ## [4.1.1] - 2026-03-08
 
 ### Fixed

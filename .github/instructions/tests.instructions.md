@@ -9,3 +9,4 @@ applyTo: "tests/**"
 - テストヘルパーは「テスト固有の入力データ」のみ準備する。本番コードが作成すべきディレクトリやファイルをテスト側で事前作成しない
 - テスト構造変更時は CI（`.github/workflows/ci.yml`）の `chmod` と実行パスも同時に変更する
 - テストファイル間でテスト関数をコピペしない。共通テストはヘルパーに抽出するか、1箇所にまとめる。`run_all.sh` は `find` で全ファイルを実行するため重複は二重実行になる
+- コミット前に `bash tests/run_all.sh` を実行し、Suite Summary が `All test suites passed!` であることを確認する。個別テストの PASS 数だけでなく、Suite Summary に ❌ が無いことを必ず検証する

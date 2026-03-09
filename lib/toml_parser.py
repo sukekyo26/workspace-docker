@@ -330,6 +330,77 @@ class SyncSchemaCommand(TomlCommand):
             f.write("\n")
 
 
+class HasSectionCommand(TomlCommand):
+    """Check if a TOML section exists in a file.
+
+    Usage: has-section <file> (reads section name from sys.argv[3])
+    Prints 'true' or 'false'.
+    """
+
+    def execute(self, target: str) -> None:
+        if len(sys.argv) < 4:
+            print("ERROR: has-section requires a section name argument", file=sys.stderr)
+            sys.exit(1)
+        section = sys.argv[3]
+        data = load_toml(target)
+        print("true" if section in data else "false")
+
+
+class DumpDevcontainerCommand(TomlCommand):
+    """Dump [devcontainer] section as TOML text for preservation.
+
+    Reads workspace.toml and outputs the [devcontainer] section
+    as valid TOML that can be appended to a regenerated file.
+    """
+
+    def execute(self, target: str) -> None:
+        data = load_toml(target)
+        dc = data.get("devcontainer")
+        if not dc:
+            return
+        lines = self._to_toml(dc, prefix="devcontainer")
+        print("\n".join(lines))
+
+    @staticmethod
+    def _to_toml(obj: dict[str, Any], prefix: str) -> list[str]:
+        """Convert a nested dict to TOML lines."""
+        lines: list[str] = []
+        scalars: list[str] = []
+        tables: list[tuple[str, dict[str, Any]]] = []
+
+        for key, val in obj.items():
+            if isinstance(val, dict):
+                tables.append((key, cast("dict[str, Any]", val)))
+            else:
+                scalars.append(f"{key} = {DumpDevcontainerCommand._to_toml_value(val)}")
+
+        if scalars:
+            lines.append(f"[{prefix}]")
+            lines.extend(scalars)
+
+        for key, val in tables:
+            lines.extend(DumpDevcontainerCommand._to_toml(val, f"{prefix}.{key}"))
+
+        return lines
+
+    @staticmethod
+    def _to_toml_value(val: Any) -> str:
+        """Convert a Python value to a TOML value string."""
+        if isinstance(val, bool):
+            return "true" if val else "false"
+        if isinstance(val, int):
+            return str(val)
+        if isinstance(val, float):
+            return str(val)
+        if isinstance(val, str):
+            escaped = val.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+            return f'"{escaped}"'
+        if isinstance(val, list):
+            items = ", ".join(DumpDevcontainerCommand._to_toml_value(v) for v in cast("list[object]", val))
+            return f"[{items}]"
+        return f'"{val}"'
+
+
 # ============================================================
 # Command registry
 # ============================================================
@@ -341,6 +412,8 @@ COMMANDS: dict[str, TomlCommand] = {
     "validate-workspace": ValidateWorkspaceCommand(),
     "validate-plugins": ValidatePluginsCommand(),
     "sync-schema": SyncSchemaCommand(),
+    "has-section": HasSectionCommand(),
+    "dump-devcontainer": DumpDevcontainerCommand(),
 }
 
 

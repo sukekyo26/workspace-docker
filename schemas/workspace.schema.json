@@ -131,6 +131,11 @@
         "minLength": 1,
         "description": "Absolute container path for the volume mount"
       }
+    },
+    "devcontainer": {
+      "type": "object",
+      "description": "Override devcontainer.json properties. Values are deep-merged into the base config.",
+      "additionalProperties": true
     }
   }
 }
