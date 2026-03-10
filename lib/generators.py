@@ -28,7 +28,10 @@ import os
 import sys
 import traceback
 from abc import ABC, abstractmethod
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 import yaml
 
@@ -610,62 +613,51 @@ WORKDIR /home/${USERNAME}/workspace
                 user_post_snippets.append(user_snippet)
 
         # Phase 4: Sort and group for optimal USER switching and RUN merging
-        # Extract ENV lines from root snippets without ARG, making their RUN
-        # pure so it can merge with other pure-RUN snippets.
-        # ARG snippets stay as-is because ARG must precede its referencing RUN
-        # and changing ARG values (e.g. DOCKER_GID) would invalidate merged layers.
-        non_root = [(s, r) for s, r in prepared if not r]
-        root_all = [(s, r) for s, r in prepared if r]
+        # Extract ENV from snippets without ARG (both root and non-root),
+        # making their RUN pure so it can merge with other pure-RUN snippets.
+        # ARG snippets stay as-is because ARG must precede its referencing RUN.
+        def _extract_and_sort(
+            items: Sequence[tuple[str, bool]],
+        ) -> tuple[list[str], list[str]]:
+            """Extract ENV, sort non-pure before pure, return (snippets, envs)."""
+            envs: list[str] = []
+            processed: list[str] = []
+            for snippet, _req in items:
+                if (
+                    not DockerfileGenerator._is_pure_run(snippet)
+                    and not DockerfileGenerator._has_arg(snippet)
+                ):
+                    run_part, env_lines = DockerfileGenerator._extract_env_lines(snippet)
+                    envs.extend(env_lines)
+                    processed.append(run_part)
+                else:
+                    processed.append(snippet)
+            non_pure = [s for s in processed if not DockerfileGenerator._is_pure_run(s)]
+            pure = [s for s in processed if DockerfileGenerator._is_pure_run(s)]
+            return non_pure + pure, envs
 
-        extracted_envs: list[str] = []
-        processed_root: list[tuple[str, bool]] = []
-        for snippet, req_root in root_all:
-            if (
-                not DockerfileGenerator._is_pure_run(snippet)
-                and not DockerfileGenerator._has_arg(snippet)
-            ):
-                run_part, env_lines = DockerfileGenerator._extract_env_lines(snippet)
-                extracted_envs.extend(env_lines)
-                processed_root.append((run_part, req_root))
-            else:
-                processed_root.append((snippet, req_root))
+        non_root_raw = [(s, r) for s, r in prepared if not r]
+        root_raw = [(s, r) for s, r in prepared if r]
 
-        root_non_pure = [
-            (s, r) for s, r in processed_root
-            if not DockerfileGenerator._is_pure_run(s)
-        ]
-        root_pure = [
-            (s, r) for s, r in processed_root
-            if DockerfileGenerator._is_pure_run(s)
-        ]
-        ordered = non_root + root_non_pure + root_pure
+        non_root_snippets, non_root_envs = _extract_and_sort(non_root_raw)
+        root_snippets, root_envs = _extract_and_sort(root_raw)
 
         parts: list[str] = []
         if dir_block:
             parts.append(dir_block)
 
-        i = 0
-        while i < len(ordered):
-            snippet, requires_root = ordered[i]
-            if not requires_root:
-                parts.append(snippet)
-                i += 1
-                continue
+        # Emit non-root group (merged)
+        if non_root_snippets:
+            parts.append(DockerfileGenerator._merge_snippet_group(non_root_snippets))
+        if non_root_envs:
+            parts.append("\n".join(non_root_envs))
 
-            # Collect consecutive root snippets into one USER root block
-            root_snippets: list[str] = [snippet]
-            j = i + 1
-            while j < len(ordered) and ordered[j][1]:
-                root_snippets.append(ordered[j][0])
-                j += 1
-
-            merged = DockerfileGenerator._merge_root_group(root_snippets)
+        # Emit root group (merged, wrapped in USER directives)
+        if root_snippets:
+            merged = DockerfileGenerator._merge_snippet_group(root_snippets)
             parts.append(f"USER root\n{merged}\nUSER ${{USERNAME}}")
-            i = j
-
-        # Emit extracted ENV lines after root block (ENV is USER-independent)
-        if extracted_envs:
-            parts.append("\n".join(extracted_envs))
+        if root_envs:
+            parts.append("\n".join(root_envs))
 
         # Append dockerfile_user snippets (run as user after root blocks)
         parts.extend(user_post_snippets)
@@ -717,14 +709,14 @@ WORKDIR /home/${USERNAME}/workspace
         return ("\n".join(run_lines), env_lines)
 
     @staticmethod
-    def _merge_root_group(snippets: list[str]) -> str:
-        """Merge consecutive pure-RUN snippets within a root group.
+    def _merge_snippet_group(snippets: list[str]) -> str:
+        """Merge consecutive pure-RUN snippets within a group.
 
         Consecutive snippets that consist only of comments + a single
         multi-line RUN command are combined into one RUN command joined
         by ``&& \\``.  Comments are extracted and placed before the
         merged RUN block to avoid shell comment-in-continuation issues.
-        Snippets containing ARG, ENV, or other directives break the
+        Snippets containing ARG or other directives break the
         merge chain and are emitted as-is.
         """
         if len(snippets) == 1:

@@ -938,6 +938,61 @@ class TestUserSwitchOptimization:
         user_pos = result.find("USER ${USERNAME}")
         assert env_pos < user_pos, "ENV in ARG snippet should stay inside root block"
 
+    def test_non_root_pure_run_merged(self, tmp_path: Path) -> None:
+        """Consecutive non-root pure-RUN snippets are merged into one RUN."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "# Install A\\nRUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "# Install B\\nRUN echo b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        # Both merged into one RUN
+        assert "echo a" in result
+        assert "echo b" in result
+        lines = result.split("\n")
+        run_count = sum(1 for l in lines if l.strip().startswith("RUN "))
+        assert run_count == 1, f"Expected 1 RUN, got {run_count}"
+        # No USER directives
+        assert "USER root" not in result
+
+    def test_non_root_env_extracted_and_merged(self, tmp_path: Path) -> None:
+        """Non-root ENV is extracted, enabling RUN merge."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b\\nENV X=1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        # ENV extracted, both RUNs merged
+        assert "echo a" in result
+        assert "echo b" in result
+        assert "ENV X=1" in result
+        lines = result.split("\n")
+        run_count = sum(1 for l in lines if l.strip().startswith("RUN "))
+        assert run_count == 1
+        # ENV appears after the merged RUN
+        run_pos = result.find("RUN ")
+        env_pos = result.find("ENV X=1")
+        assert env_pos > run_pos
+
 
 class TestComposeGeneratorSequenceIndent:
     """Test that list items (args, environment, volumes) are indented properly."""
