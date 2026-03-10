@@ -8,6 +8,7 @@ requires_root = false
 dockerfile = '''
 # Install uv (fast Python package and project manager)
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tmp/install-uv.sh && \
+    echo "{{INSTALL_SCRIPT_SHA256}}  /tmp/install-uv.sh" | sha256sum -c - && \
     bash /tmp/install-uv.sh && \
     rm -f /tmp/install-uv.sh && \
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
@@ -16,3 +17,4 @@ ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
 
 [version]
 strategy = "latest"
+install_script_sha256 = "7fc46e39cb97290b57169c0c813a17970585ac519139f19006453c99b5f2f45f"

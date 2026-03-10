@@ -596,6 +596,9 @@ WORKDIR /home/${USERNAME}/workspace
             checksum_arm64 = version.get("checksum_arm64", "")
             if checksum_arm64:
                 snippet = snippet.replace("{{CHECKSUM_ARM64}}", checksum_arm64)
+            install_script_sha256 = version.get("install_script_sha256", "")
+            if install_script_sha256:
+                snippet = snippet.replace("{{INSTALL_SCRIPT_SHA256}}", install_script_sha256)
 
             if requires_root:
                 snippet = f"USER root\n{snippet}\nUSER ${{USERNAME}}"

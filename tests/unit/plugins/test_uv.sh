@@ -31,6 +31,7 @@ test_uv() {
   result=$(generate_plugin_installs "uv")
   assert_file_contains "install contains uv" <(echo "$result") "uv"
   assert_file_contains "install sets PATH" <(echo "$result") "PATH"
+  assert_file_contains "SHA256 verification" <(echo "$result") "sha256sum -c"
 }
 
 # ============================================================

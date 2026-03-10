@@ -34,6 +34,7 @@ test_rust() {
   assert_file_contains "install contains rustup" <(echo "$result") "rustup"
   assert_file_contains "install sets PATH" <(echo "$result") "PATH"
   assert_file_contains "TLS enforcement" <(echo "$result") "tlsv1.2"
+  assert_file_contains "SHA256 verification" <(echo "$result") "sha256sum -c"
 }
 
 # ============================================================

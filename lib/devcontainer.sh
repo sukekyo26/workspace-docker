@@ -61,6 +61,8 @@ _ensure_devcontainer_path() {
 # Check for devcontainer CLI and auto-install via curl if missing.
 # Install URL:
 #   https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh
+_DEVCONTAINER_INSTALL_SHA256="3f7ff412801e382b944fbf300c4f1ff49cf2534fa6cc80995da0b2963924c9da"
+
 check_devcontainer_cli() {
   # Try adding devcontainer install path if command not found initially
   if ! command -v devcontainer &> /dev/null; then
@@ -93,6 +95,11 @@ check_devcontainer_cli() {
     if ! curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/devcontainers/cli/main/scripts/install.sh -o "$install_script"; then
       rm -f "$install_script"
       echo -e "  ${RED}✗${NC} $(msg dc_install_failed)"
+      exit 1
+    fi
+    if ! echo "$_DEVCONTAINER_INSTALL_SHA256  $install_script" | sha256sum -c - &>/dev/null; then
+      rm -f "$install_script"
+      echo -e "  ${RED}✗${NC} Install script SHA256 mismatch (possible tampering). Expected: $_DEVCONTAINER_INSTALL_SHA256"
       exit 1
     fi
     sh "$install_script"

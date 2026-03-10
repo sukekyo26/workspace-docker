@@ -120,6 +120,11 @@
         "checksum_arm64": {
           "type": "string",
           "description": "SHA256 checksum for arm64 archive"
+        },
+        "install_script_sha256": {
+          "type": "string",
+          "description": "SHA256 checksum of the install script for integrity verification",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     }

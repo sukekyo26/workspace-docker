@@ -31,6 +31,7 @@ test_claude_code() {
   local result
   result=$(generate_plugin_installs "claude-code")
   assert_file_contains "install contains Claude" <(echo "$result") "Claude"
+  assert_file_contains "SHA256 verification" <(echo "$result") "sha256sum -c"
 }
 
 # ============================================================
