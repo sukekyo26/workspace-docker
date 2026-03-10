@@ -8,12 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `--verbose` flag for Python CLI error diagnostics (`generators.py`, `toml_parser.py`) — shows full stack traces when enabled, user-friendly messages by default
+- Dangerous system username blocklist in `validate_username()` — blocks 20 reserved names (root, daemon, nobody, www-data, etc.) to prevent container privilege escalation
+- Dockerfile USER switching optimization — groups consecutive `requires_root` plugins under single `USER root` blocks and merges consecutive `RUN` commands to reduce image layers
 - SHA256 integrity verification for all `curl | sh` install scripts — 5 plugins (proto, uv, rust, claude-code, copilot-cli) and devcontainer CLI now verify downloaded scripts against pinned checksums before execution
 - `install_script_sha256` field in plugin schema for install script checksum verification
 - Python code coverage measurement — `tests/run_coverage.sh` for local coverage reports using `coverage.py` (current: 78% for `lib/`)
 - JSON Schema validation test suite (36 pytest cases) — validates that `workspace.toml` and plugin TOML schemas correctly accept valid input and reject invalid input
 
 ### Fixed
+- JSON escape vulnerability in `generate_workspace_file` — replaced manual `printf` with `jq` for safe JSON generation (prevents injection via special characters in folder names)
 - `devcontainer CLI` PATH resolution — automatically adds `~/.devcontainers/bin` to `PATH` when the CLI is installed but not found. Prompts user before auto-installing. Shows shell profile persistence hint
 
 ## [4.1.2] - 2026-03-09
