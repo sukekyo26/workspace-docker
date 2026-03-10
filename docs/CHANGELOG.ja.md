@@ -10,7 +10,7 @@
 ### 追加
 - Python CLI エラー診断用 `--verbose` フラグ追加（`generators.py`、`toml_parser.py`）— 有効時にフルスタックトレースを表示、デフォルトではユーザーフレンドリーなメッセージのみ
 - `validate_username()` に危険なシステムユーザー名のブロックリスト追加 — 20 個の予約名（root、daemon、nobody、www-data 等）をブロックしコンテナ権限昇格を防止
-- Dockerfile の USER 切り替え最適化 — 連続する `requires_root` プラグインを単一の `USER root` ブロックにまとめ、連続する `RUN` コマンドをマージしてイメージレイヤーを削減
+- Dockerfile の USER 切り替え最適化 — root プラグインをソートして単一の `USER root` ブロックに集約、非pure（ARG/ENV）を pure-RUN の前に配置し、連続する pure-RUN コマンドを1つの `RUN` にマージしてイメージレイヤーを削減
 - `curl | sh` インストールスクリプトの SHA256 整合性検証 — 5 プラグイン（proto, uv, rust, claude-code, copilot-cli）と devcontainer CLI で、ダウンロードしたスクリプトをピン止めされたチェックサムで検証してから実行
 - プラグインスキーマに `install_script_sha256` フィールド追加（インストールスクリプトのチェックサム検証用）
 - Python コードカバレッジ計測 — `tests/run_coverage.sh` でローカルカバレッジレポート生成（`coverage.py` 使用、現在 `lib/` は 78%）

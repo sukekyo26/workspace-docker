@@ -812,8 +812,8 @@ class TestUserSwitchOptimization:
         assert "USER root" not in result
         assert "USER ${USERNAME}" not in result
 
-    def test_mixed_root_nonroot_separate_blocks(self, tmp_path: Path) -> None:
-        """Root->non-root->root produces two separate USER blocks."""
+    def test_mixed_root_nonroot_single_block(self, tmp_path: Path) -> None:
+        """Root->non-root->root produces one USER block (sorted together)."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
         (plugins / "r1.toml").write_text(
@@ -835,8 +835,9 @@ class TestUserSwitchOptimization:
             '[version]\nstrategy = "latest"\n'
         )
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["r1", "nr", "r2"])
-        assert result.count("USER root") == 2
-        assert result.count("USER ${USERNAME}") == 2
+        # Root plugins are sorted together into one block
+        assert result.count("USER root") == 1
+        assert result.count("USER ${USERNAME}") == 1
 
     def test_non_pure_run_not_merged(self, tmp_path: Path) -> None:
         """Snippets with ARG/ENV are not merged with adjacent RUN-only snippets."""
@@ -857,6 +858,68 @@ class TestUserSwitchOptimization:
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
         assert "ARG MY_ARG" in result
         assert result.count("USER root") == 1
+
+    def test_pure_run_snippets_merged(self, tmp_path: Path) -> None:
+        """Consecutive pure-RUN root snippets are merged into one RUN."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "# Install A\\nRUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "# Install B\\nRUN echo b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        # Only one RUN statement after merging
+        assert result.count("\nRUN ") + result.count("USER root\nRUN ") <= 1
+        # Both commands present
+        assert "echo a" in result
+        assert "echo b" in result
+        # Comments extracted before the RUN block
+        lines = result.split("\n")
+        run_line_idx = next(i for i, l in enumerate(lines) if l.strip().startswith("RUN "))
+        comment_lines = [l for l in lines[:run_line_idx] if l.strip().startswith("#")]
+        assert len(comment_lines) >= 2
+
+    def test_non_pure_before_pure_in_root_group(self, tmp_path: Path) -> None:
+        """Non-pure root snippets come before pure ones, enabling merge of pure."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        # a: pure RUN, b: non-pure (has ENV), c: pure RUN
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo b\\nENV X=1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "c.toml").write_text(
+            '[metadata]\nname = "C"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo c"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b", "c"])
+        # All in one USER root block
+        assert result.count("USER root") == 1
+        # Non-pure (b) comes before pure (a, c) due to sorting
+        b_pos = result.find("ENV X=1")
+        a_pos = result.find("echo a")
+        c_pos = result.find("echo c")
+        assert b_pos < a_pos, "Non-pure snippet should come before pure ones"
+        # a and c are pure and adjacent → merged into one RUN
+        assert a_pos < c_pos
 
 
 class TestComposeGeneratorSequenceIndent:

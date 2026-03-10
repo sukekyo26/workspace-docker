@@ -101,21 +101,6 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh 
     echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc
 ENV PROTO_HOME="/home/${USERNAME}/.proto"
 ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
-USER root
-# Install Docker CLI (client only, to use host Docker daemon via socket mount)
-ARG DOCKER_GID
-RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL --proto '=https' --tlsv1.2 https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
-    . /etc/os-release && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
-    > /etc/apt/sources.list.d/docker.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    groupadd -g ${DOCKER_GID} docker 2>/dev/null || groupmod -g ${DOCKER_GID} docker && \
-    usermod -aG docker ${USERNAME}
-USER ${USERNAME}
 # Install AWS CLI v2
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
@@ -139,17 +124,6 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     unzip aws-sam-cli.zip -d sam-installation && \
     sudo ./sam-installation/install && \
     rm -rf sam-installation aws-sam-cli.zip
-USER root
-# Install GitHub CLI
-RUN mkdir -p -m 755 /etc/apt/keyrings && \
-    curl -fsSL --proto '=https' --tlsv1.2 https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
-    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends gh && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-USER ${USERNAME}
 # Install GitHub Copilot CLI
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
     echo "08a2155a02a2e078cf0ee709b456978ab26badd8b45de7ecc9711f5b92712e30  /tmp/install-copilot.sh" | sha256sum -c - && \
@@ -160,22 +134,6 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/i
     echo "431889ac7d056f636aaf5b71524666d04c89c45560f80329940846479d484778  /tmp/install-claude.sh" | sha256sum -c - && \
     bash /tmp/install-claude.sh && \
     rm -f /tmp/install-claude.sh
-USER root
-# Install Zig (required for cargo-lambda cross-compilation)
-RUN ARCH="$(dpkg --print-architecture)" && \
-    case "$ARCH" in \
-        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
-        arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f" ;; \
-        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
-    esac && \
-    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL --proto '=https' --tlsv1.2 "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
-    echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
-    mkdir -p /usr/local/zig && \
-    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
-    ln -s /usr/local/zig/zig /usr/local/bin/zig && \
-    rm /tmp/zig.tar.xz
-USER ${USERNAME}
 # Install uv (fast Python package and project manager)
 RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tmp/install-uv.sh && \
     echo "7fc46e39cb97290b57169c0c813a17970585ac519139f19006453c99b5f2f45f  /tmp/install-uv.sh" | sha256sum -c - && \
@@ -191,6 +149,19 @@ RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-in
     echo '. "$HOME/.cargo/env"' >> ~/.bashrc
 ENV PATH="/home/${USERNAME}/.cargo/bin:$PATH"
 USER root
+# Install Docker CLI (client only, to use host Docker daemon via socket mount)
+ARG DOCKER_GID
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    . /etc/os-release && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu ${VERSION_CODENAME} stable" \
+    > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    groupadd -g ${DOCKER_GID} docker 2>/dev/null || groupmod -g ${DOCKER_GID} docker && \
+    usermod -aG docker ${USERNAME}
 # Install Go
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
@@ -204,8 +175,31 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     rm /tmp/go.tar.gz
 ENV GOPATH="/home/${USERNAME}/go"
 ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
+# Install GitHub CLI
+# Install Zig (required for cargo-lambda cross-compilation)
 # Install lazygit
-RUN ARCH="$(dpkg --print-architecture)" && \
+RUN mkdir -p -m 755 /etc/apt/keyrings && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://ziglang.org/download/0.15.2/zig-${DOWNLOAD_ARCH}-linux-0.15.2.tar.xz" -o /tmp/zig.tar.xz && \
+    echo "${CHECKSUM}  /tmp/zig.tar.xz" | sha256sum -c - && \
+    mkdir -p /usr/local/zig && \
+    tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
+    ln -s /usr/local/zig/zig /usr/local/bin/zig && \
+    rm /tmp/zig.tar.xz && \
+    ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
         amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2" ;; \
         arm64) DOWNLOAD_ARCH="arm64" ; CHECKSUM="a334a6c125169f21942f1a8b02043932575547a6250a1a734d62111efd92aa8f" ;; \

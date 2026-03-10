@@ -600,14 +600,27 @@ WORKDIR /home/${USERNAME}/workspace
 
             prepared.append((snippet, requires_root))
 
-        # Phase 4: Group consecutive root plugins to avoid redundant USER switches
+        # Phase 4: Sort and group for optimal USER switching and RUN merging
+        # Sort: non-root first, then root. Within root: non-pure (ARG/ENV)
+        # before pure-RUN so that pure-RUN snippets cluster together for merging.
+        non_root = [(s, r) for s, r in prepared if not r]
+        root_non_pure = [
+            (s, r) for s, r in prepared
+            if r and not DockerfileGenerator._is_pure_run(s)
+        ]
+        root_pure = [
+            (s, r) for s, r in prepared
+            if r and DockerfileGenerator._is_pure_run(s)
+        ]
+        ordered = non_root + root_non_pure + root_pure
+
         parts: list[str] = []
         if dir_block:
             parts.append(dir_block)
 
         i = 0
-        while i < len(prepared):
-            snippet, requires_root = prepared[i]
+        while i < len(ordered):
+            snippet, requires_root = ordered[i]
             if not requires_root:
                 parts.append(snippet)
                 i += 1
@@ -616,8 +629,8 @@ WORKDIR /home/${USERNAME}/workspace
             # Collect consecutive root snippets into one USER root block
             root_snippets: list[str] = [snippet]
             j = i + 1
-            while j < len(prepared) and prepared[j][1]:
-                root_snippets.append(prepared[j][0])
+            while j < len(ordered) and ordered[j][1]:
+                root_snippets.append(ordered[j][0])
                 j += 1
 
             merged = DockerfileGenerator._merge_root_group(root_snippets)
@@ -653,8 +666,10 @@ WORKDIR /home/${USERNAME}/workspace
 
         Consecutive snippets that consist only of comments + a single
         multi-line RUN command are combined into one RUN command joined
-        by ``&& \\``.  Snippets containing ARG, ENV, or other directives
-        break the merge chain and are emitted as-is.
+        by ``&& \\``.  Comments are extracted and placed before the
+        merged RUN block to avoid shell comment-in-continuation issues.
+        Snippets containing ARG, ENV, or other directives break the
+        merge chain and are emitted as-is.
         """
         if len(snippets) == 1:
             return snippets[0]
@@ -668,24 +683,44 @@ WORKDIR /home/${USERNAME}/workspace
             if len(merge_buffer) == 1:
                 result_parts.append(merge_buffer[0])
             else:
-                merged_lines: list[str] = []
-                for idx, snip in enumerate(merge_buffer):
-                    lines = snip.split("\n")
-                    for _li, line in enumerate(lines):
+                # Split each snippet into leading comments and RUN body
+                all_comments: list[str] = []
+                run_bodies: list[list[str]] = []
+                for snip in merge_buffer:
+                    comments: list[str] = []
+                    body: list[str] = []
+                    found_run = False
+                    for line in snip.split("\n"):
                         stripped = line.strip()
-                        if idx > 0 and stripped.startswith("RUN "):
-                            # Replace "RUN " with continuation indent
-                            merged_lines.append(f"    {stripped[4:]}")
+                        if not found_run and (stripped.startswith("#") or not stripped):
+                            comments.append(line)
                         else:
-                            merged_lines.append(line)
-                    # Ensure continuation between merged snippets
-                    if idx < len(merge_buffer) - 1:
-                        # Add && \ to the last non-empty line
+                            if stripped.startswith("RUN "):
+                                found_run = True
+                            body.append(line)
+                    all_comments.extend(comments)
+                    run_bodies.append(body)
+
+                # Build merged output: all comments first, then merged RUN
+                merged_lines: list[str] = list(all_comments)
+                for idx, body in enumerate(run_bodies):
+                    if idx == 0:
+                        merged_lines.extend(body)
+                    else:
+                        # Add && \ to last non-empty line
                         for li in range(len(merged_lines) - 1, -1, -1):
                             if merged_lines[li].strip():
                                 if not merged_lines[li].rstrip().endswith("\\"):
                                     merged_lines[li] = merged_lines[li].rstrip() + " && \\"
                                 break
+                        # Append body, replacing "RUN " with indent
+                        for line in body:
+                            stripped = line.strip()
+                            if stripped.startswith("RUN "):
+                                merged_lines.append(f"    {stripped[4:]}")
+                            else:
+                                merged_lines.append(line)
+
                 result_parts.append("\n".join(merged_lines))
             merge_buffer.clear()
 
