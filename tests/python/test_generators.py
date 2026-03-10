@@ -840,7 +840,7 @@ class TestUserSwitchOptimization:
         assert result.count("USER ${USERNAME}") == 1
 
     def test_non_pure_run_not_merged(self, tmp_path: Path) -> None:
-        """Snippets with ARG/ENV are not merged with adjacent RUN-only snippets."""
+        """Snippets with ARG are not merged with adjacent RUN-only snippets."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
         (plugins / "a.toml").write_text(
@@ -887,11 +887,11 @@ class TestUserSwitchOptimization:
         comment_lines = [l for l in lines[:run_line_idx] if l.strip().startswith("#")]
         assert len(comment_lines) >= 2
 
-    def test_non_pure_before_pure_in_root_group(self, tmp_path: Path) -> None:
-        """Non-pure root snippets come before pure ones, enabling merge of pure."""
+    def test_env_extracted_from_root_snippets(self, tmp_path: Path) -> None:
+        """ENV lines are extracted from root snippets without ARG, enabling RUN merge."""
         plugins = tmp_path / "plugins"
         plugins.mkdir()
-        # a: pure RUN, b: non-pure (has ENV), c: pure RUN
+        # a: pure RUN, b: has ENV (no ARG), c: pure RUN
         (plugins / "a.toml").write_text(
             '[metadata]\nname = "A"\n\n'
             "[install]\nrequires_root = true\n"
@@ -913,13 +913,30 @@ class TestUserSwitchOptimization:
         result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b", "c"])
         # All in one USER root block
         assert result.count("USER root") == 1
-        # Non-pure (b) comes before pure (a, c) due to sorting
-        b_pos = result.find("ENV X=1")
-        a_pos = result.find("echo a")
-        c_pos = result.find("echo c")
-        assert b_pos < a_pos, "Non-pure snippet should come before pure ones"
-        # a and c are pure and adjacent → merged into one RUN
-        assert a_pos < c_pos
+        # ENV extracted from b appears after USER ${USERNAME}
+        env_pos = result.find("ENV X=1")
+        user_pos = result.find("USER ${USERNAME}")
+        assert env_pos > user_pos, "Extracted ENV should appear after root block"
+        # All three RUN commands merged (ENV extraction made b pure)
+        assert "echo a" in result
+        assert "echo b" in result
+        assert "echo c" in result
+
+    def test_arg_snippet_env_not_extracted(self, tmp_path: Path) -> None:
+        """Snippets with ARG keep their ENV inside the root block."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "ARG MY_ARG\\nRUN echo a\\nENV X=1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a"])
+        # ENV stays with ARG snippet inside root block
+        env_pos = result.find("ENV X=1")
+        user_pos = result.find("USER ${USERNAME}")
+        assert env_pos < user_pos, "ENV in ARG snippet should stay inside root block"
 
 
 class TestComposeGeneratorSequenceIndent:

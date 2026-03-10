@@ -83,6 +83,10 @@
           "type": "string",
           "description": "Dockerfile snippet for installation"
         },
+        "dockerfile_user": {
+          "type": "string",
+          "description": "Dockerfile snippet to run as user after a requires_root install (e.g. bashrc configuration)"
+        },
         "volumes": {
           "type": "array",
           "description": "Docker volume mount paths. Volume names are auto-derived from path basenames. Use ${USERNAME} for the container username. Path must be directly under /home/${USERNAME}/.",

@@ -559,6 +559,7 @@ WORKDIR /home/${USERNAME}/workspace
 
         # Phase 3: Prepare plugin snippets with metadata
         prepared: list[tuple[str, bool]] = []  # (snippet, requires_root)
+        user_post_snippets: list[str] = []  # dockerfile_user snippets
         for plugin_id, data in plugin_data.items():
 
             install = data.get("install", {})
@@ -600,17 +601,42 @@ WORKDIR /home/${USERNAME}/workspace
 
             prepared.append((snippet, requires_root))
 
+            # Collect dockerfile_user snippets (user-mode commands after root install)
+            user_snippet = install.get("dockerfile_user", "")
+            if user_snippet:
+                user_snippet = user_snippet.rstrip("\n")
+                if pin:
+                    user_snippet = user_snippet.replace("{{VERSION}}", pin)
+                user_post_snippets.append(user_snippet)
+
         # Phase 4: Sort and group for optimal USER switching and RUN merging
-        # Sort: non-root first, then root. Within root: non-pure (ARG/ENV)
-        # before pure-RUN so that pure-RUN snippets cluster together for merging.
+        # Extract ENV lines from root snippets without ARG, making their RUN
+        # pure so it can merge with other pure-RUN snippets.
+        # ARG snippets stay as-is because ARG must precede its referencing RUN
+        # and changing ARG values (e.g. DOCKER_GID) would invalidate merged layers.
         non_root = [(s, r) for s, r in prepared if not r]
+        root_all = [(s, r) for s, r in prepared if r]
+
+        extracted_envs: list[str] = []
+        processed_root: list[tuple[str, bool]] = []
+        for snippet, req_root in root_all:
+            if (
+                not DockerfileGenerator._is_pure_run(snippet)
+                and not DockerfileGenerator._has_arg(snippet)
+            ):
+                run_part, env_lines = DockerfileGenerator._extract_env_lines(snippet)
+                extracted_envs.extend(env_lines)
+                processed_root.append((run_part, req_root))
+            else:
+                processed_root.append((snippet, req_root))
+
         root_non_pure = [
-            (s, r) for s, r in prepared
-            if r and not DockerfileGenerator._is_pure_run(s)
+            (s, r) for s, r in processed_root
+            if not DockerfileGenerator._is_pure_run(s)
         ]
         root_pure = [
-            (s, r) for s, r in prepared
-            if r and DockerfileGenerator._is_pure_run(s)
+            (s, r) for s, r in processed_root
+            if DockerfileGenerator._is_pure_run(s)
         ]
         ordered = non_root + root_non_pure + root_pure
 
@@ -637,6 +663,13 @@ WORKDIR /home/${USERNAME}/workspace
             parts.append(f"USER root\n{merged}\nUSER ${{USERNAME}}")
             i = j
 
+        # Emit extracted ENV lines after root block (ENV is USER-independent)
+        if extracted_envs:
+            parts.append("\n".join(extracted_envs))
+
+        # Append dockerfile_user snippets (run as user after root blocks)
+        parts.extend(user_post_snippets)
+
         return "\n".join(parts)
 
     @staticmethod
@@ -659,6 +692,29 @@ WORKDIR /home/${USERNAME}/workspace
             else:
                 return False
         return in_run
+
+    @staticmethod
+    def _has_arg(snippet: str) -> bool:
+        """Check if a snippet contains ARG directives."""
+        return any(line.strip().startswith("ARG ") for line in snippet.split("\n"))
+
+    @staticmethod
+    def _extract_env_lines(snippet: str) -> tuple[str, list[str]]:
+        """Extract ENV lines from a snippet.
+
+        Returns (run_part, env_lines) where run_part contains all non-ENV
+        lines and env_lines contains the extracted ENV directives.
+        """
+        run_lines: list[str] = []
+        env_lines: list[str] = []
+        for line in snippet.split("\n"):
+            if line.strip().startswith("ENV "):
+                env_lines.append(line)
+            else:
+                run_lines.append(line)
+        while run_lines and not run_lines[-1].strip():
+            run_lines.pop()
+        return ("\n".join(run_lines), env_lines)
 
     @staticmethod
     def _merge_root_group(snippets: list[str]) -> str:
