@@ -171,6 +171,13 @@ test_generate_workspace_file() {
   generate_workspace_file "$tmpdir/single.code-workspace" "$tmpdir/settings.json" "solo-project"
   assert_true "single folder is valid JSON" uv run --project "$PROJECT_ROOT" python -c "import json; json.load(open('$tmpdir/single.code-workspace'))"
 
+  # Folder name with JSON special characters (quotes, backslash)
+  mkdir -p "$tmpdir/special"
+  generate_workspace_file "$tmpdir/special.code-workspace" "$tmpdir/settings.json" 'has"quote' 'has\backslash'
+  assert_true "special chars produce valid JSON" uv run --project "$PROJECT_ROOT" python -c "import json; json.load(open('$tmpdir/special.code-workspace'))"
+  assert_file_contains "escaped quote in name" <(cat "$tmpdir/special.code-workspace") 'has\"quote'
+  assert_file_contains "escaped backslash in name" <(cat "$tmpdir/special.code-workspace") 'has\\backslash'
+
   rm -rf "$tmpdir"
 }
 

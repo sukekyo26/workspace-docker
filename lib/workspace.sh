@@ -66,30 +66,14 @@ generate_workspace_file() {
   shift 2
   local folders=("$@")
 
-  {
-    printf '{\n'
-    printf '\t"folders": [\n'
+  local folders_json
+  folders_json=$(printf '%s\n' "${folders[@]}" | jq -R '{
+    name: (split("/") | last),
+    path: ("../../" + .)
+  }' | jq -s '.')
 
-    local i=0
-    local count=${#folders[@]}
-    local folder
-    for folder in "${folders[@]}"; do
-      i=$((i + 1))
-      local comma=""
-      if [[ "$i" -lt "$count" ]]; then
-        comma=","
-      fi
-      local name
-      name=$(basename "$folder")
-      printf '\t\t{\n'
-      printf '\t\t\t"name": "%s",\n' "$name"
-      printf '\t\t\t"path": "../../%s"\n' "$folder"
-      printf '\t\t}%s\n' "$comma"
-    done
-
-    printf '\t],\n'
-    printf '\t"settings": '
-    sed '1!s/^/\t/' "$settings_file"
-    printf '}\n'
-  } > "$output_file"
+  jq -n --tab \
+    --argjson folders "$folders_json" \
+    --slurpfile settings "$settings_file" \
+    '{folders: $folders, settings: $settings[0]}' > "$output_file"
 }
