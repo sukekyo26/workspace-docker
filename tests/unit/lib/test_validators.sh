@@ -46,6 +46,11 @@ test_validate_username() {
   assert_false "invalid: empty" validate_username ""
   assert_false "invalid: starts with number" validate_username "1user"
   assert_false "invalid: uppercase" validate_username "User"
+  assert_false "blocked: root" validate_username "root"
+  assert_false "blocked: daemon" validate_username "daemon"
+  assert_false "blocked: nobody" validate_username "nobody"
+  assert_false "blocked: www-data" validate_username "www-data"
+  assert_true "valid: rootuser (not exact match)" validate_username "rootuser"
 }
 
 # ============================================================
