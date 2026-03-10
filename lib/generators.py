@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import traceback
 from abc import ABC, abstractmethod
 from typing import Any, cast
 
@@ -556,11 +557,8 @@ WORKDIR /home/${USERNAME}/workspace
         # Phase 2: Generate directory setup block
         dir_block = DockerfileGenerator._generate_user_dirs_block(all_user_dirs)
 
-        # Phase 3: Generate plugin install snippets
-        parts: list[str] = []
-        if dir_block:
-            parts.append(dir_block)
-
+        # Phase 3: Prepare plugin snippets with metadata
+        prepared: list[tuple[str, bool]] = []  # (snippet, requires_root)
         for plugin_id, data in plugin_data.items():
 
             install = data.get("install", {})
@@ -600,12 +598,106 @@ WORKDIR /home/${USERNAME}/workspace
             if install_script_sha256:
                 snippet = snippet.replace("{{INSTALL_SCRIPT_SHA256}}", install_script_sha256)
 
-            if requires_root:
-                snippet = f"USER root\n{snippet}\nUSER ${{USERNAME}}"
+            prepared.append((snippet, requires_root))
 
-            parts.append(snippet)
+        # Phase 4: Group consecutive root plugins to avoid redundant USER switches
+        parts: list[str] = []
+        if dir_block:
+            parts.append(dir_block)
+
+        i = 0
+        while i < len(prepared):
+            snippet, requires_root = prepared[i]
+            if not requires_root:
+                parts.append(snippet)
+                i += 1
+                continue
+
+            # Collect consecutive root snippets into one USER root block
+            root_snippets: list[str] = [snippet]
+            j = i + 1
+            while j < len(prepared) and prepared[j][1]:
+                root_snippets.append(prepared[j][0])
+                j += 1
+
+            merged = DockerfileGenerator._merge_root_group(root_snippets)
+            parts.append(f"USER root\n{merged}\nUSER ${{USERNAME}}")
+            i = j
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _is_pure_run(snippet: str) -> bool:
+        """Check if a snippet contains only comments and a single RUN block."""
+        in_run = False
+        prev_continuation = False
+        for line in snippet.split("\n"):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if not in_run:
+                if stripped.startswith("RUN "):
+                    in_run = True
+                    prev_continuation = stripped.endswith("\\")
+                else:
+                    return False
+            elif prev_continuation:
+                prev_continuation = stripped.endswith("\\")
+            else:
+                return False
+        return in_run
+
+    @staticmethod
+    def _merge_root_group(snippets: list[str]) -> str:
+        """Merge consecutive pure-RUN snippets within a root group.
+
+        Consecutive snippets that consist only of comments + a single
+        multi-line RUN command are combined into one RUN command joined
+        by ``&& \\``.  Snippets containing ARG, ENV, or other directives
+        break the merge chain and are emitted as-is.
+        """
+        if len(snippets) == 1:
+            return snippets[0]
+
+        result_parts: list[str] = []
+        merge_buffer: list[str] = []
+
+        def flush_merge_buffer() -> None:
+            if not merge_buffer:
+                return
+            if len(merge_buffer) == 1:
+                result_parts.append(merge_buffer[0])
+            else:
+                merged_lines: list[str] = []
+                for idx, snip in enumerate(merge_buffer):
+                    lines = snip.split("\n")
+                    for _li, line in enumerate(lines):
+                        stripped = line.strip()
+                        if idx > 0 and stripped.startswith("RUN "):
+                            # Replace "RUN " with continuation indent
+                            merged_lines.append(f"    {stripped[4:]}")
+                        else:
+                            merged_lines.append(line)
+                    # Ensure continuation between merged snippets
+                    if idx < len(merge_buffer) - 1:
+                        # Add && \ to the last non-empty line
+                        for li in range(len(merged_lines) - 1, -1, -1):
+                            if merged_lines[li].strip():
+                                if not merged_lines[li].rstrip().endswith("\\"):
+                                    merged_lines[li] = merged_lines[li].rstrip() + " && \\"
+                                break
+                result_parts.append("\n".join(merged_lines))
+            merge_buffer.clear()
+
+        for snippet in snippets:
+            if DockerfileGenerator._is_pure_run(snippet):
+                merge_buffer.append(snippet)
+            else:
+                flush_merge_buffer()
+                result_parts.append(snippet)
+
+        flush_merge_buffer()
+        return "\n".join(result_parts)
 
     @staticmethod
     def _generate_user_dirs_block(user_dirs: list[str]) -> str:
@@ -806,6 +898,9 @@ def _run_cli() -> None:
 
 def main() -> None:
     """Entry point with user-friendly error handling."""
+    verbose = "--verbose" in sys.argv
+    if verbose:
+        sys.argv.remove("--verbose")
     try:
         _run_cli()
     except FileNotFoundError as e:
@@ -813,9 +908,13 @@ def main() -> None:
             f"ERROR: File not found: {e.filename or e}",
             file=sys.stderr,
         )
+        if verbose:
+            traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        if verbose:
+            traceback.print_exc()
         sys.exit(1)
 
 
