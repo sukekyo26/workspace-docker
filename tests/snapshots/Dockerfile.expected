@@ -204,8 +204,6 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     rm /tmp/go.tar.gz
 ENV GOPATH="/home/${USERNAME}/go"
 ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
-USER ${USERNAME}
-USER root
 # Install lazygit
 RUN ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
