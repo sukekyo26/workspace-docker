@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- SHA256 integrity verification for all `curl | sh` install scripts — 5 plugins (proto, uv, rust, claude-code, copilot-cli) and devcontainer CLI now verify downloaded scripts against pinned checksums before execution
+- `install_script_sha256` field in plugin schema for install script checksum verification
+- Python code coverage measurement — `tests/run_coverage.sh` for local coverage reports using `coverage.py` (current: 78% for `lib/`)
 - JSON Schema validation test suite (36 pytest cases) — validates that `workspace.toml` and plugin TOML schemas correctly accept valid input and reject invalid input
 
 ### Fixed

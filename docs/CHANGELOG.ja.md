@@ -8,6 +8,9 @@
 ## [Unreleased]
 
 ### 追加
+- `curl | sh` インストールスクリプトの SHA256 整合性検証 — 5 プラグイン（proto, uv, rust, claude-code, copilot-cli）と devcontainer CLI で、ダウンロードしたスクリプトをピン止めされたチェックサムで検証してから実行
+- プラグインスキーマに `install_script_sha256` フィールド追加（インストールスクリプトのチェックサム検証用）
+- Python コードカバレッジ計測 — `tests/run_coverage.sh` でローカルカバレッジレポート生成（`coverage.py` 使用、現在 `lib/` は 78%）
 - JSON Schema バリデーションテストスイート（36 pytest ケース）— `workspace.toml` とプラグイン TOML スキーマの正常入力受理・不正入力拒否を検証
 
 ### 修正
