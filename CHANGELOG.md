@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `--verbose` flag for Python CLI error diagnostics (`generators.py`, `toml_parser.py`) — shows full stack traces when enabled, user-friendly messages by default
 - Dangerous system username blocklist in `validate_username()` — blocks 20 reserved names (root, daemon, nobody, www-data, etc.) to prevent container privilege escalation
-- Dockerfile USER switching optimization — sorts root plugins together into a single `USER root` block, orders non-pure (ARG/ENV) before pure-RUN snippets, and merges consecutive pure-RUN commands into one `RUN` to reduce image layers
+- Dockerfile USER switching optimization — sorts root plugins into a single `USER root` block, extracts ENV from non-ARG root snippets to enable broader RUN merging, and merges consecutive pure-RUN commands to reduce image layers
+- `dockerfile_user` field in plugin schema — allows mixed-permission plugins (e.g. starship) to separate root installs from user-mode configuration
 - SHA256 integrity verification for all `curl | sh` install scripts — 5 plugins (proto, uv, rust, claude-code, copilot-cli) and devcontainer CLI now verify downloaded scripts against pinned checksums before execution
 - `install_script_sha256` field in plugin schema for install script checksum verification
 - Python code coverage measurement — `tests/run_coverage.sh` for local coverage reports using `coverage.py` (current: 78% for `lib/`)
