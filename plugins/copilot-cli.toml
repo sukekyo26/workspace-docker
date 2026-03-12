@@ -18,4 +18,4 @@ volumes = ["/home/${USERNAME}/.copilot"]
 
 [version]
 strategy = "latest"
-install_script_sha256 = "08a2155a02a2e078cf0ee709b456978ab26badd8b45de7ecc9711f5b92712e30"
+install_script_sha256 = "4b6c932dc8a578749c8fff0d37e16e60a0d8aa012b65e596e8d37e7848626aab"
