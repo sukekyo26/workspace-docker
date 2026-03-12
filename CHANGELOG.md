@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-03-12
+
+### Added
+- `nerd-fonts` plugin — installs Meslo Nerd Font for terminal icon display (Starship, Powerline, etc.) with font cache update and volume persistence
+- `--verbose` flag for Python CLI error diagnostics (`generators.py`, `toml_parser.py`) — shows full stack traces when enabled, user-friendly messages by default
+- Dangerous system username blocklist in `validate_username()` — blocks 20 reserved names (root, daemon, nobody, www-data, etc.) to prevent container privilege escalation
+- Dockerfile RUN merging optimization — extracts ENV from non-ARG snippets (both root and non-root), sorts and merges consecutive pure-RUN commands into single `RUN` instructions, and consolidates all root plugins into one `USER root` block to minimize image layers and USER switching
+- `dockerfile_user` field in plugin schema — allows mixed-permission plugins (e.g. starship) to separate root installs from user-mode configuration
+- Python code coverage measurement — `tests/run_coverage.sh` for local coverage reports using `coverage.py` (current: 78% for `lib/`)
+- JSON Schema validation test suite (36 pytest cases) — validates that `workspace.toml` and plugin TOML schemas correctly accept valid input and reject invalid input
+
+### Fixed
+- JSON escape vulnerability in `generate_workspace_file` — replaced manual `printf` with `jq` for safe JSON generation (prevents injection via special characters in folder names)
+- `devcontainer CLI` PATH resolution — automatically adds `~/.devcontainers/bin` to `PATH` when the CLI is installed but not found. Prompts user before auto-installing. Shows shell profile persistence hint
+
 ## [4.1.2] - 2026-03-09
 
 ### Added

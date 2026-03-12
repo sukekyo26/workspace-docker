@@ -26,8 +26,12 @@ from __future__ import annotations
 import json
 import os
 import sys
+import traceback
 from abc import ABC, abstractmethod
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 import yaml
 
@@ -556,11 +560,9 @@ WORKDIR /home/${USERNAME}/workspace
         # Phase 2: Generate directory setup block
         dir_block = DockerfileGenerator._generate_user_dirs_block(all_user_dirs)
 
-        # Phase 3: Generate plugin install snippets
-        parts: list[str] = []
-        if dir_block:
-            parts.append(dir_block)
-
+        # Phase 3: Prepare plugin snippets with metadata
+        prepared: list[tuple[str, bool]] = []  # (snippet, requires_root)
+        user_post_snippets: list[str] = []  # dockerfile_user snippets
         for plugin_id, data in plugin_data.items():
 
             install = data.get("install", {})
@@ -596,13 +598,189 @@ WORKDIR /home/${USERNAME}/workspace
             checksum_arm64 = version.get("checksum_arm64", "")
             if checksum_arm64:
                 snippet = snippet.replace("{{CHECKSUM_ARM64}}", checksum_arm64)
+            install_script_sha256 = version.get("install_script_sha256", "")
+            if install_script_sha256:
+                snippet = snippet.replace("{{INSTALL_SCRIPT_SHA256}}", install_script_sha256)
 
-            if requires_root:
-                snippet = f"USER root\n{snippet}\nUSER ${{USERNAME}}"
+            prepared.append((snippet, requires_root))
 
-            parts.append(snippet)
+            # Collect dockerfile_user snippets (user-mode commands after root install)
+            user_snippet = install.get("dockerfile_user", "")
+            if user_snippet:
+                user_snippet = user_snippet.rstrip("\n")
+                if pin:
+                    user_snippet = user_snippet.replace("{{VERSION}}", pin)
+                user_post_snippets.append(user_snippet)
+
+        # Phase 4: Sort and group for optimal USER switching and RUN merging
+        # Extract ENV from snippets without ARG (both root and non-root),
+        # making their RUN pure so it can merge with other pure-RUN snippets.
+        # ARG snippets stay as-is because ARG must precede its referencing RUN.
+        def _extract_and_sort(
+            items: Sequence[tuple[str, bool]],
+        ) -> tuple[list[str], list[str]]:
+            """Extract ENV, sort non-pure before pure, return (snippets, envs)."""
+            envs: list[str] = []
+            processed: list[str] = []
+            for snippet, _req in items:
+                if (
+                    not DockerfileGenerator._is_pure_run(snippet)
+                    and not DockerfileGenerator._has_arg(snippet)
+                ):
+                    run_part, env_lines = DockerfileGenerator._extract_env_lines(snippet)
+                    envs.extend(env_lines)
+                    processed.append(run_part)
+                else:
+                    processed.append(snippet)
+            non_pure = [s for s in processed if not DockerfileGenerator._is_pure_run(s)]
+            pure = [s for s in processed if DockerfileGenerator._is_pure_run(s)]
+            return non_pure + pure, envs
+
+        non_root_raw = [(s, r) for s, r in prepared if not r]
+        root_raw = [(s, r) for s, r in prepared if r]
+
+        non_root_snippets, non_root_envs = _extract_and_sort(non_root_raw)
+        root_snippets, root_envs = _extract_and_sort(root_raw)
+
+        parts: list[str] = []
+        if dir_block:
+            parts.append(dir_block)
+
+        # Emit non-root group (merged)
+        if non_root_snippets:
+            parts.append(DockerfileGenerator._merge_snippet_group(non_root_snippets))
+        if non_root_envs:
+            parts.append("\n".join(non_root_envs))
+
+        # Emit root group (merged, wrapped in USER directives)
+        if root_snippets:
+            merged = DockerfileGenerator._merge_snippet_group(root_snippets)
+            parts.append(f"USER root\n{merged}\nUSER ${{USERNAME}}")
+        if root_envs:
+            parts.append("\n".join(root_envs))
+
+        # Append dockerfile_user snippets (run as user after root blocks)
+        parts.extend(user_post_snippets)
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _is_pure_run(snippet: str) -> bool:
+        """Check if a snippet contains only comments and a single RUN block."""
+        in_run = False
+        prev_continuation = False
+        for line in snippet.split("\n"):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if not in_run:
+                if stripped.startswith("RUN "):
+                    in_run = True
+                    prev_continuation = stripped.endswith("\\")
+                else:
+                    return False
+            elif prev_continuation:
+                prev_continuation = stripped.endswith("\\")
+            else:
+                return False
+        return in_run
+
+    @staticmethod
+    def _has_arg(snippet: str) -> bool:
+        """Check if a snippet contains ARG directives."""
+        return any(line.strip().startswith("ARG ") for line in snippet.split("\n"))
+
+    @staticmethod
+    def _extract_env_lines(snippet: str) -> tuple[str, list[str]]:
+        """Extract ENV lines from a snippet.
+
+        Returns (run_part, env_lines) where run_part contains all non-ENV
+        lines and env_lines contains the extracted ENV directives.
+        """
+        run_lines: list[str] = []
+        env_lines: list[str] = []
+        for line in snippet.split("\n"):
+            if line.strip().startswith("ENV "):
+                env_lines.append(line)
+            else:
+                run_lines.append(line)
+        while run_lines and not run_lines[-1].strip():
+            run_lines.pop()
+        return ("\n".join(run_lines), env_lines)
+
+    @staticmethod
+    def _merge_snippet_group(snippets: list[str]) -> str:
+        """Merge consecutive pure-RUN snippets within a group.
+
+        Consecutive snippets that consist only of comments + a single
+        multi-line RUN command are combined into one RUN command joined
+        by ``&& \\``.  Comments are extracted and placed before the
+        merged RUN block to avoid shell comment-in-continuation issues.
+        Snippets containing ARG or other directives break the
+        merge chain and are emitted as-is.
+        """
+        if len(snippets) == 1:
+            return snippets[0]
+
+        result_parts: list[str] = []
+        merge_buffer: list[str] = []
+
+        def flush_merge_buffer() -> None:
+            if not merge_buffer:
+                return
+            if len(merge_buffer) == 1:
+                result_parts.append(merge_buffer[0])
+            else:
+                # Split each snippet into leading comments and RUN body
+                all_comments: list[str] = []
+                run_bodies: list[list[str]] = []
+                for snip in merge_buffer:
+                    comments: list[str] = []
+                    body: list[str] = []
+                    found_run = False
+                    for line in snip.split("\n"):
+                        stripped = line.strip()
+                        if not found_run and (stripped.startswith("#") or not stripped):
+                            comments.append(line)
+                        else:
+                            if stripped.startswith("RUN "):
+                                found_run = True
+                            body.append(line)
+                    all_comments.extend(comments)
+                    run_bodies.append(body)
+
+                # Build merged output: all comments first, then merged RUN
+                merged_lines: list[str] = list(all_comments)
+                for idx, body in enumerate(run_bodies):
+                    if idx == 0:
+                        merged_lines.extend(body)
+                    else:
+                        # Add && \ to last non-empty line
+                        for li in range(len(merged_lines) - 1, -1, -1):
+                            if merged_lines[li].strip():
+                                if not merged_lines[li].rstrip().endswith("\\"):
+                                    merged_lines[li] = merged_lines[li].rstrip() + " && \\"
+                                break
+                        # Append body, replacing "RUN " with indent
+                        for line in body:
+                            stripped = line.strip()
+                            if stripped.startswith("RUN "):
+                                merged_lines.append(f"    {stripped[4:]}")
+                            else:
+                                merged_lines.append(line)
+
+                result_parts.append("\n".join(merged_lines))
+            merge_buffer.clear()
+
+        for snippet in snippets:
+            if DockerfileGenerator._is_pure_run(snippet):
+                merge_buffer.append(snippet)
+            else:
+                flush_merge_buffer()
+                result_parts.append(snippet)
+
+        flush_merge_buffer()
+        return "\n".join(result_parts)
 
     @staticmethod
     def _generate_user_dirs_block(user_dirs: list[str]) -> str:
@@ -803,6 +981,9 @@ def _run_cli() -> None:
 
 def main() -> None:
     """Entry point with user-friendly error handling."""
+    verbose = "--verbose" in sys.argv
+    if verbose:
+        sys.argv.remove("--verbose")
     try:
         _run_cli()
     except FileNotFoundError as e:
@@ -810,9 +991,13 @@ def main() -> None:
             f"ERROR: File not found: {e.filename or e}",
             file=sys.stderr,
         )
+        if verbose:
+            traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        if verbose:
+            traceback.print_exc()
         sys.exit(1)
 
 

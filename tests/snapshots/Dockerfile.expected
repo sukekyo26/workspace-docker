@@ -88,18 +88,51 @@ RUN mkdir -p /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.
     chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.aws /home/${USERNAME}/.cargo /home/${USERNAME}/.claude /home/${USERNAME}/.config /home/${USERNAME}/.copilot /home/${USERNAME}/.deno /home/${USERNAME}/.proto /home/${USERNAME}/.rustup /home/${USERNAME}/go
 USER ${USERNAME}
 # Custom PS1 with Docker container name, user/host, working directory, and git status
+# proto (multi-language version manager)
+# Install AWS CLI v2
+# Install AWS SAM CLI
+# Install GitHub Copilot CLI
+# Install Claude Code
+# Install uv (fast Python package and project manager)
+# Install Rust toolchain via rustup
 RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUNTRACKEDFILES=1' >> ~/.bashrc && \
     echo 'GIT_PS1_SHOWUPSTREAM="auto"' >> ~/.bashrc && \
-    echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc
-# proto (multi-language version manager)
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
-    bash /tmp/install-proto.sh --no-profile --yes && \
-    rm -f /tmp/install-proto.sh && \
+    echo 'PS1='"'"'\\[\\033[01;35m\\][Docker $CONTAINER_SERVICE_NAME]\\[\\033[00m\\] \\[\\033[01;32m\\]\\u@\\h:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]$(__git_ps1 " \\[\\033[01;33m\\](%s)\\[\\033[00m\\]" 2>/dev/null) \\$ '"'"'' >> ~/.bashrc && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh | bash -s -- --no-profile --yes && \
     echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \
-    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc
+    echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc && \
+    ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) CLI_ARCH="x86_64" ;; \
+        arm64) CLI_ARCH="aarch64" ;; \
+        *) CLI_ARCH="x86_64" ;; \
+    esac && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    sudo ./aws/install && \
+    rm -rf aws awscliv2.zip && \
+    ARCH="$(dpkg --print-architecture)" && \
+    case "$ARCH" in \
+        amd64) DOWNLOAD_ARCH="x86_64" ;; \
+        arm64) DOWNLOAD_ARCH="aarch64" ;; \
+        *) DOWNLOAD_ARCH="x86_64" ;; \
+    esac && \
+    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
+    unzip aws-sam-cli.zip -d sam-installation && \
+    sudo ./sam-installation/install && \
+    rm -rf sam-installation aws-sam-cli.zip && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install | bash && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh | bash && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh | bash && \
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && \
+    curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --component clippy --component rustfmt && \
+    echo '. "$HOME/.cargo/env"' >> ~/.bashrc
 ENV PROTO_HOME="/home/${USERNAME}/.proto"
 ENV PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"
+ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
+ENV PATH="/home/${USERNAME}/.cargo/bin:$PATH"
 USER root
 # Install Docker CLI (client only, to use host Docker daemon via socket mount)
 ARG DOCKER_GID
@@ -114,32 +147,10 @@ RUN mkdir -p /etc/apt/keyrings && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     groupadd -g ${DOCKER_GID} docker 2>/dev/null || groupmod -g ${DOCKER_GID} docker && \
     usermod -aG docker ${USERNAME}
-USER ${USERNAME}
-# Install AWS CLI v2
-RUN ARCH="$(dpkg --print-architecture)" && \
-    case "$ARCH" in \
-        amd64) CLI_ARCH="x86_64" ;; \
-        arm64) CLI_ARCH="aarch64" ;; \
-        *) CLI_ARCH="x86_64" ;; \
-    esac && \
-    curl -fsSL --proto '=https' --tlsv1.2 "https://awscli.amazonaws.com/awscli-exe-linux-${CLI_ARCH}.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    sudo ./aws/install && \
-    rm -rf aws awscliv2.zip
-# Install AWS SAM CLI
-RUN ARCH="$(dpkg --print-architecture)" && \
-    case "$ARCH" in \
-        amd64) DOWNLOAD_ARCH="x86_64" ;; \
-        arm64) DOWNLOAD_ARCH="aarch64" ;; \
-        *) DOWNLOAD_ARCH="x86_64" ;; \
-    esac && \
-    echo "Detected architecture: $ARCH -> $DOWNLOAD_ARCH" && \
-    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-${DOWNLOAD_ARCH}.zip" -o "aws-sam-cli.zip" && \
-    unzip aws-sam-cli.zip -d sam-installation && \
-    sudo ./sam-installation/install && \
-    rm -rf sam-installation aws-sam-cli.zip
-USER root
 # Install GitHub CLI
+# Install Zig (required for cargo-lambda cross-compilation)
+# Install Go
+# Install lazygit
 RUN mkdir -p -m 755 /etc/apt/keyrings && \
     curl -fsSL --proto '=https' --tlsv1.2 https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
@@ -147,19 +158,8 @@ RUN mkdir -p -m 755 /etc/apt/keyrings && \
     apt-get update && \
     apt-get install -y --no-install-recommends gh && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-USER ${USERNAME}
-# Install GitHub Copilot CLI
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
-    bash /tmp/install-copilot.sh && \
-    rm -f /tmp/install-copilot.sh
-# Install Claude Code
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/install-claude.sh && \
-    bash /tmp/install-claude.sh && \
-    rm -f /tmp/install-claude.sh
-USER root
-# Install Zig (required for cargo-lambda cross-compilation)
-RUN ARCH="$(dpkg --print-architecture)" && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
         amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239" ;; \
         arm64) DOWNLOAD_ARCH="aarch64" ; CHECKSUM="958ed7d1e00d0ea76590d27666efbf7a932281b3d7ba0c6b01b0ff26498f667f" ;; \
@@ -171,23 +171,8 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     mkdir -p /usr/local/zig && \
     tar -xf /tmp/zig.tar.xz -C /usr/local/zig --strip-components=1 && \
     ln -s /usr/local/zig/zig /usr/local/bin/zig && \
-    rm /tmp/zig.tar.xz
-USER ${USERNAME}
-# Install uv (fast Python package and project manager)
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://astral.sh/uv/install.sh -o /tmp/install-uv.sh && \
-    bash /tmp/install-uv.sh && \
-    rm -f /tmp/install-uv.sh && \
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-ENV PATH="/home/${USERNAME}/.local/bin:$PATH"
-# Install Rust toolchain via rustup
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs -o /tmp/rustup-init.sh && \
-    sh /tmp/rustup-init.sh -y --default-toolchain stable --component clippy --component rustfmt && \
-    rm -f /tmp/rustup-init.sh && \
-    echo '. "$HOME/.cargo/env"' >> ~/.bashrc
-ENV PATH="/home/${USERNAME}/.cargo/bin:$PATH"
-USER root
-# Install Go
-RUN ARCH="$(dpkg --print-architecture)" && \
+    rm /tmp/zig.tar.xz && \
+    ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
     amd64) CHECKSUM="031f088e5d955bab8657ede27ad4e3bc5b7c1ba281f05f245bcc304f327c987a" ;; \
     arm64) CHECKSUM="a290581cfe4fe28ddd737dde3095f3dbeb7f2e4065cab4eae44dfc53b760c2f7" ;; \
@@ -196,13 +181,8 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     curl -fsSL --proto '=https' --tlsv1.2 "https://go.dev/dl/go1.26.1.linux-${ARCH}.tar.gz" -o /tmp/go.tar.gz && \
     echo "${CHECKSUM}  /tmp/go.tar.gz" | sha256sum -c - && \
     tar -C /usr/local -xzf /tmp/go.tar.gz && \
-    rm /tmp/go.tar.gz
-ENV GOPATH="/home/${USERNAME}/go"
-ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
-USER ${USERNAME}
-USER root
-# Install lazygit
-RUN ARCH="$(dpkg --print-architecture)" && \
+    rm /tmp/go.tar.gz && \
+    ARCH="$(dpkg --print-architecture)" && \
     case "$ARCH" in \
         amd64) DOWNLOAD_ARCH="x86_64" ; CHECKSUM="264283f40a40c899d702a338b20622f690221f753f03bac827c1f34e91f516c2" ;; \
         arm64) DOWNLOAD_ARCH="arm64" ; CHECKSUM="a334a6c125169f21942f1a8b02043932575547a6250a1a734d62111efd92aa8f" ;; \
@@ -213,6 +193,8 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin lazygit && \
     rm /tmp/lazygit.tar.gz
 USER ${USERNAME}
+ENV GOPATH="/home/${USERNAME}/go"
+ENV PATH="/usr/local/go/bin:$GOPATH/bin:$PATH"
 
 # create volume mount directories for permission
 RUN mkdir -p ~/.local

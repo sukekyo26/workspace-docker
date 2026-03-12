@@ -47,6 +47,16 @@ validate_username() {
     return 1
   fi
 
+  # Block dangerous system usernames
+  local blocked="root daemon bin sys sync games man lp mail news uucp proxy www-data backup list irc gnats nobody systemd-network systemd-resolve messagebus syslog _apt"
+  local blocked_name
+  for blocked_name in $blocked; do
+    if [[ "$username" == "$blocked_name" ]]; then
+      echo "ERROR: $(msg err_username_blocked "$username")" >&2
+      return 1
+    fi
+  done
+
   # Check for valid Unix username format
   if [[ ! "$username" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
     echo "ERROR: $(msg err_username_invalid)" >&2

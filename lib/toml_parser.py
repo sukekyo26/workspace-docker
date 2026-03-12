@@ -25,6 +25,7 @@ import json
 import os
 import sys
 import tomllib
+import traceback
 from abc import ABC, abstractmethod
 from typing import Any, cast
 
@@ -447,6 +448,9 @@ def _run_cli() -> None:
 
 def main() -> None:
     """Entry point with user-friendly error handling."""
+    verbose = "--verbose" in sys.argv
+    if verbose:
+        sys.argv.remove("--verbose")
     try:
         _run_cli()
     except FileNotFoundError as e:
@@ -454,9 +458,13 @@ def main() -> None:
             f"ERROR: File not found: {e.filename or e}",
             file=sys.stderr,
         )
+        if verbose:
+            traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        if verbose:
+            traceback.print_exc()
         sys.exit(1)
 
 

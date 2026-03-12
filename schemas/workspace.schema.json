@@ -62,6 +62,7 @@
               "github-cli",
               "go",
               "lazygit",
+              "nerd-fonts",
               "proto",
               "rust",
               "starship",

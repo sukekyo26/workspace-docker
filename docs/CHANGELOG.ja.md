@@ -7,6 +7,21 @@
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-03-12
+
+### 追加
+- `nerd-fonts` プラグイン追加 — ターミナルアイコン表示用の Meslo Nerd Font をインストール（Starship、Powerline 等）。フォントキャッシュ更新とボリューム永続化に対応
+- Python CLI エラー診断用 `--verbose` フラグ追加（`generators.py`、`toml_parser.py`）— 有効時にフルスタックトレースを表示、デフォルトではユーザーフレンドリーなメッセージのみ
+- `validate_username()` に危険なシステムユーザー名のブロックリスト追加 — 20 個の予約名（root、daemon、nobody、www-data 等）をブロックしコンテナ権限昇格を防止
+- Dockerfile RUN マージ最適化 — ARG を含まないスニペット（root/non-root 両方）から ENV を抽出し、連続する pure-RUN コマンドを1つの `RUN` にマージ。全 root プラグインを単一の `USER root` ブロックに集約し、イメージレイヤーと USER 切り替えを最小化
+- プラグインスキーマに `dockerfile_user` フィールド追加 — 混合権限プラグイン（例: starship）で root インストールとユーザーモード設定を分離可能に
+- Python コードカバレッジ計測 — `tests/run_coverage.sh` でローカルカバレッジレポート生成（`coverage.py` 使用、現在 `lib/` は 78%）
+- JSON Schema バリデーションテストスイート（36 pytest ケース）— `workspace.toml` とプラグイン TOML スキーマの正常入力受理・不正入力拒否を検証
+
+### 修正
+- `generate_workspace_file` の JSON エスケープ脆弱性修正 — 手動 `printf` を `jq` に置換し安全な JSON 生成を実現（フォルダ名の特殊文字によるインジェクションを防止）
+- `devcontainer CLI` の PATH 解決 — CLI がインストール済みだが PATH にない場合、`~/.devcontainers/bin` を自動追加。自動インストール前にユーザーに確認。シェルプロファイルへの永続化ヒントを表示
+
 ## [4.1.2] - 2026-03-09
 
 ### 追加

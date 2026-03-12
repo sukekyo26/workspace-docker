@@ -1,0 +1,24 @@
+[metadata]
+name = "Nerd Fonts"
+description = "Nerd Fonts for terminal icon display (Starship, Powerline, etc.)"
+default = false
+
+[apt]
+packages = ["fontconfig"]
+
+[install]
+requires_root = false
+user_dirs = ["/home/${USERNAME}/.fonts"]
+dockerfile = '''
+# Nerd Fonts (Meslo)
+RUN curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.tar.xz" -o /tmp/Meslo.tar.xz && \
+    mkdir -p ~/.fonts/Meslo && \
+    tar -xf /tmp/Meslo.tar.xz -C ~/.fonts/Meslo && \
+    fc-cache -fv && \
+    rm /tmp/Meslo.tar.xz
+'''
+
+volumes = ["/home/${USERNAME}/.fonts"]
+
+[version]
+strategy = "latest"

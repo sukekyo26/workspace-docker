@@ -774,6 +774,226 @@ class TestUserDirs:
         assert result == ""
 
 
+class TestUserSwitchOptimization:
+    """Test Dockerfile USER root/USER ${USERNAME} optimization."""
+
+    def test_consecutive_root_plugins_merged(self, tmp_path: Path) -> None:
+        """Consecutive requires_root plugins share one USER root block."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        assert result.count("USER root") == 1
+        assert result.count("USER ${USERNAME}") == 1
+        assert "echo a" in result
+        assert "echo b" in result
+
+    def test_non_root_plugins_no_user_switch(self, tmp_path: Path) -> None:
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a"])
+        assert "USER root" not in result
+        assert "USER ${USERNAME}" not in result
+
+    def test_mixed_root_nonroot_single_block(self, tmp_path: Path) -> None:
+        """Root->non-root->root produces one USER block (sorted together)."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "r1.toml").write_text(
+            '[metadata]\nname = "R1"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo r1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "nr.toml").write_text(
+            '[metadata]\nname = "NR"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo nr"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "r2.toml").write_text(
+            '[metadata]\nname = "R2"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo r2"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["r1", "nr", "r2"])
+        # Root plugins are sorted together into one block
+        assert result.count("USER root") == 1
+        assert result.count("USER ${USERNAME}") == 1
+
+    def test_non_pure_run_not_merged(self, tmp_path: Path) -> None:
+        """Snippets with ARG are not merged with adjacent RUN-only snippets."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "ARG MY_ARG\\nRUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        assert "ARG MY_ARG" in result
+        assert result.count("USER root") == 1
+
+    def test_pure_run_snippets_merged(self, tmp_path: Path) -> None:
+        """Consecutive pure-RUN root snippets are merged into one RUN."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "# Install A\\nRUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "# Install B\\nRUN echo b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        # Only one RUN statement after merging
+        assert result.count("\nRUN ") + result.count("USER root\nRUN ") <= 1
+        # Both commands present
+        assert "echo a" in result
+        assert "echo b" in result
+        # Comments extracted before the RUN block
+        lines = result.split("\n")
+        run_line_idx = next(i for i, l in enumerate(lines) if l.strip().startswith("RUN "))
+        comment_lines = [l for l in lines[:run_line_idx] if l.strip().startswith("#")]
+        assert len(comment_lines) >= 2
+
+    def test_env_extracted_from_root_snippets(self, tmp_path: Path) -> None:
+        """ENV lines are extracted from root snippets without ARG, enabling RUN merge."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        # a: pure RUN, b: has ENV (no ARG), c: pure RUN
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo b\\nENV X=1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "c.toml").write_text(
+            '[metadata]\nname = "C"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "RUN echo c"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b", "c"])
+        # All in one USER root block
+        assert result.count("USER root") == 1
+        # ENV extracted from b appears after USER ${USERNAME}
+        env_pos = result.find("ENV X=1")
+        user_pos = result.find("USER ${USERNAME}")
+        assert env_pos > user_pos, "Extracted ENV should appear after root block"
+        # All three RUN commands merged (ENV extraction made b pure)
+        assert "echo a" in result
+        assert "echo b" in result
+        assert "echo c" in result
+
+    def test_arg_snippet_env_not_extracted(self, tmp_path: Path) -> None:
+        """Snippets with ARG keep their ENV inside the root block."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = true\n"
+            'dockerfile = "ARG MY_ARG\\nRUN echo a\\nENV X=1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a"])
+        # ENV stays with ARG snippet inside root block
+        env_pos = result.find("ENV X=1")
+        user_pos = result.find("USER ${USERNAME}")
+        assert env_pos < user_pos, "ENV in ARG snippet should stay inside root block"
+
+    def test_non_root_pure_run_merged(self, tmp_path: Path) -> None:
+        """Consecutive non-root pure-RUN snippets are merged into one RUN."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "# Install A\\nRUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "# Install B\\nRUN echo b"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        # Both merged into one RUN
+        assert "echo a" in result
+        assert "echo b" in result
+        lines = result.split("\n")
+        run_count = sum(1 for l in lines if l.strip().startswith("RUN "))
+        assert run_count == 1, f"Expected 1 RUN, got {run_count}"
+        # No USER directives
+        assert "USER root" not in result
+
+    def test_non_root_env_extracted_and_merged(self, tmp_path: Path) -> None:
+        """Non-root ENV is extracted, enabling RUN merge."""
+        plugins = tmp_path / "plugins"
+        plugins.mkdir()
+        (plugins / "a.toml").write_text(
+            '[metadata]\nname = "A"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo a"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        (plugins / "b.toml").write_text(
+            '[metadata]\nname = "B"\n\n'
+            "[install]\nrequires_root = false\n"
+            'dockerfile = "RUN echo b\\nENV X=1"\n\n'
+            '[version]\nstrategy = "latest"\n'
+        )
+        result = DockerfileGenerator.generate_plugin_installs(str(plugins), ["a", "b"])
+        # ENV extracted, both RUNs merged
+        assert "echo a" in result
+        assert "echo b" in result
+        assert "ENV X=1" in result
+        lines = result.split("\n")
+        run_count = sum(1 for l in lines if l.strip().startswith("RUN "))
+        assert run_count == 1
+        # ENV appears after the merged RUN
+        run_pos = result.find("RUN ")
+        env_pos = result.find("ENV X=1")
+        assert env_pos > run_pos
+
+
 class TestComposeGeneratorSequenceIndent:
     """Test that list items (args, environment, volumes) are indented properly."""
 
