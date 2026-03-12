@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `nerd-fonts` plugin — installs Meslo Nerd Font for terminal icon display (Starship, Powerline, etc.) with font cache update and volume persistence
 - `--verbose` flag for Python CLI error diagnostics (`generators.py`, `toml_parser.py`) — shows full stack traces when enabled, user-friendly messages by default
 - Dangerous system username blocklist in `validate_username()` — blocks 20 reserved names (root, daemon, nobody, www-data, etc.) to prevent container privilege escalation
 - Dockerfile RUN merging optimization — extracts ENV from non-ARG snippets (both root and non-root), sorts and merges consecutive pure-RUN commands into single `RUN` instructions, and consolidates all root plugins into one `USER root` block to minimize image layers and USER switching

@@ -8,6 +8,7 @@
 ## [Unreleased]
 
 ### 追加
+- `nerd-fonts` プラグイン追加 — ターミナルアイコン表示用の Meslo Nerd Font をインストール（Starship、Powerline 等）。フォントキャッシュ更新とボリューム永続化に対応
 - Python CLI エラー診断用 `--verbose` フラグ追加（`generators.py`、`toml_parser.py`）— 有効時にフルスタックトレースを表示、デフォルトではユーザーフレンドリーなメッセージのみ
 - `validate_username()` に危険なシステムユーザー名のブロックリスト追加 — 20 個の予約名（root、daemon、nobody、www-data 等）をブロックしコンテナ権限昇格を防止
 - Dockerfile RUN マージ最適化 — ARG を含まないスニペット（root/non-root 両方）から ENV を抽出し、連続する pure-RUN コマンドを1つの `RUN` にマージ。全 root プラグインを単一の `USER root` ブロックに集約し、イメージレイヤーと USER 切り替えを最小化
