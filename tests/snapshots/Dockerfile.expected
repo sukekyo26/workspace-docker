@@ -127,7 +127,7 @@ RUN echo 'GIT_PS1_SHOWDIRTYSTATE=1' >> ~/.bashrc && \
     sudo ./sam-installation/install && \
     rm -rf sam-installation aws-sam-cli.zip && \
     curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
-    echo "08a2155a02a2e078cf0ee709b456978ab26badd8b45de7ecc9711f5b92712e30  /tmp/install-copilot.sh" | sha256sum -c - && \
+    echo "4b6c932dc8a578749c8fff0d37e16e60a0d8aa012b65e596e8d37e7848626aab  /tmp/install-copilot.sh" | sha256sum -c - && \
     bash /tmp/install-copilot.sh && \
     rm -f /tmp/install-copilot.sh && \
     curl -fsSL --proto '=https' --tlsv1.2 https://claude.ai/install.sh -o /tmp/install-claude.sh && \
