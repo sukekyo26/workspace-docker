@@ -31,7 +31,7 @@ test_copilot_cli() {
   local result
   result=$(generate_plugin_installs "copilot-cli")
   assert_file_contains "install contains Copilot" <(echo "$result") "Copilot"
-  assert_file_contains "SHA256 verification" <(echo "$result") "sha256sum -c"
+  assert_file_contains "uses pipe install" <(echo "$result") "curl -fsSL"
 }
 
 # ============================================================

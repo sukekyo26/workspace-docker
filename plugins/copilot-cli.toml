@@ -8,14 +8,10 @@ requires_root = false
 user_dirs = ["/home/${USERNAME}/.copilot"]
 dockerfile = '''
 # Install GitHub Copilot CLI
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install -o /tmp/install-copilot.sh && \
-    echo "{{INSTALL_SCRIPT_SHA256}}  /tmp/install-copilot.sh" | sha256sum -c - && \
-    bash /tmp/install-copilot.sh && \
-    rm -f /tmp/install-copilot.sh
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://gh.io/copilot-install | bash
 '''
 
 volumes = ["/home/${USERNAME}/.copilot"]
 
 [version]
 strategy = "latest"
-install_script_sha256 = "4b6c932dc8a578749c8fff0d37e16e60a0d8aa012b65e596e8d37e7848626aab"

@@ -14,4 +14,4 @@ applyTo: "lib/**/*.sh,*.sh,plugins/**"
 - `.env` 等の設定ファイル生成で here-doc を使う場合、変数展開させないために `<< 'EOF'` を使い、値は `printf '%s\n'` で安全に書き込む
 - プラグイン追加時は `.github/workflows/ci.yml` の `docker-build` ジョブのプラグインリストにも追加する。CI でビルドテストされないプラグインは品質が保証されない
 - プラグイン追加時は `tests/unit/plugins/test_<name>.sh` のユニットテストも作成する。既存テスト（例: `test_go.sh`）をテンプレートにする
-- プラグインで `curl | sh` パターン（外部スクリプトをダウンロードして実行）を使う場合、`install_script_sha256` による SHA256 検証を必須とする。Dockerfile スニペットに `echo "{{INSTALL_SCRIPT_SHA256}}  /tmp/script.sh" | sha256sum -c -` を含め、`[version]` に `install_script_sha256` フィールドを設定する
+- プラグインで `curl | sh` パターンを使う場合、`version.strategy = "pinned"` なら `install_script_sha256` による SHA256 検証を推奨する。`strategy = "latest"` の場合はインストールスクリプトが上流で随時更新されるため SHA256 固定は行わない（HTTPS + TLS で通信路の安全性は確保済み）

@@ -24,10 +24,7 @@ requires_root = false
 user_dirs = ["/home/${USERNAME}/.proto"]
 dockerfile = '''
 # proto (multi-language version manager)
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh -o /tmp/install-proto.sh && \
-    echo "{{INSTALL_SCRIPT_SHA256}}  /tmp/install-proto.sh" | sha256sum -c - && \
-    bash /tmp/install-proto.sh --no-profile --yes && \
-    rm -f /tmp/install-proto.sh && \
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://moonrepo.dev/install/proto.sh | bash -s -- --no-profile --yes && \
     echo 'export PROTO_HOME="$HOME/.proto"' >> ~/.bashrc && \
     echo 'export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH"' >> ~/.bashrc
 ENV PROTO_HOME="/home/${USERNAME}/.proto"
@@ -38,4 +35,3 @@ volumes = ["/home/${USERNAME}/.proto"]
 
 [version]
 strategy = "latest"
-install_script_sha256 = "a536b96a0f770a0f5a808e229777ca5462b4e31e641c530fcdc34d03a15b1ae6"
